@@ -4,11 +4,11 @@ Proyek ini bertujuan untuk mengembangkan sistem informasi terpusat berbasis webs
 
 ## Latar Belakang
 
-Seiring meningkatnya tren *self-photo studio*, Phour.to membutuhkan platform digital yang terintegrasi untuk mengatasi fragmentasi sistem yang ada. Saat ini, proses reservasi masih menggunakan platform pihak ketiga yang memutus alur pengalaman pelanggan. Proyek ini diusulkan untuk menyatukan seluruh alur layanan—mulai dari reservasi hingga galeri foto—ke dalam satu website resmi untuk memperkuat citra merek dan meningkatkan efisiensi operasional.
+Seiring meningkatnya tren *self-photo studio*, Phour.to membutuhkan platform digital yang terintegrasi untuk mengatasi fragmentasi sistem yang ada. Saat ini, proses reservasi masih menggunakan platform pihak ketiga yang memutus alur pengalaman pelanggan. Proyek ini diusulkan untuk menyatukan seluruh alur layanan mulai dari reservasi hingga galeri foto ke dalam satu website resmi untuk memperkuat citra merek dan meningkatkan efisiensi operasional.
 
 ## Visi & Misi
 
-* **Visi:** Menjadi platform digital pilihan utama bagi pelanggan *self-photo studio* di Riau dengan menetapkan standar baru dalam kemudahan akses dan kualitas pengalaman digital[cite: 18].
+* **Visi:** Menjadi platform digital pilihan utama bagi pelanggan *self-photo studio* di Riau dengan menetapkan standar baru dalam kemudahan akses dan kualitas pengalaman digital.
 * **Misi:**
     * Membangun platform *all-in-one* yang menyatukan seluruh alur layanan.
     * Menyederhanakan pengalaman pelanggan dengan antarmuka yang intuitif.
@@ -41,8 +41,8 @@ Seiring meningkatnya tren *self-photo studio*, Phour.to membutuhkan platform dig
 
 ## Teknologi yang Digunakan
 
-* **Frontend:** *Vue.js, HTML, CSS*
-* **Backend:** *Express.js*
+* **Frontend:** *Vue.js, TailwindCSS*
+* **Backend:** *Node.js, Express.js*
 * **Database:** *PostgreSQL*
 * **Deployment:** *Vercel*
 
