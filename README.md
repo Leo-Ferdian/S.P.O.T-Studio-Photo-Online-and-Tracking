@@ -44,7 +44,6 @@ Seiring meningkatnya tren *self-photo studio*, Phour.to membutuhkan platform dig
 * **Frontend:** *Vue.js, TailwindCSS*
 * **Backend:** *Node.js, Express.js*
 * **Database:** *PostgreSQL*
-* **Deployment:** *Vercel*
 
 *Catatan:*
 
