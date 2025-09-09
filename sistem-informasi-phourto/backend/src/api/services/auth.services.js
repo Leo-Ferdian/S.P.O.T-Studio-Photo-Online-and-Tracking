@@ -19,6 +19,7 @@ class AuthService {
         // Hashing password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
+        console.log("Hashed Password:", hashedPassword);
 
         // Simpan pengguna baru
         const newUserResult = await db.query(
@@ -39,7 +40,7 @@ class AuthService {
             throw error;
         }
 
-        const user = userResult.rows;
+        const user = userResult.rows[0];
 
         // Verifikasi password
         const isMatch = await bcrypt.compare(password, user.password);
@@ -58,7 +59,7 @@ class AuthService {
         };
 
         const token = jwt.sign(payload, process.env.JWT_SECRET, {
-            expiresIn: process.env.JWT_EXPIRES_IN
+            expiresIn: process.env.JWT_EXPIRES_IN || '1h'
         });
 
         return { token, user: { id: user.id, full_name: user.full_name, email: user.email } };
