@@ -1,0 +1,75 @@
+# ========================
+# Node.js (Backend & Frontend)
+# ========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# ========================
+# Build / Dist
+# ========================
+dist/
+build/
+.cache/
+temp/
+.tmp/
+public/build/
+coverage/
+
+# Vue CLI build
+/node_modules/
+/dist/
+/*.local
+
+# Vite build (kalau pakai Vite di Vue3)
+.vite/
+vite.config.ts.timestamp*
+
+# Tailwind CSS
+*.css.map
+*.css.*
+!*.tailwind.css  # simpan file utama tailwind jika ada
+
+# ========================
+# Environment files (jangan commit!)
+# ========================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ========================
+# Logs
+# ========================
+logs/
+*.log
+*.log.*
+debug.log
+error.log
+
+# ========================
+# System files
+# ========================
+.DS_Store
+Thumbs.db
+
+# ========================
+# IDE / Editor
+# ========================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ========================
+# Test / Coverage
+# ========================
+coverage/
+.nyc_output/
+jest-html-reporters-*.html
