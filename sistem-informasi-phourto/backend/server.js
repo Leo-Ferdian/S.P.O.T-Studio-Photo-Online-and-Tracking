@@ -21,7 +21,7 @@ app.get('/', (req, res) => {
 // Gunakan Rute Autentikasi
 app.use('/api/auth', authRoutes);
 
-// Rute Protected (contoh)
+// Rute Protected
 app.get('/api/protected', authenticateToken, (req, res) => {
     res.json({
         message: `Halo ${req.user.name}, endpoint ini terproteksi!`,
