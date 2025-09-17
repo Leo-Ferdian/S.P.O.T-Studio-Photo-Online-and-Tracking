@@ -4,6 +4,9 @@ const cors = require('cors'); // Untuk mengizinkan request dari frontend
 
 // Impor rute
 const authRoutes = require('./src/api/routes/auth.routes');
+const packageRoutes = require('./src/api/routes/package.routes');
+const branchRoutes = require('./src/api/routes/branch.routes');
+const bookingRoutes = require('./src/api/routes/booking.routes');
 const authenticateToken = require('./src/api/middlewares/auth.middleware');
 const { registerValidationRules, loginValidationRules } = require('./src/api/validator/auth.validator');    
 const app = express();
@@ -20,6 +23,9 @@ app.get('/', (req, res) => {
 
 // Gunakan Rute Autentikasi
 app.use('/api/auth', authRoutes);
+app.use('/api/packages', packageRoutes);
+app.use('/api/branches', branchRoutes);
+app.use('/api/bookings', bookingRoutes);
 
 // Rute Protected
 app.get('/api/protected', authenticateToken, (req, res) => {
@@ -49,3 +55,4 @@ app.use(cors({
 
 // Export app untuk testing atau penggunaan lainnya
 // module.exports = app;
+
