@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors'); // Untuk mengizinkan request dari frontend
+const errorHandler = require('./src/api/middlewares/errorHandler.middleware.js');
 
 // Impor rute
 const authRoutes = require('./src/api/routes/auth.routes');
@@ -53,6 +54,7 @@ app.use(cors({
     credentials: true
 }));
 
+app.use(errorHandler);
 // Export app untuk testing atau penggunaan lainnya
-// module.exports = app;
+module.exports = app;
 
