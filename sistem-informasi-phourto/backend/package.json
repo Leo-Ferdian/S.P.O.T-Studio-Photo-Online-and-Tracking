@@ -24,5 +24,18 @@
 
     "devDependencies": {
         "nodemon": "^3.1.10"
-    }
+    },
+    
+    "engines": {
+        "node": ">=14.0.0"
+    },
+
+    "success": false,
+    "statusCode": 400,
+    "message": "Validasi Gagal.",
+    "error": "Bad Request",
+    "timestamp": "2024-10-05T12:34:56.789Z",
+    "path": "/api/bookings/availability"
+    
 }
+

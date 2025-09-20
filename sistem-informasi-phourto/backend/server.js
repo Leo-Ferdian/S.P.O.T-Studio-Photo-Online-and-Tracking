@@ -50,7 +50,7 @@ app.use((err, req, res, next) => {
 
 //cors configuration
 app.use(cors({
-  origin: 'http://localhost:3000', // nanti diubah ke domain frontend
+    origin: 'http://localhost:3000', // nanti diubah ke domain frontend
     credentials: true
 }));
 

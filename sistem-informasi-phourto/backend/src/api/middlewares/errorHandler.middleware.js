@@ -1,13 +1,21 @@
-function errorHandler(err, req, res, next) {
-    console.error(err); // Bisa diganti logger (winston, pino, dll.)
+const { path } = require("../../../server");
+const logger = require('./logger');
 
+// Middleware penanganan error
+const errorHandler = (err, req, res, next) => {
     const statusCode = err.statusCode || 500;
-    const message = err.message || 'Terjadi kesalahan pada server.';
+
+    // Log error
+    logger.error(
+        `[${req.method}] ${req.originalUrl} - ${statusCode} - ${err.message}`,
+        { stack: err.stack, body: req.body, params: req.params, query: req.query }
+    );
 
     res.status(statusCode).json({
         success: false,
-        message
+        message: err.message || 'Terjadi kesalahan pada server',
+        errors: err.errors || null,
     });
-}
+};
 
 module.exports = errorHandler;

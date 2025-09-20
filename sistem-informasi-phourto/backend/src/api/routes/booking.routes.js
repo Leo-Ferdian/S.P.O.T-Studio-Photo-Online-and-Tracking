@@ -6,10 +6,16 @@ const BookingController = require('../controllers/booking.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
 const { createBookingValidationRules } = require('../validators/booking.validator');
 
+
 // ==================================================
 // RUTE UNTUK PENGGUNA (CUSTOMER)
 // Semua rute di bawah ini dilindungi dan memerlukan login
 // ==================================================
+
+router.get('/availability', BookingController.checkAvailability);
+router.post('/', createBookingValidationRules(), BookingController.create);
+router.get('/my-bookings', BookingController.getMyBookings);
+router.get('/:id', BookingController.getBookingById);
 
 /**
  * @route   GET /api/bookings/availability
