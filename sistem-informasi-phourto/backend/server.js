@@ -1,7 +1,9 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors'); // Untuk mengizinkan request dari frontend
+const { logger, morganMiddleware } = require('./src/utils/logger'); // Impor logger dan morgan middleware
 const errorHandler = require('./src/api/middlewares/errorHandler.middleware.js');
+const app = express();
 
 // Impor rute
 const authRoutes = require('./src/api/routes/auth.routes');
@@ -10,7 +12,6 @@ const branchRoutes = require('./src/api/routes/branch.routes');
 const bookingRoutes = require('./src/api/routes/booking.routes');
 const authenticateToken = require('./src/api/middlewares/auth.middleware');
 const { registerValidationRules, loginValidationRules } = require('./src/api/validator/auth.validator');    
-const app = express();
 
 // Middleware
 app.use(cors()); // Mengaktifkan CORS
@@ -22,11 +23,14 @@ app.get('/', (req, res) => {
     res.send('Selamat datang di S.P.O.T API!');
 });
 
-// Gunakan Rute Autentikasi
+// Route API
 app.use('/api/auth', authRoutes);
 app.use('/api/packages', packageRoutes);
 app.use('/api/branches', branchRoutes);
 app.use('/api/bookings', bookingRoutes);
+
+// Logging
+app.use(morganMiddleware); // Gunakan morgan middleware untuk logging
 
 // Rute Protected
 app.get('/api/protected', authenticateToken, (req, res) => {

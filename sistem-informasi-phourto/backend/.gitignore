@@ -49,6 +49,10 @@ logs/
 *.log.*
 debug.log
 error.log
+combined.log
+access.log
+request.log
+http.log
 
 # ========================
 # System files

@@ -1,6 +1,8 @@
 const db = require('../../config/database');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+require('dotenv').config();
+const apiError = require('../../utils/apiError');
 
 class AuthService {
     async registerUser({ full_name, whatsapp_number, email, password }) {
@@ -11,9 +13,10 @@ class AuthService {
         );
 
         if (existingUser.rows.length > 0) {
-            const error = new Error('Email atau nomor WhatsApp sudah terdaftar.');
-            error.statusCode = 409; // 409 Conflict
-            throw error;
+            throw new apiError('Email atau nomor WhatsApp sudah terdaftar.', 409);
+            // const error = new Error('Email atau nomor WhatsApp sudah terdaftar.');
+            // error.statusCode = 409; // 409 Conflict
+            // throw error;
         }
 
         // Hashing password
@@ -35,9 +38,10 @@ class AuthService {
         const userResult = await db.query('SELECT * FROM phourto.users WHERE email = $1', [email]);
 
         if (userResult.rows.length === 0) {
-            const error = new Error('Email atau password salah.');
-            error.statusCode = 401; // 401 Unauthorized
-            throw error;
+            throw new apiError('Email atau password salah.', 401);
+            // const error = new Error('Email atau password salah.');
+            // error.statusCode = 401; // 401 Unauthorized
+            // throw error;
         }
 
         const user = userResult.rows[0];
@@ -46,9 +50,10 @@ class AuthService {
         const isMatch = await bcrypt.compare(password, user.password);
 
         if (!isMatch) {
-            const error = new Error('Email atau password salah.');
-            error.statusCode = 401; // 401 Unauthorized
-            throw error;
+            throw new apiError('Email atau password salah.', 401);
+            // const error = new Error('Email atau password salah.');
+            // error.statusCode = 401; // 401 Unauthorized
+            // throw error;
         }
 
         // Buat Token JWT

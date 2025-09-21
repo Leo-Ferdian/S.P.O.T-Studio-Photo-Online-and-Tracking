@@ -4,7 +4,7 @@ const router = express.Router();
 // Impor komponen yang dibutuhkan
 const BookingController = require('../controllers/booking.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
-const { createBookingValidationRules } = require('../validators/booking.validator');
+const { createBookingValidationRules } = require('../validator/booking.validator');
 
 
 // ==================================================

@@ -1,12 +1,14 @@
 const { validationResult } = require('express-validator');
 const AuthService = require('../services/auth.services');
+const apiError = require('../../utils/apiError');
 
 class AuthController {
     async register(req, res) {
-        // Cek hasil validasi
+        // Cek hasil validasi registrasi
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
+            throw new apiError('Validasi gagal.', 400, errors.array());
+            // return res.status(400).json({ errors: errors.array() });
         }
 
         try {
@@ -21,10 +23,10 @@ class AuthController {
     }
 
     async login(req, res) {
-        // Cek hasil validasi
+        // Cek hasil validasi login
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
+            throw new apiError('Validasi gagal.', 400, errors.array());
         }
 
         try {

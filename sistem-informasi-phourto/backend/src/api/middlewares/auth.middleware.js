@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const apiError = require('../utils/apiError');
+const apiError = require('../../utils/apiError');
 require('dotenv').config();
 
 function authenticateToken(req, res, next) {
@@ -14,7 +14,10 @@ function authenticateToken(req, res, next) {
 
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
         if (err) {
-            return next(new apiError('Token tidak valid atau sudah kadaluarsa.', 403));
+            if (err.name === 'TokenExpiredError') {
+                return next(new apiError('Token sudah kadaluarsa.', 401));
+            }
+            return next(new apiError('Token tidak valid.', 403));
         }
         req.user = user; // simpan data user dari payload JWT
         next();

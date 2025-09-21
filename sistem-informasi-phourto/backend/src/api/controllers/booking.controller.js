@@ -1,4 +1,4 @@
-const BookingService = require('../services/booking.service');
+const BookingService = require('../services/booking.services');
 const asyncHandler = require('../../utils/asyncHandler');
 const apiError = require('../../utils/apiError');
 const { validationResult } = require('express-validator');

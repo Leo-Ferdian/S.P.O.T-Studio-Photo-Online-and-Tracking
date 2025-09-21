@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const AuthController = require('../controllers/auth.controllers');
+const AuthController = require('../controllers/auth.controller');
 const { registerValidationRules, loginValidationRules } = require('../validator/auth.validator');
 
 // Rute untuk registrasi pengguna baru
