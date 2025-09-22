@@ -1,36 +1,36 @@
 # ========================
 # Node.js (Backend & Frontend)
 # ========================
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
+# node_modules/
+# npm-debug.log*
+# yarn-debug.log*
+# yarn-error.log*
+# pnpm-debug.log*
 
 # ========================
 # Build / Dist
 # ========================
-dist/
-build/
-.cache/
-temp/
-.tmp/
-public/build/
-coverage/
+# dist/
+# build/
+# .cache/
+# temp/
+# .tmp/
+# public/build/
+# coverage/
 
 # Vue CLI build
-/node_modules/
-/dist/
-/*.local
+# /node_modules/
+# /dist/
+# /*.local
 
 # Vite build (kalau pakai Vite di Vue3)
 .vite/
 vite.config.ts.timestamp*
 
 # Tailwind CSS
-*.css.map
-*.css.*
-!*.tailwind.css  # simpan file utama tailwind jika ada
+# *.css.map
+# *.css.*
+# !*.tailwind.css  # simpan file utama tailwind jika ada
 
 # ========================
 # Environment files (jangan commit!)
