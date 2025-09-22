@@ -1,7 +1,6 @@
-// services/booking.service.js
 const db = require('../../config/database');
 const apiError = require('../../utils/apiError');
-const logger = require('../../utils/logger'); // asumsi sudah ada logger (winston/pino)
+const logger = require('../../utils/logger');
 
 // Enum status booking
 const BOOKING_STATUS = {

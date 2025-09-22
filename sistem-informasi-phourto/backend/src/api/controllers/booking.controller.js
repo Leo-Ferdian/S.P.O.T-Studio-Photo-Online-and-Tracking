@@ -1,7 +1,8 @@
-const BookingService = require('../services/booking.services');
+const BookingService = require('../services/booking.service');
 const asyncHandler = require('../../utils/asyncHandler');
 const apiError = require('../../utils/apiError');
 const { validationResult } = require('express-validator');
+const responseHandler = require('../../utils/responseHandler');
 
 class BookingController {
     /**
@@ -25,11 +26,8 @@ class BookingController {
         }
 
         const availableSlots = await BookingService.checkAvailability(branch_Id, date);
-        // Gunakan return untuk konsistensi
-        return res.status(200).json({
-            message: 'Slot tersedia berhasil diambil.',
-            data: availableSlots
-        });
+
+        new responseHandler(res, 200, availableSlots, 'Ketersediaan slot berhasil diambil.');
     });
         // Membuat booking baru
     create = asyncHandler(async (req, res) => {
@@ -45,10 +43,7 @@ class BookingController {
 
         const result = await BookingService.createBooking(userId, req.body);
 
-        return res.status(201).json({
-            message: 'Booking berhasil dibuat. Silakan selesaikan pembayaran.',
-            data: result
-        });
+        new responseHandler(res, 201, result, 'Booking berhasil dibuat.');
     });
 
         // Mendapatkan daftar booking user saat ini
@@ -66,10 +61,7 @@ class BookingController {
             parseInt(page, 10),
             parseInt(limit, 10)
         );
-        return res.status(200).json({
-            message: 'Riwayat booking berhasil diambil.',
-            ...bookings
-        });
+        new responseHandler(res, 200, bookings, 'Daftar booking berhasil diambil.');
     });
         // Mendapatkan detail booking user berdasarkan ID
     getBookingById = asyncHandler(async (req, res) => {
@@ -86,10 +78,7 @@ class BookingController {
         }
 
         const booking = await BookingService.getBookingById(bookingId, userId);
-        return res.status(200).json({
-            message: 'Detail booking berhasil diambil.',
-            data: booking
-        });
+        new responseHandler(res, 200, booking, 'Detail booking berhasil diambil.');
     });
 }
 

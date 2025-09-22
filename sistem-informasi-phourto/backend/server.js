@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors'); // Untuk mengizinkan request dari frontend
 const { logger, morganMiddleware } = require('./src/utils/logger'); // Impor logger dan morgan middleware
-const errorHandler = require('./src/api/middlewares/errorHandler.middleware.js');
+const errorHandler = require('./src/utils/errorHandler.js');
 const app = express();
 
 // Impor rute
