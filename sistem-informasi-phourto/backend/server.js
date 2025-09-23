@@ -4,6 +4,8 @@ const cors = require('cors'); // Untuk mengizinkan request dari frontend
 const { logger, morganMiddleware } = require('./src/utils/logger'); // Impor logger dan morgan middleware
 const errorHandler = require('./src/utils/errorHandler.js');
 const app = express();
+const apiError = require('./src/utils/apiError');
+const profileRoutes = require('./src/api/routes/user.routes'); // Impor rute profil
 
 // Impor rute
 const authRoutes = require('./src/api/routes/auth.routes');
@@ -11,7 +13,7 @@ const packageRoutes = require('./src/api/routes/package.routes');
 const branchRoutes = require('./src/api/routes/branch.routes');
 const bookingRoutes = require('./src/api/routes/booking.routes');
 const authenticateToken = require('./src/api/middlewares/auth.middleware');
-const { registerValidationRules, loginValidationRules } = require('./src/api/validator/auth.validator');    
+// const { registerValidationRules, loginValidationRules } = require('./src/api/validator/auth.validator');    
 
 // Middleware
 app.use(cors()); // Mengaktifkan CORS
@@ -28,6 +30,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/packages', packageRoutes);
 app.use('/api/branches', branchRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/profile', profileRoutes); // Gunakan rute profil
 
 // Logging
 app.use(morganMiddleware); // Gunakan morgan middleware untuk logging

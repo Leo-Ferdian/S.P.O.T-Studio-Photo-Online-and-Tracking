@@ -1,5 +1,5 @@
 // const { path } = require("../../../server");
-const logger = require("./logger");
+const { logger: { error } } = require("./logger");
 
 // Middleware penanganan error
 const errorHandler = (err, req, res, next) => {
