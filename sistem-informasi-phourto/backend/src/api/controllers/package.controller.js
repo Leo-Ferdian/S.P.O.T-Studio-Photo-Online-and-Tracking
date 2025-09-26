@@ -1,5 +1,5 @@
 const PackageService = require('../services/package.service');
-const responseHandler = require('../../utils/responseHandler');
+const apiResponse = require('../../utils/apiResponse');
 const apiError = require('../../utils/apiError');
 const asyncHandler = require('../../utils/asyncHandler');
 
@@ -9,7 +9,7 @@ class PackageController {
         if (!packages || packages.length === 0) {
             throw new apiError('Tidak ada data paket tersedia.', 404); // Not Found
         }
-        new responseHandler(res, 200, packages, 'Data paket berhasil diambil.');
+        new apiResponse(res, 200, packages, 'Data paket berhasil diambil.');
     });
     // async getAll(req, res) {
     //     try {

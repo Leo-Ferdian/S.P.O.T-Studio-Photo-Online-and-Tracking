@@ -1,7 +1,7 @@
 const { validationResult } = require('express-validator');
 const AuthService = require('../services/auth.service');
 const apiError = require('../../utils/apiError');
-const responseHandler = require('../../utils/responseHandler');
+const apiResponse = require('../../utils/apiResponse');
 const asyncHandler = require('../../utils/asyncHandler');
 
 class AuthController {
@@ -15,7 +15,7 @@ class AuthController {
 
     //     try {
     //         const newUser = await AuthService.registerUser(req.body);
-    //         new responseHandler(res, 201, newUser, 'Registrasi berhasil. Silakan login.');
+    //         new apiResponse(res, 201, newUser, 'Registrasi berhasil. Silakan login.');
     //     } catch (error) {
     //         res.status(error.statusCode || 500).json({ message: error.message || 'Terjadi kesalahan pada server.' });
     //     }
@@ -26,7 +26,7 @@ class AuthController {
             throw new apiError('username atau email adalah parameter yang wajib.', 400);
         }
         const isAvailable = await AuthService.checkAvailability(username, email);
-        new responseHandler(res, 200, { isAvailable }, 'Pemeriksaan ketersediaan berhasil.');
+        new apiResponse(res, 200, { isAvailable }, 'Pemeriksaan ketersediaan berhasil.');
     });
 
 
@@ -39,7 +39,7 @@ class AuthController {
 
     //     try {
     //         const { token, user } = await AuthService.loginUser(req.body);
-    //         new responseHandler(res, 200, { token, user }, 'Login berhasil.');
+    //         new apiResponse(res, 200, { token, user }, 'Login berhasil.');
     //     } catch (error) {
     //         res.status(error.statusCode || 500).json({ message: error.message || 'Terjadi kesalahan pada server.' });
     //     }
@@ -51,7 +51,7 @@ class AuthController {
             throw new apiError('Validasi gagal.', 400, errors.array());
         }
         const newUser = await AuthService.registerUser(req.body);
-        new responseHandler(res, 201, newUser, 'Registrasi berhasil. Silakan login.');
+        new apiResponse(res, 201, newUser, 'Registrasi berhasil. Silakan login.');
     });
 
     login = asyncHandler(async (req, res) => {
@@ -61,7 +61,7 @@ class AuthController {
             throw new apiError('Validasi gagal.', 400, errors.array());
         }
         const { token, user } = await AuthService.loginUser(req.body);
-        new responseHandler(res, 200, { token, user }, 'Login berhasil.');
+        new apiResponse(res, 200, { token, user }, 'Login berhasil.');
     });
 
     getProfile = asyncHandler(async (req, res) => {
@@ -70,7 +70,7 @@ class AuthController {
             throw new apiError('User tidak ditemukan. Silakan login kembali.', 401);
         }
         const userProfile = await AuthService.getUserProfile(userId);
-        new responseHandler(res, 200, userProfile, 'Profil user berhasil diambil.');
+        new apiResponse(res, 200, userProfile, 'Profil user berhasil diambil.');
     });
 
     updateProfile = asyncHandler(async (req, res) => {
@@ -79,7 +79,7 @@ class AuthController {
             throw new apiError('User tidak ditemukan. Silakan login kembali.', 401);
         }
         const updatedUser = await AuthService.updateUserProfile(userId, req.body);
-        new responseHandler(res, 200, updatedUser, 'Profil user berhasil diperbarui.');
+        new apiResponse(res, 200, updatedUser, 'Profil user berhasil diperbarui.');
     });
 
     changePassword = asyncHandler(async (req, res) => {
@@ -92,13 +92,13 @@ class AuthController {
             throw new apiError('currentPassword dan newPassword adalah parameter yang wajib.', 400);
         }
         await AuthService.changeUserPassword(userId, currentPassword, newPassword);
-        new responseHandler(res, 200, null, 'Password berhasil diubah.');
+        new apiResponse(res, 200, null, 'Password berhasil diubah.');
     });
 
     logout = asyncHandler(async (req, res) => {
         // Untuk JWT, logout biasanya dilakukan di sisi client dengan menghapus token.
         // Namun, jika menggunakan token blacklist, implementasikan logika di sini.
-        new responseHandler(res, 200, null, 'Logout berhasil.');
+        new apiResponse(res, 200, null, 'Logout berhasil.');
     });
 }
 

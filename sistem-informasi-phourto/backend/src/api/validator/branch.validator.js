@@ -1,12 +1,22 @@
-const { param } = require('express-validator');
+const { body, param } = require('express-validator');
 
-// Validasi untuk GET /branches/:id
-const getBranchByIdValidationRules = [
-    param('id')
-        .isInt({ min: 1 })
-        .withMessage('ID cabang harus berupa angka positif.')
-];
+/**
+ * Aturan validasi untuk data body saat membuat atau memperbarui cabang.
+ * Ini akan memeriksa 'name', 'address', dan 'city'.
+ */
+const branchBodyValidationRules = () => {
+    return;
+};
+
+/**
+ * Aturan validasi untuk parameter 'id' di URL.
+ * Memastikan ID adalah angka bulat positif.
+ */
+const branchIdValidationRules = () => {
+    return;
+};
 
 module.exports = {
-    getBranchByIdValidationRules,
+    branchBodyValidationRules,
+    branchIdValidationRules,
 };

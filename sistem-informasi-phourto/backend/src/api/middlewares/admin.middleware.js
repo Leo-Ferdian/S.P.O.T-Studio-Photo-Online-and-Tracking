@@ -1,5 +1,5 @@
 const db = require('../../config/database');
-const ApiError = require('../../utils/apiError');
+const apiError = require('../../utils/apiError');
 const asyncHandler = require('../../utils/asyncHandler');
 
 /**
@@ -16,7 +16,7 @@ const isAdmin = asyncHandler(async (req, res, next) => {
 
     // Jika pengguna tidak ditemukan di database (meskipun token valid, ini kasus aneh)
     if (userResult.rows.length === 0) {
-        throw new ApiError(404, 'Pengguna yang terkait dengan token ini tidak ditemukan.');
+        throw new apiError (404, 'Pengguna yang terkait dengan token ini tidak ditemukan.');
     }
 
     const userRole = userResult.rows.role;
@@ -25,7 +25,7 @@ const isAdmin = asyncHandler(async (req, res, next) => {
     if (userRole!== 'admin') {
         // Jika bukan admin, kirim error 403 Forbidden
         // 403 artinya "Saya tahu siapa Anda, tapi Anda tidak diizinkan mengakses ini."
-        throw new ApiError(403, 'Akses ditolak. Anda tidak memiliki hak akses admin.');
+        throw new apiError (403, 'Akses ditolak. Anda tidak memiliki hak akses admin.');
     }
 
     // Jika pengguna adalah admin, lanjutkan ke controller berikutnya

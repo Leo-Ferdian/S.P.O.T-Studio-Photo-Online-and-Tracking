@@ -1,7 +1,7 @@
 const BranchService = require('../services/branch.service');
 const apiError = require('../../utils/apiError');
 const asyncHandler = require('../../utils/asyncHandler');
-const responseHandler = require('../../utils/responseHandler');
+const apiResponse = require('../../utils/apiResponse');
 
 // class BranchController {
 //     async getAll(req, res) {
@@ -23,7 +23,7 @@ class BranchController {
             throw new apiError('Tidak ada data cabang tersedia.', 404); // Not Found
         }
 
-        new responseHandler(res, 200, branches, 'Data cabang berhasil diambil.');
+        new apiResponse(res, 200, branches, 'Data cabang berhasil diambil.');
     });
     getById = asyncHandler(async (req, res, next) => {
         const branchId = parseInt(req.params.id, 10);
@@ -32,7 +32,7 @@ class BranchController {
         }
         const branch = await BranchService.getBranchById(branchId);
 
-        new responseHandler(res, 200, branch, 'Detail cabang berhasil diambil.');
+        new apiResponse(res, 200, branch, 'Detail cabang berhasil diambil.');
     });
 }
 

@@ -6,6 +6,7 @@ const errorHandler = require('./src/utils/errorHandler.js');
 const app = express();
 const apiError = require('./src/utils/apiError');
 const profileRoutes = require('./src/api/routes/user.routes'); // Impor rute profil
+const paymentRoutes = require('./src/api/routes/payment.routes');
 
 // Impor rute
 const authRoutes = require('./src/api/routes/auth.routes');
@@ -13,6 +14,10 @@ const packageRoutes = require('./src/api/routes/package.routes');
 const branchRoutes = require('./src/api/routes/branch.routes');
 const bookingRoutes = require('./src/api/routes/booking.routes');
 const authenticateToken = require('./src/api/middlewares/auth.middleware');
+const adminPackageRoutes = require('./src/api/routes/admin/package.routes');
+const adminBranchRoutes = require('./src/api/routes/admin/branch.routes');
+// const adminBookingRoutes = require('./src/api/routes/admin/booking.routes');
+// const adminUserRoutes = require('./src/api/routes/admin/user.routes');
 // const { registerValidationRules, loginValidationRules } = require('./src/api/validator/auth.validator');    
 
 // Middleware
@@ -25,12 +30,19 @@ app.get('/', (req, res) => {
     res.send('Selamat datang di S.P.O.T API!');
 });
 
+// Rute Admin
+app.use('/api/admin/packages', adminPackageRoutes); // Rute paket admin
+app.use('/api/admin/branches', adminBranchRoutes); // Rute cabang admin
+// app.use('/api/admin/bookings', adminBookingRoutes); // Rute booking admin
+// app.use('/api/admin/users', adminUserRoutes); // Rute user admin
+
 // Route API
-app.use('/api/auth', authRoutes);
-app.use('/api/packages', packageRoutes);
-app.use('/api/branches', branchRoutes);
-app.use('/api/bookings', bookingRoutes);
+app.use('/api/auth', authRoutes); // Rute autentikasi
+app.use('/api/packages', packageRoutes); // Rute paket
+app.use('/api/branches', branchRoutes); // Rute cabang
+app.use('/api/bookings', bookingRoutes); // Rute booking
 app.use('/api/profile', profileRoutes); // Gunakan rute profil
+app.use('/api/payments', paymentRoutes); // Rute pembayaran
 
 // Logging
 app.use(morganMiddleware); // Gunakan morgan middleware untuk logging

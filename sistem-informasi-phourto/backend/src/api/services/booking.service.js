@@ -6,13 +6,9 @@ const logger = require('../../utils/logger');
 const BOOKING_STATUS = {
     PENDING_PAYMENT: 'PENDING_PAYMENT',
     PAID: 'PAID',
-    CANCELLED: 'CANCELLED'
+    CANCELLED: 'CANCELLED',
+    FAILED_PAYMENT: 'FAILED_PAYMENT'
 };
-
-// Expired payment diambil dari ENV atau default 15 menit
-const PAYMENT_EXPIRY_MINUTES = process.env.PAYMENT_EXPIRY_MINUTES
-    ? parseInt(process.env.PAYMENT_EXPIRY_MINUTES, 10)
-    : 15;
 
 class BookingService {
     /**
@@ -70,7 +66,7 @@ class BookingService {
     }
 
     /**
-     * Membuat booking baru.
+     * Membuat booking baru (status awal: PENDING_PAYMENT).
      */
     async createBooking(userId, bookingData) {
         const { package_id, branch_id, booking_time } = bookingData;
@@ -96,36 +92,28 @@ class BookingService {
             // 2. Cek slot ketersediaan
             const availabilityCheck = await client.query(
                 `SELECT id 
-                FROM phourto.bookings 
-                WHERE branch_id = $1 AND booking_time = $2 
-                AND status IN ($3, $4)`,
+                 FROM phourto.bookings 
+                 WHERE branch_id = $1 AND booking_time = $2 
+                 AND status IN ($3, $4)`,
                 [branch_id, booking_time, BOOKING_STATUS.PAID, BOOKING_STATUS.PENDING_PAYMENT]
             );
             if (availabilityCheck.rows.length > 0) {
                 throw new apiError('Slot waktu sudah terisi. Silakan pilih waktu lain.', 409);
             }
 
-            // 3. Insert booking baru
+            // 3. Insert booking baru dengan status PENDING_PAYMENT
             const newBookingResult = await client.query(
                 `INSERT INTO phourto.bookings 
-                (user_id, branch_id, package_id, booking_time, total_amount, status)
-                VALUES ($1, $2, $3, $4, $5, $6)
-                RETURNING id, user_id, branch_id, package_id, booking_time, total_amount, status`,
+                 (user_id, branch_id, package_id, booking_time, total_amount, status)
+                 VALUES ($1, $2, $3, $4, $5, $6)
+                 RETURNING id, user_id, branch_id, package_id, booking_time, total_amount, status`,
                 [userId, branch_id, package_id, booking_time, totalAmount, BOOKING_STATUS.PENDING_PAYMENT]
             );
+
             const newBooking = newBookingResult.rows[0];
-
             await client.query('COMMIT');
+            return newBooking;
 
-            // --- Placeholder Payment Gateway ---
-            const paymentInfo = {
-                is_mock: true,
-                qr_code_url: `https://api.paymentgateway.com/qris/${newBooking.id}`,
-                expires_at: new Date(Date.now() + PAYMENT_EXPIRY_MINUTES * 60 * 1000)
-            };
-            // ----------------------------------
-
-            return { booking: newBooking, paymentInfo };
         } catch (err) {
             await client.query('ROLLBACK');
             logger.error('CreateBooking failed:', err);
@@ -133,6 +121,43 @@ class BookingService {
         } finally {
             client.release();
         }
+    }
+
+    /**
+     * Simpan informasi pembayaran dari Midtrans.
+     */
+    async savePaymentInfo(bookingId, paymentData) {
+        const query = `
+            INSERT INTO phourto.payments 
+            (booking_id, transaction_id, order_id, gross_amount, payment_type, payment_url, qr_code_url, expires_at, status)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+            RETURNING *`;
+        const values = [
+            bookingId,
+            paymentData.transaction_id,
+            paymentData.order_id,
+            paymentData.gross_amount,
+            paymentData.payment_type,
+            paymentData.payment_url || null,
+            paymentData.qr_code_url || null,
+            paymentData.expires_at,
+            paymentData.status || 'WAITING_PAYMENT'
+        ];
+        const result = await db.query(query, values);
+        return result.rows[0];
+    }
+
+    /**
+     * Update status booking (misalnya setelah payment sukses/expire).
+     */
+    async updateBookingStatus(bookingId, status) {
+        const query = `
+            UPDATE phourto.bookings
+            SET status = $2
+            WHERE id = $1
+            RETURNING *`;
+        const result = await db.query(query, [bookingId, status]);
+        return result.rows[0];
     }
 
     /**

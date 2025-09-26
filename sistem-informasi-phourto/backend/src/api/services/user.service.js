@@ -1,6 +1,6 @@
 const db = require('../../config/database');
 const bcrypt = require('bcryptjs');
-const ApiError = require('../../utils/apiError');
+const apiError = require('../../utils/apiError');
 
 class UserService {
     /**
@@ -14,7 +14,7 @@ class UserService {
             [userId]
         );
         if (result.rows.length === 0) {
-            throw new ApiError(404, 'Pengguna tidak ditemukan.');
+            throw new apiError (404, 'Pengguna tidak ditemukan.');
         }
         return result.rows;
     }
@@ -43,7 +43,7 @@ class UserService {
         }
 
         if (fields.length === 0) {
-            throw new ApiError(400, 'Tidak ada data yang dikirim untuk diperbarui.');
+            throw new apiError (400, 'Tidak ada data yang dikirim untuk diperbarui.');
         }
 
         values.push(userId); // Tambahkan userId untuk klausa WHERE
@@ -68,13 +68,13 @@ class UserService {
     async changeUserPassword(userId, oldPassword, newPassword) {
         const userResult = await db.query('SELECT password FROM phourto.users WHERE id = $1', [userId]);
         if (userResult.rows.length === 0) {
-            throw new ApiError(404, 'Pengguna tidak ditemukan.');
+            throw new apiError (404, 'Pengguna tidak ditemukan.');
         }
 
         const user = userResult.rows;
         const isMatch = await bcrypt.compare(oldPassword, user.password);
         if (!isMatch) {
-            throw new ApiError(401, 'Password lama yang Anda masukkan salah.');
+            throw new apiError (401, 'Password lama yang Anda masukkan salah.');
         }
 
         const salt = await bcrypt.genSalt(10);
@@ -90,7 +90,7 @@ class UserService {
     async deleteUserAccount(userId) {
         const result = await db.query('DELETE FROM phourto.users WHERE id = $1', [userId]);
         if (result.rowCount === 0) {
-            throw new ApiError(404, 'Pengguna tidak ditemukan.');
+            throw new apiError (404, 'Pengguna tidak ditemukan.');
         }
     }
 }

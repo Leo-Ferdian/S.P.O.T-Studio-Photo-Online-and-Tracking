@@ -1,5 +1,5 @@
 const db = require('../../config/database');
-const ApiError = require('../../utils/apiError'); // Pastikan apiError diimpor
+const apiError = require('../../utils/apiError'); // Pastikan apiError diimpor
 
 class PackageService {
     async getAllPackages() {
@@ -15,7 +15,7 @@ class PackageService {
     async getPackageById(packageId) {
         const result = await db.query('SELECT * FROM phourto.packages WHERE id = $1', [packageId]);
         if (result.rows.length === 0) {
-            throw new ApiError(404, 'Paket dengan ID tersebut tidak ditemukan.');
+            throw new apiError (404, 'Paket dengan ID tersebut tidak ditemukan.');
         }
         return result.rows;
     }
@@ -52,7 +52,7 @@ class PackageService {
             [name, price, duration_minutes, description, packageId]
         );
         if (result.rows.length === 0) {
-            throw new ApiError(404, 'Gagal memperbarui. Paket dengan ID tersebut tidak ditemukan.');
+            throw new apiError (404, 'Gagal memperbarui. Paket dengan ID tersebut tidak ditemukan.');
         }
         return result.rows;
     }
@@ -64,7 +64,7 @@ class PackageService {
     async deletePackage(packageId) {
         const result = await db.query('DELETE FROM phourto.packages WHERE id = $1', [packageId]);
         if (result.rowCount === 0) {
-            throw new ApiError(404, 'Gagal menghapus. Paket dengan ID tersebut tidak ditemukan.');
+            throw new apiError (404, 'Gagal menghapus. Paket dengan ID tersebut tidak ditemukan.');
         }
     }
 }
