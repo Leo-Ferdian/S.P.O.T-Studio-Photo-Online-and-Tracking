@@ -92,9 +92,9 @@ class BookingService {
             // 2. Cek slot ketersediaan
             const availabilityCheck = await client.query(
                 `SELECT id 
-                 FROM phourto.bookings 
-                 WHERE branch_id = $1 AND booking_time = $2 
-                 AND status IN ($3, $4)`,
+                FROM phourto.bookings 
+                WHERE branch_id = $1 AND booking_time = $2 
+                AND status IN ($3, $4)`,
                 [branch_id, booking_time, BOOKING_STATUS.PAID, BOOKING_STATUS.PENDING_PAYMENT]
             );
             if (availabilityCheck.rows.length > 0) {
@@ -104,9 +104,9 @@ class BookingService {
             // 3. Insert booking baru dengan status PENDING_PAYMENT
             const newBookingResult = await client.query(
                 `INSERT INTO phourto.bookings 
-                 (user_id, branch_id, package_id, booking_time, total_amount, status)
-                 VALUES ($1, $2, $3, $4, $5, $6)
-                 RETURNING id, user_id, branch_id, package_id, booking_time, total_amount, status`,
+                (user_id, branch_id, package_id, booking_time, total_amount, status)
+                VALUES ($1, $2, $3, $4, $5, $6)
+                RETURNING id, user_id, branch_id, package_id, booking_time, total_amount, status`,
                 [userId, branch_id, package_id, booking_time, totalAmount, BOOKING_STATUS.PENDING_PAYMENT]
             );
 
@@ -122,6 +122,74 @@ class BookingService {
             client.release();
         }
     }
+     /**
+     * Mengambil semua data booking dari semua pengguna dengan pagination. (Admin)
+     * @param {number} page - Halaman saat ini.
+     * @param {number} limit - Jumlah data per halaman.
+     * @returns {object} - Data booking beserta informasi pagination.
+     */
+    async getAllBookings(page = 1, limit = 10) {
+        const offset = (page - 1) * limit;
+
+        // Query untuk mengambil data booking dengan detail pengguna, paket, dan cabang
+        const dataQuery = `
+            SELECT
+                b.id, b.booking_time, b.status, b.total_amount,
+                u.full_name as customer_name, u.email as customer_email,
+                p.name as package_name,
+                br.name as branch_name
+            FROM phourto.bookings b
+            JOIN phourto.users u ON b.user_id = u.id
+            JOIN phourto.packages p ON b.package_id = p.id
+            JOIN phourto.branches br ON b.branch_id = br.id
+            ORDER BY b.booking_time DESC
+            LIMIT $1 OFFSET $2
+        `;
+        const result = await db.query(dataQuery, [limit, offset]);
+
+        // Query untuk menghitung total data untuk pagination
+        const countQuery = `SELECT COUNT(*) FROM phourto.bookings`;
+        const countResult = await db.query(countQuery);
+        const total = parseInt(countResult.rows.count, 10);
+
+        return {
+            data: result.rows,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
+        };
+    }
+
+    /**
+     * Memperbarui status sebuah booking. (Admin)
+     * @param {number} bookingId - ID dari booking yang akan diperbarui.
+     * @param {string} status - Status baru untuk booking.
+     * @returns {object} - Data booking yang sudah diperbarui.
+     */
+    async updateBookingStatusByAdmin(bookingId, status) {
+        // Validasi apakah status yang diberikan valid sesuai ENUM kita
+        const validStatuses = Object.values(BOOKING_STATUS);
+        if (!validStatuses.includes(status)) {
+            throw new ApiError(400, `Status '${status}' tidak valid.`);
+        }
+
+        const query = `
+            UPDATE phourto.bookings
+            SET status = $1, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $2
+            RETURNING *
+        `;
+        const result = await db.query(query, [status, bookingId]);
+
+        if (result.rows.length === 0) {
+            throw new ApiError(404, `Gagal memperbarui. Booking dengan ID ${bookingId} tidak ditemukan.`);
+        }
+        return result.rows;
+    }
+
 
     /**
      * Simpan informasi pembayaran dari Midtrans.

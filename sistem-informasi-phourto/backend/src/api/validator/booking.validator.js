@@ -1,4 +1,4 @@
-const { body } = require('express-validator');
+const { body, param } = require('express-validator');
 
 // Validasi input untuk membuat booking baru
 const createBookingValidationRules = () => {
@@ -24,6 +24,14 @@ const createBookingValidationRules = () => {
     ];
 };
 
+/**
+ * Aturan validasi untuk memperbarui status booking oleh admin.
+ */
+const updateStatusValidationRules = () => {
+    return;
+};
+
+
 module.exports = {
-    createBookingValidationRules,
+    createBookingValidationRules, updateStatusValidationRules
 };

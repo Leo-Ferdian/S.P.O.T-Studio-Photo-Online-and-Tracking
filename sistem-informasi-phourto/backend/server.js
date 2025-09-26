@@ -16,7 +16,9 @@ const bookingRoutes = require('./src/api/routes/booking.routes');
 const authenticateToken = require('./src/api/middlewares/auth.middleware');
 const adminPackageRoutes = require('./src/api/routes/admin/package.routes');
 const adminBranchRoutes = require('./src/api/routes/admin/branch.routes');
-// const adminBookingRoutes = require('./src/api/routes/admin/booking.routes');
+const adminBookingRoutes = require('./src/api/routes/admin/booking.routes');
+const adminBranchRoutes = require('./src/api/routes/admin/branch.routes');
+const adminBookingRoutes = require('./src/api/routes/admin/booking.routes');
 // const adminUserRoutes = require('./src/api/routes/admin/user.routes');
 // const { registerValidationRules, loginValidationRules } = require('./src/api/validator/auth.validator');    
 
@@ -33,7 +35,7 @@ app.get('/', (req, res) => {
 // Rute Admin
 app.use('/api/admin/packages', adminPackageRoutes); // Rute paket admin
 app.use('/api/admin/branches', adminBranchRoutes); // Rute cabang admin
-// app.use('/api/admin/bookings', adminBookingRoutes); // Rute booking admin
+app.use('/api/admin/bookings', adminBookingRoutes); // Rute booking admin
 // app.use('/api/admin/users', adminUserRoutes); // Rute user admin
 
 // Route API
