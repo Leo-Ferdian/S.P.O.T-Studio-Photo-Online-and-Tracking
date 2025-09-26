@@ -1,22 +1,22 @@
 # ========================
 # Node.js (Backend & Frontend)
 # ========================
-# node_modules/
-# npm-debug.log*
-# yarn-debug.log*
-# yarn-error.log*
-# pnpm-debug.log*
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # ========================
 # Build / Dist
 # ========================
-# dist/
-# build/
-# .cache/
-# temp/
-# .tmp/
-# public/build/
-# coverage/
+dist/
+build/
+.cache/
+temp/
+.tmp/
+public/build/
+coverage/
 
 # Vue CLI build
 # /node_modules/
