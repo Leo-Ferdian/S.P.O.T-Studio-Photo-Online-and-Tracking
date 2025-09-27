@@ -122,7 +122,7 @@ class BookingService {
             client.release();
         }
     }
-     /**
+    /**
      * Mengambil semua data booking dari semua pengguna dengan pagination. (Admin)
      * @param {number} page - Halaman saat ini.
      * @param {number} limit - Jumlah data per halaman.
@@ -279,6 +279,69 @@ class BookingService {
             throw new apiError('Booking tidak ditemukan.', 404);
         }
         return result.rows[0];
+    }
+
+    /**
+     * Memproses booking yang pembayarannya berhasil.
+     * @param {string} orderId - order_id dari Midtrans.
+     */
+    async processSuccessfulPayment(orderId) {
+        const client = await db.connect();
+        try {
+            await client.query('BEGIN');
+
+            // Temukan booking berdasarkan order_id
+            const bookingResult = await client.query(
+                "SELECT id FROM phourto.bookings WHERE payment_order_id = $1 AND status = 'PENDING_PAYMENT'",
+                [orderId]
+            );
+
+            if (bookingResult.rows.length === 0) {
+                logger.warn(`Webhook: Booking for order_id ${orderId} not found or already processed.`);
+                await client.query('ROLLBACK');
+                return;
+            }
+            const bookingId = bookingResult.rows.id;
+
+            // Update status booking menjadi 'PAID'
+            await client.query(
+                "UPDATE phourto.bookings SET status = 'PAID', updated_at = CURRENT_TIMESTAMP WHERE id = $1",
+                [bookingId]
+            );
+
+            // Buat Kode Unik untuk pelanggan
+            const uniqueCode = `PHR-${Date.now()}-${bookingId}`;
+            await client.query(
+                'UPDATE phourto.bookings SET unique_code = $1 WHERE id = $2',
+                [uniqueCode, bookingId]
+            );
+
+            // Update status di tabel payments
+            await client.query(
+                "UPDATE phourto.payments SET status = 'PAID', updated_at = CURRENT_TIMESTAMP WHERE order_id = $1",
+                [orderId]
+            );
+
+            await client.query('COMMIT');
+            logger.info(`Booking ID ${bookingId} successfully processed as PAID.`);
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Memproses booking yang pembayarannya gagal atau kedaluwarsa.
+     * @param {string} orderId - order_id dari Midtrans.
+     * @param {string} newStatus - Status baru ('EXPIRED' atau 'CANCELLED').
+     */
+    async processFailedPayment(orderId, newStatus) {
+        // Update status di tabel payments dan bookings
+        await db.query("UPDATE phourto.payments SET status = $1 WHERE order_id = $2",);
+        await db.query("UPDATE phourto.bookings SET status = $1 WHERE payment_order_id = $2",);
+        logger.info(`Booking for order_id ${orderId} marked as ${newStatus}.`);
     }
 }
 

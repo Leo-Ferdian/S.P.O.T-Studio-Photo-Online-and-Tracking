@@ -1,19 +1,15 @@
-const crypto = require('crypto'); // Untuk generate hash
-const axios = require('axios'); // Untuk HTTP requests
-const apiError = require('../../utils/apiError');
+const crypto = require('crypto');
+const axios = require('axios');
+const ApiError = require('../../utils/apiError');
+const logger = require('../../utils/logger');
+const BookingService = require('./booking.service'); // <-- Impor BookingService
 
 const MIDTRANS_SERVER_KEY = process.env.MIDTRANS_SERVER_KEY;
-const MIDTRANS_API_URL = 'https://api.sandbox.midtrans.com/v2/charge'; // ganti ke production saat live https://api.midtrans.com/v2/charge
+const MIDTRANS_API_URL = 'https://api.sandbox.midtrans.com/v2/charge';
 
 class PaymentService {
     /**
-     * Membuat transaksi Midtrans dengan berbagai metode pembayaran.
-     * @param {object} booking - Data booking (id, total_amount).
-     * @param {object} user - Data user (full_name, email, whatsapp_number).
-     * @param {string} paymentType - Jenis pembayaran (qris, gopay, shopeepay, bank_transfer, credit_card, dll).
-     * @param {object} options - Tambahan konfigurasi khusus tiap payment method.
-     * @param {object} notificationPayload - Payload notifikasi dari Midtrans.
-     * @returns {object} - Response dari Midtrans.
+     * Membuat transaksi Midtrans. (Fungsi ini sudah sangat baik, tidak perlu diubah)
      */
     async createTransaction(booking, user, paymentType, options = {}) {
         const authString = Buffer.from(`${MIDTRANS_SERVER_KEY}:`).toString('base64');
@@ -23,7 +19,6 @@ class PaymentService {
             'Authorization': `Basic ${authString}`
         };
 
-        // Body dasar transaksi
         const body = {
             payment_type: paymentType,
             transaction_details: {
@@ -35,70 +30,58 @@ class PaymentService {
                 email: user.email,
                 phone: user.whatsapp_number
             },
-            ...options // merge opsi tambahan sesuai payment type
-            
+            ...options
         };
 
         try {
             const response = await axios.post(MIDTRANS_API_URL, body, { headers });
             return response.data;
         } catch (error) {
-            console.error('Midtrans API Error:', error.response?.data || error.message);
-            throw new apiError (502, 'Gagal membuat transaksi pembayaran.');
+            logger.error('Midtrans API Error:', error.response?.data || error.message);
+
+            throw new ApiError(502, 'Gagal membuat transaksi pembayaran.');
         }
     }
 
-    // Menangani notifikasi dari Midtrans
+    /**
+     * Menangani notifikasi dari Midtrans dan mendelegasikannya ke service yang relevan.
+     */
     async handlePaymentNotification(notificationPayload) {
         const { order_id, transaction_status, fraud_status, signature_key, gross_amount } = notificationPayload;
 
-        // 1. Verifikasi Signature Key untuk keamanan (SANGAT PENTING)
+        // 1. Verifikasi Signature Key (Tetap di sini karena ini adalah logika pembayaran)
         const serverKey = process.env.MIDTRANS_SERVER_KEY;
         const hash = crypto.createHash('sha512').update(`${order_id}${transaction_status}${gross_amount}${serverKey}`).digest('hex');
 
         if (signature_key!== hash) {
-            throw new apiError(403, 'Signature tidak valid. Notifikasi tidak sah.');
+            logger.warn(`Invalid signature for order_id: ${order_id}`);
+            throw new ApiError(403, 'Signature tidak valid. Notifikasi tidak sah.');
         }
 
-        // 2. Ekstrak booking ID dari order_id
-        const bookingId = order_id.split('-')[1];
-
-        // 3. Proses notifikasi berdasarkan status
+        // 2. Tentukan status booking baru
+        let newBookingStatus;
         if (transaction_status == 'settlement' && fraud_status == 'accept') {
-            // Pembayaran berhasil dan aman
-            const client = await db.connect();
-            try {
-                await client.query('BEGIN');
-
-                // Update status booking menjadi 'PAID'
-                await client.query(
-                    "UPDATE phourto.bookings SET status = 'PAID', updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND status = 'PENDING_PAYMENT'",
-                    [bookingId]
-                );
-
-                // Buat Kode Unik untuk pelanggan
-                const uniqueCode = `PHR-${Date.now()}-${bookingId}`;
-                await client.query(
-                    'UPDATE phourto.bookings SET unique_code = $1 WHERE id = $2',
-                    [uniqueCode, bookingId]
-                );
-
-                await client.query('COMMIT');
-                console.log(`Booking ID ${bookingId} berhasil dibayar.`);
-            } catch (error) {
-                await client.query('ROLLBACK');
-                throw error;
-            } finally {
-                client.release();
-            }
+            newBookingStatus = 'PAID';
         } else if (transaction_status == 'expire') {
-            // Pembayaran kedaluwarsa
-            await db.query("UPDATE phourto.bookings SET status = 'EXPIRED' WHERE id = $1", [bookingId]);
-            console.log(`Booking ID ${bookingId} telah kedaluwarsa.`);
+            newBookingStatus = 'EXPIRED';
         } else if (transaction_status == 'cancel' || transaction_status == 'deny') {
-            // Pembayaran dibatalkan atau ditolak
-            await db.query("UPDATE phourto.bookings SET status = 'CANCELLED' WHERE id = $1", [bookingId]);
-            console.log(`Booking ID ${bookingId} telah dibatalkan/ditolak.`);
+            newBookingStatus = 'CANCELLED';
+        } else {
+            logger.info(`Ignoring notification for order_id: ${order_id} with status: ${transaction_status}`);
+            return; // Abaikan status lain seperti 'pending'
+        }
+
+        // 3. DELEGASIKAN tugas ke BookingService
+        // PaymentService tidak perlu tahu cara memperbarui booking, ia hanya memberi perintah.
+        try {
+            if (newBookingStatus === 'PAID') {
+                await BookingService.processSuccessfulPayment(order_id);
+            } else {
+                await BookingService.processFailedPayment(order_id, newBookingStatus);
+            }
+        } catch (error) {
+            logger.error(`Error processing notification for order_id ${order_id}:`, error);
+            // Tidak perlu melempar error lagi karena controller sudah merespons 200 OK
         }
     }
 }
