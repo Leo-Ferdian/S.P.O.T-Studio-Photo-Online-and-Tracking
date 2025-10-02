@@ -1,223 +1,168 @@
 const crypto = require('crypto');
 const axios = require('axios');
 const db = require('../../config/database');
+const ApiError = require('../../utils/apiError');
 const logger = require('../../utils/logger');
-const apiError = require('../../utils/apiError');
-const BookingService = require('./booking.service'); // Kita akan panggil service lain
+const BookingService = require('./booking.service');
 
-const MIDTRANS_SERVER_KEY = process.env.MIDTRANS_SERVER_KEY;
-const MIDTRANS_API_URL = process.env.NODE_ENV === 'production' 
-    ? 'https://api.midtrans.com/v2/charge' 
-    : 'https://api.sandbox.midtrans.com/v2/charge';
+// Ambil kredensial DOKU dari environment variables
+const DOKU_CLIENT_ID = process.env.DOKU_CLIENT_ID;
+const DOKU_SECRET_KEY = process.env.DOKU_SECRET_KEY;
+const DOKU_API_URL = 'https://api-sandbox.doku.com'; // Gunakan URL Sandbox DOKU untuk pengembangan
 
 class PaymentService {
 
     /**
-     * Membuat transaksi pembayaran melalui Midtrans.
-     * @param {object} booking - Data booking (id, total_amount).
-     * @param {object} user - Data user (full_name, email, whatsapp_number).
-     * @param {string} paymentType - Tipe pembayaran (e.g., 'qris', 'gopay').
-     * @param {object} options - Opsi tambahan untuk Midtrans (e.g., bank untuk transfer).
-     * @returns {object} - Data respon dari Midtrans.
+     * Membuat signature HMAC_SHA256 sesuai standar DOKU.
+     * @param {string} stringToSign - String yang akan di-hash.
+     * @returns {string} - Digest dalam format base64.
      */
-    async createTransaction(booking, user, paymentType, options = {}) {
-        if (!MIDTRANS_SERVER_KEY) {
-            logger.error('MIDTRANS_SERVER_KEY is not configured in .env file.');
-            throw new apiError(500, 'Konfigurasi server pembayaran tidak ditemukan.');
-        }
+    _createSignature(stringToSign) {
+        return crypto.createHmac('sha256', DOKU_SECRET_KEY)
+            .update(stringToSign)
+            .digest('base64');
+    }
 
-        const authString = Buffer.from(`${MIDTRANS_SERVER_KEY}:`).toString('base64');
-        const headers = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': `Basic ${authString}`,
-            'X-Idempotency-Key': `SPOT-IK-${booking.id}-${Date.now()}` // Mencegah duplikat request
-        };
+    /**
+     * Membuat transaksi QRIS baru di DOKU.
+     * @param {object} booking - Objek data booking.
+     * @param {object} user - Objek data pengguna.
+     * @returns {object} - Informasi pembayaran dari DOKU.
+     */
+    async createQrisCharge(booking, user) {
+        const endpoint = '/qris-mpm-payment/v1/generate-qris';
+        const timestamp = new Date().toISOString();
+        const requestId = `SPOT-${booking.id}-${Date.now()}`;
 
         const body = {
-            payment_type: paymentType,
-            transaction_details: {
-                order_id: `SPOT-${booking.id}-${new Date().getTime()}`, // Lebih unik
-                gross_amount: parseFloat(booking.total_amount),
+            partnerReferenceNo: requestId,
+            amount: {
+                value: `${booking.total_amount.toFixed(2)}`,
+                currency: 'IDR',
             },
-            customer_details: {
-                first_name: user.full_name,
-                email: user.email,
-                phone: user.whatsapp_number,
-            },
-            ...options,
+        };
+
+        const bodyString = JSON.stringify(body);
+        const digest = crypto.createHash('sha256').update(bodyString).digest('base64');
+        const stringToSign = `Client-Id:${DOKU_CLIENT_ID}\nRequest-Id:${requestId}\nRequest-Timestamp:${timestamp}\nRequest-Target:${endpoint}\nDigest:${digest}`;
+        
+        const signature = this._createSignature(stringToSign);
+
+        const headers = {
+            'Client-Id': DOKU_CLIENT_ID,
+            'Request-Id': requestId,
+            'Request-Timestamp': timestamp,
+            'Signature': `HMACSHA256=${signature}`,
         };
 
         try {
-            const response = await axios.post(MIDTRANS_API_URL, body, { headers });
+            const response = await axios.post(`${DOKU_API_URL}${endpoint}`, body, { headers });
             
-            // Simpan detail pembayaran ke database
-            await this.savePaymentDetails(booking.id, response.data);
+            // Simpan detail pembayaran ke database kita
+            await this.savePaymentDetails(booking.id, response.data, requestId);
 
-            return response.data;
+            return {
+                order_id: requestId, // Kita gunakan requestId sebagai order_id internal
+                qr_code_url: response.data.qrisUrl,
+                expires_at: response.data.expiresAt,
+            };
         } catch (error) {
-            logger.error('Midtrans API Error:', error.response?.data || error.message);
-            throw new apiError(502, 'Gagal membuat transaksi pembayaran dengan payment gateway.');
+            logger.error('DOKU API Error:', error.response?.data || error.message);
+            throw new ApiError(502, 'Gagal membuat transaksi pembayaran dengan DOKU.');
         }
     }
 
     /**
      * Menyimpan detail awal transaksi pembayaran ke tabel 'payments'.
-     * @param {number} bookingId - ID dari booking terkait.
-     * @param {object} midtransResponse - Respon dari Midtrans setelah create transaction.
      */
-    async savePaymentDetails(bookingId, midtransResponse) {
-        const {
-            transaction_id,
-            order_id,
-            gross_amount,
-            payment_type,
-            transaction_status,
-            expiry_time,
-            actions
-        } = midtransResponse;
-
-        // Cari URL QR code dari array 'actions' jika ada
-        const qrCodeAction = actions?.find(action => action.name === 'generate-qr-code');
-        const qr_code_url = qrCodeAction ? qrCodeAction.url : null;
-        
+    async savePaymentDetails(bookingId, dokuResponse, requestId) {
         const query = `
             INSERT INTO phourto.payments 
             (booking_id, transaction_id, order_id, gross_amount, payment_type, qr_code_url, expires_at, status)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (order_id) DO NOTHING;
         `;
-        
         const values = [
             bookingId,
-            transaction_id,
-            order_id,
-            gross_amount,
-            payment_type,
-            qr_code_url,
-            expiry_time,
-            transaction_status?.toUpperCase() || 'PENDING'
+            dokuResponse.partnerReferenceNo, // Menggunakan partnerReferenceNo sebagai transaction_id
+            requestId,
+            parseFloat(dokuResponse.amount.value),
+            'QRIS_DOKU',
+            dokuResponse.qrisUrl,
+            dokuResponse.expiresAt,
+            'PENDING'
         ];
-
-        try {
-            await db.query(query, values);
-            logger.info(`Payment details saved for order_id: ${order_id}`);
-        } catch (dbError) {
-            logger.error(`Failed to save payment details for order_id ${order_id}:`, dbError);
-            // Tidak melempar error ke user, cukup log karena transaksi di Midtrans sudah dibuat.
-        }
+        await db.query(query, values);
+        logger.info(`Payment details saved for order_id: ${requestId}`);
     }
 
     /**
-     * Menangani notifikasi webhook dari Midtrans.
-     * @param {object} notificationPayload - Body notifikasi dari Midtrans.
-     * @returns {boolean} - True jika berhasil diproses.
+     * Memverifikasi dan menangani notifikasi webhook dari DOKU.
      */
-    async handlePaymentNotification(notificationPayload) {
-        const { order_id, transaction_status, fraud_status, signature_key, gross_amount } = notificationPayload;
+    async handleDokuNotification(notificationPayload, headers) {
+        // Ambil header yang diperlukan untuk verifikasi signature
+        const clientId = headers['client-id'];
+        const requestId = headers['request-id'];
+        const timestamp = headers['request-timestamp'];
+        const signatureFromDoku = headers.signature;
 
-        // 1. Verifikasi Signature Key (SANGAT PENTING!)
-        this.verifySignature(notificationPayload);
-
-        // 2. Cek status transaksi di Midtrans untuk memastikan keaslian (Best Practice)
-        const isStatusValid = await this.validateTransactionStatus(order_id, gross_amount);
-        if (!isStatusValid) {
-            logger.warn(`Transaction status validation failed for order_id: ${order_id}. Ignoring notification.`);
-            throw new apiError(400, 'Status transaksi tidak cocok dengan data dari Midtrans.');
+        if (!clientId || !requestId || !timestamp || !signatureFromDoku) {
+            throw new ApiError(400, 'Header notifikasi dari DOKU tidak lengkap.');
         }
 
+        const bodyString = JSON.stringify(notificationPayload);
+        const digest = crypto.createHash('sha256').update(bodyString).digest('base64');
+        
+        // Sesuaikan target endpoint webhook Anda
+        const requestTarget = '/api/payments/notifications'; 
+        const stringToSign = `Client-Id:${clientId}\nRequest-Id:${requestId}\nRequest-Timestamp:${timestamp}\nRequest-Target:${requestTarget}\nDigest:${digest}`;
+        
+        // 1. Verifikasi Signature
+        const generatedSignature = this._createSignature(stringToSign);
+        if (`HMACSHA256=${generatedSignature}` !== signatureFromDoku) {
+            logger.warn(`Invalid signature for DOKU notification. Request-Id: ${requestId}`);
+            throw new ApiError(403, 'Signature tidak valid. Notifikasi tidak sah.');
+        }
+
+        // 2. Proses status transaksi
+        const { partnerReferenceNo, transactionStatus } = notificationPayload.transaction;
+        let newPaymentStatus;
+
+        if (transactionStatus === 'SUCCESS') {
+            newPaymentStatus = 'PAID';
+        } else if (transactionStatus === 'FAILED') {
+            newPaymentStatus = 'FAILED';
+        } else {
+            logger.info(`Ignoring DOKU notification with status: ${transactionStatus}`);
+            return;
+        }
+        
+        // 3. Update database dalam transaksi
         const client = await db.connect();
         try {
             await client.query('BEGIN');
-            
-            // 3. Update status di tabel 'payments'
-            const updatedPayment = await this.updatePaymentStatus(client, order_id, transaction_status);
-            if (!updatedPayment) {
-                logger.warn(`Payment with order_id ${order_id} not found. Skipping update.`);
-                await client.query('ROLLBACK');
-                 return; // Keluar jika pembayaran tidak ditemukan
+            const paymentResult = await client.query(
+                "UPDATE phourto.payments SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE transaction_id = $2 RETURNING booking_id",
+                [newPaymentStatus, partnerReferenceNo]
+            );
+
+            if (paymentResult.rows.length > 0) {
+                const { booking_id } = paymentResult.rows[0];
+                if (newPaymentStatus === 'PAID') {
+                    await BookingService.finalizeSuccessfulBooking(booking_id, client);
+                } else {
+                    await BookingService.updateBookingStatus(booking_id, 'CANCELLED', client); // Atau status FAILED jika ada
+                }
             }
-
-            const bookingId = updatedPayment.booking_id;
-            let newBookingStatus = null;
-            let uniqueCode = null;
-
-            // 4. Tentukan status booking baru berdasarkan status pembayaran
-            if (transaction_status === 'settlement' && fraud_status === 'accept') {
-                newBookingStatus = 'PAID';
-                uniqueCode = `PHR-${Date.now()}-${bookingId}`; // Generate unique code
-            } else if (transaction_status === 'expire') {
-                newBookingStatus = 'EXPIRED';
-            } else if (['cancel', 'deny'].includes(transaction_status)) {
-                newBookingStatus = 'CANCELLED';
-            }
-
-            // 5. Jika ada status booking baru, update tabel booking
-            if (newBookingStatus) {
-                await BookingService.updateBookingStatusAndCode(client, bookingId, newBookingStatus, uniqueCode);
-            }
-
             await client.query('COMMIT');
-            logger.info(`Notification for order_id ${order_id} processed successfully. Booking status: ${newBookingStatus}`);
+            logger.info(`Webhook DOKU processed for partnerReferenceNo: ${partnerReferenceNo}.`);
         } catch (error) {
             await client.query('ROLLBACK');
-            logger.error(`Error handling notification for order_id ${order_id}:`, error);
-            throw error; // Lempar error agar bisa di-handle di controller
+            logger.error(`Failed to process DOKU webhook for partnerReferenceNo: ${partnerReferenceNo}`, error);
+            throw error;
         } finally {
             client.release();
         }
-    }
-
-    /**
-     * Memverifikasi signature key dari notifikasi Midtrans.
-     * @param {object} payload - Body notifikasi.
-     */
-    verifySignature(payload) {
-        const { order_id, status_code, gross_amount, signature_key } = payload;
-        const serverKey = process.env.MIDTRANS_SERVER_KEY;
-        const hash = crypto.createHash('sha512').update(`${order_id}${status_code}${gross_amount}${serverKey}`).digest('hex');
-
-        if (signature_key !== hash) {
-            logger.warn(`Invalid signature for order_id: ${order_id}`);
-            throw new apiError(403, 'Signature tidak valid. Notifikasi tidak sah.');
-        }
-    }
-    
-    /**
-     * Memvalidasi status transaksi langsung ke API Midtrans.
-     * @param {string} order_id
-     * @param {string} gross_amount
-     * @returns {boolean}
-     */
-    async validateTransactionStatus(order_id, gross_amount) {
-        const authString = Buffer.from(`${MIDTRANS_SERVER_KEY}:`).toString('base64');
-        try {
-            const response = await axios.get(
-                `${process.env.NODE_ENV === 'production' ? 'https://api.midtrans.com' : 'https://api.sandbox.midtrans.com'}/v2/${order_id}/status`,
-                { headers: { 'Authorization': `Basic ${authString}` } }
-            );
-
-            // Cocokkan amount untuk keamanan ekstra
-            return response.data && response.data.gross_amount == gross_amount;
-        } catch (error) {
-            logger.error(`Failed to validate transaction status for order_id ${order_id}:`, error.response?.data || error.message);
-            return false;
-        }
-    }
-    
-    /**
-     * Helper untuk update status di tabel payments di dalam sebuah transaksi DB.
-     * @param {object} client - Klien database PostgreSQL.
-     * @param {string} orderId
-     * @param {string} status
-     * @returns {object|null} - Data pembayaran yang diupdate atau null jika tidak ada.
-     */
-    async updatePaymentStatus(client, orderId, status) {
-        const result = await client.query(
-            "UPDATE phourto.payments SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE order_id = $2 RETURNING *",
-            [status.toUpperCase(), orderId]
-        );
-        return result.rows[0] || null;
     }
 }
 

@@ -1,67 +1,44 @@
 const db = require('../../config/database');
-const apiError = require('../../utils/apiError');
+const ApiError = require('../../utils/apiError');
 const logger = require('../../utils/logger');
 
-// Enum status booking
+// Definisikan status booking di satu tempat untuk konsistensi
 const BOOKING_STATUS = {
     PENDING_PAYMENT: 'PENDING_PAYMENT',
     PAID: 'PAID',
+    COMPLETED: 'COMPLETED', // Status baru untuk menandai sesi telah selesai
     CANCELLED: 'CANCELLED',
-    FAILED_PAYMENT: 'FAILED_PAYMENT'
+    EXPIRED: 'EXPIRED',
+    FAILED: 'FAILED'
 };
 
 class BookingService {
-    /**
-     * Generate slot operasional cabang (default 10:00 - 21:00 kalau tidak ada data).
-     */
-    async getBranchSlots(branchId) {
-        const result = await db.query(
-            'SELECT open_hour, close_hour FROM phourto.branches WHERE id = $1',
-            [branchId]
-        );
 
-        if (result.rows.length === 0) {
-            throw new apiError('Cabang tidak ditemukan.', 404);
-        }
-
-        const { open_hour, close_hour } = result.rows[0];
-        const startHour = open_hour || '10:00';
-        const endHour = close_hour || '21:00';
-
-        // Generate slots tiap 1 jam
-        const slots = [];
-        let current = parseInt(startHour.split(':')[0], 10);
-        const end = parseInt(endHour.split(':')[0], 10);
-
-        while (current <= end) {
-            slots.push(`${String(current).padStart(2, '0')}:00`);
-            current++;
-        }
-
-        return slots;
-    }
+    // =================================================================
+    // FUNGSI UNTUK PELANGGAN (CUSTOMER-FACING)
+    // =================================================================
 
     /**
      * Mengecek slot waktu yang tersedia pada cabang dan tanggal tertentu.
      */
     async checkAvailability(branchId, date) {
-        const allSlots = await this.getBranchSlots(branchId);
+        // Logika untuk mengambil jam operasional cabang
+        const result = await db.query('SELECT operating_hours FROM phourto.branches WHERE id = $1', [branchId]);
+        if (result.rows.length === 0) {
+            throw new ApiError(404, 'Cabang tidak ditemukan.');
+        }
+
+        // TODO: Buat logika generator slot yang lebih canggih berdasarkan operating_hours
+        const allSlots = ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'];
 
         const query = `
             SELECT TO_CHAR(booking_time, 'HH24:MI') as booked_slot
             FROM phourto.bookings
-            WHERE branch_id = $1 
-            AND DATE(booking_time) = $2
-            AND status IN ($3, $4)
+            WHERE branch_id = $1 AND DATE(booking_time) = $2 AND status IN ('PAID', 'PENDING_PAYMENT')
         `;
-        const result = await db.query(query, [
-            branchId,
-            date,
-            BOOKING_STATUS.PAID,
-            BOOKING_STATUS.PENDING_PAYMENT
-        ]);
+        const bookedResult = await db.query(query, [branchId, date]);
+        const bookedSlots = bookedResult.rows.map(row => row.booked_slot);
 
-        const bookedSlots = result.rows.map(row => row.booked_slot);
         return allSlots.filter(slot => !bookedSlots.includes(slot));
     }
 
@@ -71,178 +48,54 @@ class BookingService {
     async createBooking(userId, bookingData) {
         const { package_id, branch_id, booking_time } = bookingData;
 
+        // Validasi dasar, validator di rute akan menangani sisanya
         if (!package_id || !branch_id || !booking_time) {
-            throw new apiError('Data booking tidak lengkap.', 400);
+            throw new ApiError(400, 'Data booking tidak lengkap.');
         }
 
         const client = await db.connect();
         try {
             await client.query('BEGIN');
 
-            // 1. Ambil harga paket
-            const packageResult = await client.query(
-                'SELECT id, price FROM phourto.packages WHERE id = $1',
-                [package_id]
-            );
-            if (packageResult.rows.length === 0) {
-                throw new apiError('Paket tidak ditemukan.', 404);
-            }
+            const packageResult = await client.query('SELECT price FROM phourto.packages WHERE id = $1', [package_id]);
+            if (packageResult.rows.length === 0) throw new ApiError(404, 'Paket tidak ditemukan.');
             const totalAmount = packageResult.rows[0].price;
 
-            // 2. Cek slot ketersediaan
             const availabilityCheck = await client.query(
-                `SELECT id 
-                FROM phourto.bookings 
-                WHERE branch_id = $1 AND booking_time = $2 
-                AND status IN ($3, $4)`,
-                [branch_id, booking_time, BOOKING_STATUS.PAID, BOOKING_STATUS.PENDING_PAYMENT]
+                `SELECT id FROM phourto.bookings WHERE branch_id = $1 AND booking_time = $2 AND status IN ('PAID', 'PENDING_PAYMENT')`,
+                [branch_id, booking_time]
             );
             if (availabilityCheck.rows.length > 0) {
-                throw new apiError('Slot waktu sudah terisi. Silakan pilih waktu lain.', 409);
+                throw new ApiError(409, 'Slot waktu sudah terisi. Silakan pilih waktu lain.');
             }
 
-            // 3. Insert booking baru dengan status PENDING_PAYMENT
             const newBookingResult = await client.query(
-                `INSERT INTO phourto.bookings 
-                (user_id, branch_id, package_id, booking_time, total_amount, status)
-                VALUES ($1, $2, $3, $4, $5, $6)
-                RETURNING id, user_id, branch_id, package_id, booking_time, total_amount, status`,
+                `INSERT INTO phourto.bookings (user_id, branch_id, package_id, booking_time, total_amount, status)
+                 VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
                 [userId, branch_id, package_id, booking_time, totalAmount, BOOKING_STATUS.PENDING_PAYMENT]
             );
 
-            const newBooking = newBookingResult.rows[0];
             await client.query('COMMIT');
-            return newBooking;
-
+            return newBookingResult.rows[0];
         } catch (err) {
             await client.query('ROLLBACK');
-            logger.error('CreateBooking failed:', err);
-            throw err;
+            throw err; // Biarkan asyncHandler yang menangkap
         } finally {
             client.release();
         }
     }
-    /**
-     * Mengambil semua data booking dari semua pengguna dengan pagination. (Admin)
-     * @param {number} page - Halaman saat ini.
-     * @param {number} limit - Jumlah data per halaman.
-     * @returns {object} - Data booking beserta informasi pagination.
-     */
-    async getAllBookings(page = 1, limit = 10) {
-        const offset = (page - 1) * limit;
-
-        // Query untuk mengambil data booking dengan detail pengguna, paket, dan cabang
-        const dataQuery = `
-            SELECT
-                b.id, b.booking_time, b.status, b.total_amount,
-                u.full_name as customer_name, u.email as customer_email,
-                p.name as package_name,
-                br.name as branch_name
-            FROM phourto.bookings b
-            JOIN phourto.users u ON b.user_id = u.id
-            JOIN phourto.packages p ON b.package_id = p.id
-            JOIN phourto.branches br ON b.branch_id = br.id
-            ORDER BY b.booking_time DESC
-            LIMIT $1 OFFSET $2
-        `;
-        const result = await db.query(dataQuery, [limit, offset]);
-
-        // Query untuk menghitung total data untuk pagination
-        const countQuery = `SELECT COUNT(*) FROM phourto.bookings`;
-        const countResult = await db.query(countQuery);
-        const total = parseInt(countResult.rows.count, 10);
-
-        return {
-            data: result.rows,
-            pagination: {
-                total,
-                page,
-                limit,
-                totalPages: Math.ceil(total / limit)
-            }
-        };
-    }
 
     /**
-     * Memperbarui status sebuah booking. (Admin)
-     * @param {number} bookingId - ID dari booking yang akan diperbarui.
-     * @param {string} status - Status baru untuk booking.
-     * @returns {object} - Data booking yang sudah diperbarui.
-     */
-    async updateBookingStatusByAdmin(bookingId, status) {
-        // Validasi apakah status yang diberikan valid sesuai ENUM kita
-        const validStatuses = Object.values(BOOKING_STATUS);
-        if (!validStatuses.includes(status)) {
-            throw new ApiError(400, `Status '${status}' tidak valid.`);
-        }
-
-        const query = `
-            UPDATE phourto.bookings
-            SET status = $1, updated_at = CURRENT_TIMESTAMP
-            WHERE id = $2
-            RETURNING *
-        `;
-        const result = await db.query(query, [status, bookingId]);
-
-        if (result.rows.length === 0) {
-            throw new ApiError(404, `Gagal memperbarui. Booking dengan ID ${bookingId} tidak ditemukan.`);
-        }
-        return result.rows;
-    }
-
-
-    /**
-     * Simpan informasi pembayaran dari Midtrans.
-     */
-    async savePaymentInfo(bookingId, paymentData) {
-        const query = `
-            INSERT INTO phourto.payments 
-            (booking_id, transaction_id, order_id, gross_amount, payment_type, payment_url, qr_code_url, expires_at, status)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-            RETURNING *`;
-        const values = [
-            bookingId,
-            paymentData.transaction_id,
-            paymentData.order_id,
-            paymentData.gross_amount,
-            paymentData.payment_type,
-            paymentData.payment_url || null,
-            paymentData.qr_code_url || null,
-            paymentData.expires_at,
-            paymentData.status || 'WAITING_PAYMENT'
-        ];
-        const result = await db.query(query, values);
-        return result.rows[0];
-    }
-
-    /**
-     * Update status booking (misalnya setelah payment sukses/expire).
-     */
-    async updateBookingStatus(bookingId, status) {
-        const query = `
-            UPDATE phourto.bookings
-            SET status = $2
-            WHERE id = $1
-            RETURNING *`;
-        const result = await db.query(query, [bookingId, status]);
-        return result.rows[0];
-    }
-
-    /**
-     * Mengambil riwayat booking pengguna (pagination).
+     * Mengambil riwayat booking milik pengguna dengan pagination.
      */
     async getMyBookings(userId, page = 1, limit = 10) {
         const offset = (page - 1) * limit;
-
         const query = `
-            SELECT b.id, b.booking_time, b.status, b.total_amount, 
-            p.name as package_name, br.name as branch_name
+            SELECT b.id, b.booking_time, b.status, b.total_amount, p.name as package_name, br.name as branch_name
             FROM phourto.bookings b
             JOIN phourto.packages p ON b.package_id = p.id
             JOIN phourto.branches br ON b.branch_id = br.id
-            WHERE b.user_id = $1
-            ORDER BY b.booking_time DESC
-            LIMIT $2 OFFSET $3
+            WHERE b.user_id = $1 ORDER BY b.booking_time DESC LIMIT $2 OFFSET $3
         `;
         const result = await db.query(query, [userId, limit, offset]);
 
@@ -252,96 +105,99 @@ class BookingService {
 
         return {
             data: result.rows,
-            pagination: {
-                total,
-                page,
-                limit,
-                totalPages: Math.ceil(total / limit)
-            }
+            pagination: { total, page, limit, totalPages: Math.ceil(total / limit) }
         };
     }
 
     /**
-     * Mengambil detail satu booking pengguna.
+     * Mengambil detail satu booking milik pengguna.
      */
     async getBookingById(bookingId, userId) {
         const query = `
-            SELECT b.id, b.booking_time, b.status, b.total_amount, 
-            p.name as package_name, br.name as branch_name
+            SELECT b.*, p.name as package_name, br.name as branch_name
             FROM phourto.bookings b
             JOIN phourto.packages p ON b.package_id = p.id
             JOIN phourto.branches br ON b.branch_id = br.id
             WHERE b.id = $1 AND b.user_id = $2
         `;
         const result = await db.query(query, [bookingId, userId]);
-
         if (result.rows.length === 0) {
-            throw new apiError('Booking tidak ditemukan.', 404);
+            throw new ApiError(404, 'Booking tidak ditemukan atau Anda tidak memiliki akses.');
         }
         return result.rows[0];
     }
 
+    // =================================================================
+    // FUNGSI UNTUK ADMIN
+    // =================================================================
+
     /**
-     * Memproses booking yang pembayarannya berhasil.
-     * @param {string} orderId - order_id dari Midtrans.
+     * Mengambil semua data booking dari semua pengguna dengan pagination.
      */
-    async processSuccessfulPayment(orderId) {
-        const client = await db.connect();
-        try {
-            await client.query('BEGIN');
+    async getAllBookings(page = 1, limit = 10) {
+        const offset = (page - 1) * limit;
+        const dataQuery = `
+            SELECT b.id, b.booking_time, b.status, b.total_amount, u.full_name as customer_name,
+            p.name as package_name, br.name as branch_name
+            FROM phourto.bookings b
+            JOIN phourto.users u ON b.user_id = u.id
+            JOIN phourto.packages p ON b.package_id = p.id
+            JOIN phourto.branches br ON b.branch_id = br.id
+            ORDER BY b.booking_time DESC LIMIT $1 OFFSET $2
+        `;
+        const result = await db.query(dataQuery, [limit, offset]);
 
-            // Temukan booking berdasarkan order_id
-            const bookingResult = await client.query(
-                "SELECT id FROM phourto.bookings WHERE payment_order_id = $1 AND status = 'PENDING_PAYMENT'",
-                [orderId]
-            );
+        const countQuery = `SELECT COUNT(*) FROM phourto.bookings`;
+        const countResult = await db.query(countQuery);
+        const total = parseInt(countResult.rows[0].count, 10);
 
-            if (bookingResult.rows.length === 0) {
-                logger.warn(`Webhook: Booking for order_id ${orderId} not found or already processed.`);
-                await client.query('ROLLBACK');
-                return;
-            }
-            const bookingId = bookingResult.rows.id;
-
-            // Update status booking menjadi 'PAID'
-            await client.query(
-                "UPDATE phourto.bookings SET status = 'PAID', updated_at = CURRENT_TIMESTAMP WHERE id = $1",
-                [bookingId]
-            );
-
-            // Buat Kode Unik untuk pelanggan
-            const uniqueCode = `PHR-${Date.now()}-${bookingId}`;
-            await client.query(
-                'UPDATE phourto.bookings SET unique_code = $1 WHERE id = $2',
-                [uniqueCode, bookingId]
-            );
-
-            // Update status di tabel payments
-            await client.query(
-                "UPDATE phourto.payments SET status = 'PAID', updated_at = CURRENT_TIMESTAMP WHERE order_id = $1",
-                [orderId]
-            );
-
-            await client.query('COMMIT');
-            logger.info(`Booking ID ${bookingId} successfully processed as PAID.`);
-        } catch (error) {
-            await client.query('ROLLBACK');
-            throw error;
-        } finally {
-            client.release();
-        }
+        return {
+            data: result.rows,
+            pagination: { total, page, limit, totalPages: Math.ceil(total / limit) }
+        };
     }
 
     /**
-     * Memproses booking yang pembayarannya gagal atau kedaluwarsa.
-     * @param {string} orderId - order_id dari Midtrans.
-     * @param {string} newStatus - Status baru ('EXPIRED' atau 'CANCELLED').
+     * Memperbarui status sebuah booking. (Dipanggil oleh Admin)
      */
-    async processFailedPayment(orderId, newStatus) {
-        // Update status di tabel payments dan bookings
-        await db.query("UPDATE phourto.payments SET status = $1 WHERE order_id = $2",);
-        await db.query("UPDATE phourto.bookings SET status = $1 WHERE payment_order_id = $2",);
-        logger.info(`Booking for order_id ${orderId} marked as ${newStatus}.`);
+    async updateBookingStatusByAdmin(bookingId, status) {
+        const validStatuses = Object.values(BOOKING_STATUS);
+        if (!validStatuses.includes(status)) {
+            throw new ApiError(400, `Status '${status}' tidak valid.`);
+        }
+        const query = `UPDATE phourto.bookings SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`;
+        const result = await db.query(query, [status, bookingId]);
+        if (result.rows.length === 0) {
+            throw new ApiError(404, `Gagal memperbarui. Booking dengan ID ${bookingId} tidak ditemukan.`);
+        }
+        return result.rows[0];
+    }
+
+
+    // =================================================================
+    // FUNGSI INTERNAL (DIPANGGIL OLEH SERVICE LAIN)
+    // =================================================================
+
+    /**
+     * Memproses booking yang pembayarannya berhasil. Dipanggil oleh PaymentService.
+     */
+    async finalizeSuccessfulBooking(bookingId, client) {
+        const dbClient = client || db; // Gunakan client dari transaksi jika ada
+        await dbClient.query("UPDATE phourto.bookings SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2", [BOOKING_STATUS.PAID, bookingId]);
+        
+        const uniqueCode = `PHR-${Date.now()}-${bookingId}`;
+        await dbClient.query('UPDATE phourto.bookings SET unique_code = $1 WHERE id = $2', [uniqueCode, bookingId]);
+        
+        logger.info(`Booking ${bookingId} finalized with unique code: ${uniqueCode}.`);
+    }
+
+    /**
+     * Memperbarui status booking. Dipanggil oleh PaymentService untuk status gagal/expire.
+     */
+    async updateBookingStatus(bookingId, status, client) {
+        const dbClient = client || db;
+        const result = await dbClient.query("UPDATE phourto.bookings SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *", [status, bookingId]);
+        return result.rows[0];
     }
 }
 
