@@ -1,24 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-
-// Konfigurasi Multer untuk menyimpan file sementara di server
-const upload = multer({ dest: 'uploads/' });
-
-// Impor komponen
 const AdminPhotoController = require('../../controllers/admin/photo.controller');
 const authMiddleware = require('../../middlewares/auth.middleware');
 const isAdmin = require('../../middlewares/admin.middleware');
+const S3Service = require('../../services/s3.service'); // <-- Impor S3Service di sini
 
-// Terapkan middleware keamanan
+// Lindungi semua rute
 router.use(authMiddleware, isAdmin);
 
-// Rute untuk mengunggah satu foto untuk booking tertentu
-// POST /api/admin/photos/booking/:bookingId
+// Rute untuk mengunggah foto
+// Alur: auth -> isAdmin -> S3Service.upload -> AdminPhotoController.uploadPhotos
 router.post(
-    '/booking/:bookingId',
-    upload.single('photo'), // 'photo' adalah nama field di form-data
-    AdminPhotoController.uploadPhoto
+    '/upload/:bookingId',
+    S3Service.upload.array('photos', 100), // Middleware untuk upload file
+    AdminPhotoController.uploadPhotos      // Controller untuk menyimpan ke DB
 );
 
 module.exports = router;

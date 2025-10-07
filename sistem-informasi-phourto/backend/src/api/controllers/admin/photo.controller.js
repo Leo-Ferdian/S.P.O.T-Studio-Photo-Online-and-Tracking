@@ -1,18 +1,29 @@
 const PhotoService = require('../../services/photo.service');
 const asyncHandler = require('../../../utils/asyncHandler');
-const ApiResponse = require('../../../utils/apiResponse');
+const ApiResponse = require('../../../utils/responseHandler');
+const ApiError = require('../../../utils/apiError'); // Impor ApiError untuk validasi
 
 class AdminPhotoController {
-    uploadPhoto = asyncHandler(async (req, res) => {
+    /**
+     * Menyimpan informasi foto ke database SETELAH middleware upload S3 selesai.
+     */
+    uploadPhotos = asyncHandler(async (req, res) => {
         const { bookingId } = req.params;
-        const file = req.file;
+        // Informasi file yang diunggah tersedia di req.files berkat middleware multer-s3
+        const files = req.files;
 
-        if (!file) {
-            return res.status(400).json({ message: 'Tidak ada file yang diunggah.' });
+        // Validasi: pastikan ada file yang diunggah
+        if (!files || files.length === 0) {
+            throw new ApiError(400, 'Tidak ada file yang valid untuk diunggah.');
         }
 
-        const newPhoto = await PhotoService.uploadPhotoForBooking(bookingId, file);
-        new ApiResponse(res, 201, newPhoto, 'Foto berhasil diunggah.');
+        // Panggil service untuk menyimpan informasi file ke database
+        const savedPhotos = await PhotoService.addPhotosToBooking(bookingId, files);
+
+        new ApiResponse(res, 201, {
+            message: `${savedPhotos.length} foto berhasil diunggah untuk booking ID ${bookingId}.`,
+            photos: savedPhotos
+        });
     });
 }
 
