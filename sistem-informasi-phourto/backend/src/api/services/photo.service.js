@@ -1,6 +1,7 @@
 const db = require('../../config/database');
 const ApiError = require('../../utils/apiError');
 const S3Service = require('./s3.service'); // Pastikan S3Service diimpor dengan benar
+const logger = require('../../utils/logger');
 
 class PhotoService {
 
@@ -38,6 +39,11 @@ class PhotoService {
             await client.query('ROLLBACK');
             // TODO: Tambahkan logika untuk menghapus file yang sudah terunggah ke S3 jika DB insert gagal,
             // ini adalah pola 'saga' yang lebih kompleks untuk memastikan konsistensi.
+            logger.warn('Database insert gagal, memulai proses rollback S3...');
+            // 'files' berisi informasi file yang baru saja diunggah oleh multer-s3
+            const deletePromises = files.map(file => S3Service.deleteFile(file.key));
+            await Promise.all(deletePromises);
+            logger.info('Proses rollback S3 selesai.');
             throw error; // Biarkan asyncHandler yang menangkap error
         } finally {
             client.release();

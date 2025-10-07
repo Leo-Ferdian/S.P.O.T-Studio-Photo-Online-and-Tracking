@@ -8,6 +8,8 @@ const apiError = require('./src/utils/apiError');
 const profileRoutes = require('./src/api/routes/user.routes'); // Impor rute profil
 const paymentRoutes = require('./src/api/routes/payment.routes');
 const photoRoutes = require('./src/api/routes/photo.routes');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 // Impor rute
 const authRoutes = require('./src/api/routes/auth.routes');
@@ -28,6 +30,17 @@ const adminUserRoutes = require('./src/api/routes/admin/user.routes');
 app.use(cors()); // Mengaktifkan CORS
 app.use(express.json()); // Mem-parsing body request sebagai JSON
 app.use(express.urlencoded({ extended: true }));
+app.use(helmet()); // Menambahkan header keamanan
+app.use(limiter); // Membatasi jumlah request untuk mencegah serangan DDoS
+
+// Rate Limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 menit
+    max: 100, // Batasi setiap IP hingga 100 permintaan per 15 menit
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: 'Terlalu banyak permintaan dari IP ini, silakan coba lagi setelah 15 menit.'
+});
 
 // Rute Utama
 app.get('/', (req, res) => {

@@ -1,4 +1,4 @@
-const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const multer = require('multer');
 const multerS3 = require('multer-s3');
@@ -69,6 +69,26 @@ class S3Service {
         } catch (error) {
             logger.error(`Gagal membuat pre-signed URL untuk key ${key}:`, error);
             throw new ApiError(500, 'Gagal menghasilkan URL gambar.');
+        }
+    }
+
+    /**
+     * Menghapus sebuah file dari bucket AWS S3.
+     * @param {string} key - Path file di dalam bucket S3 (misal: 'booking-123/foto.jpg').
+     */
+    async deleteFile(key) {
+        const command = new DeleteObjectCommand({
+            Bucket: process.env.S3_BUCKET_NAME,
+            Key: key,
+        });
+
+        try {
+            await s3Client.send(command);
+            logger.info(`File berhasil dihapus dari S3: ${key}`);
+        } catch (error) {
+            logger.error(`Gagal menghapus file dari S3 (key: ${key}):`, error);
+            // Kita tidak melempar error di sini agar proses utama tidak berhenti,
+            // Cukup mencatatnya sebagai kegagalan.
         }
     }
 }
