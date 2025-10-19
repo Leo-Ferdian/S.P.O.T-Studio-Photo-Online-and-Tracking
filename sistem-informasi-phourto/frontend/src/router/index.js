@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import Home from '../views/home.vue';
+import Login from '../views/auth/login.vue';
+import Register from '../views/auth/register.vue';
 
 const routes = [
     {
@@ -11,12 +13,12 @@ const routes = [
         path: '/login',
         name: 'Login',
         // Lazy loading: Komponen hanya di-load saat halamannya diakses
-        component: () => import('../views/auth/login.vue'),
+        component: Login,
     },
     {
         path: '/register',
         name: 'Register',
-        component: () => import('../views/auth/register.vue'),
+        component: Register,
     },
     // TODO: Tambahkan rute privat untuk dashboard, booking, dll. di sini
 ];
