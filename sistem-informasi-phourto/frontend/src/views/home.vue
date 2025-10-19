@@ -12,7 +12,7 @@ const rooms = [
 
 // Pastikan ikon di-render setelah komponen dimuat
 onMounted(() => {
-    eather.replace();
+    feather.replace();
 });
 </script>
 

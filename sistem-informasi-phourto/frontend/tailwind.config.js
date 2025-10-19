@@ -6,10 +6,6 @@ export default {
   ],
   theme: {
     extend: {
-      fontFamily: {
-        sans: ['Inter', 'sans-serif'],
-        display: ['Bungee', 'cursive'],
-      },
       colors: {
         // Nama semantik untuk peran warna
         'background': '#F7F500', // Latar belakang utama halaman
@@ -37,6 +33,7 @@ export default {
       fontFamily: {
         'body': ['Roboto', 'sans-serif'],
         'pixel': ['"Press Start 2P"', 'cursive'],
+        'mono': ['"Kode Mono"', 'monospace']
       },
       borderWidth: {
         '3': '3px',
