@@ -31,8 +31,9 @@ export default {
 
       // Konfigurasi lain yang sudah kita buat sebelumnya
       fontFamily: {
-        'body': ['Roboto', 'sans-serif'],
-        'pixel': ['"Press Start 2P"', 'cursive'],
+        // 'sans': ['Roboto', 'sans-serif'],
+        // 'display': ['"Press Start 2P"', 'cursive'],
+        'sans': ['"Kode Mono"', 'monospace'],
         'mono': ['"Kode Mono"', 'monospace']
       },
       borderWidth: {
