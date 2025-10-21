@@ -8,7 +8,7 @@ const route = useRoute();
 
 // Komputasi untuk mengecek apakah layout utama (header/footer) harus ditampilkan
 const showLayout = computed(() => {
-  return !['Login', 'Register'].includes(route.name);
+  return !['Login', 'Register', 'Location'].includes(route.name);
 });
 </script>
 
