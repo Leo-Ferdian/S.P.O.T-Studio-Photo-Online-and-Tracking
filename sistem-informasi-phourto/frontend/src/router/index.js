@@ -20,6 +20,11 @@ const routes = [
         name: 'Register',
         component: Register,
     },
+    {
+        path: '/location',
+        name: 'Location',
+        component: () => import('../views/Location.vue'),
+    },
     // TODO: Tambahkan rute privat untuk dashboard, booking, dll. di sini
 ];
 
