@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import Home from '../views/home.vue';
 import Login from '../views/auth/login.vue';
 import Register from '../views/auth/register.vue';
+import aboutus from '../views/aboutus.vue';
 
 const routes = [
     {
@@ -20,6 +21,11 @@ const routes = [
         name: 'Register',
         component: Register,
     },
+    {
+        path: '/aboutus',
+        name: 'aboutus',
+        component: aboutus,
+    }
     // TODO: Tambahkan rute privat untuk dashboard, booking, dll. di sini
 ];
 
