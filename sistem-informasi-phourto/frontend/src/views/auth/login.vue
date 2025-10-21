@@ -33,7 +33,7 @@
 
 <template>
     <div class="bg-background min-h-screen flex items-center justify-center font-display text-text-default">
-        <div class="max-w-sm w-full p-8 space-y-6">
+        <div class="max-w-lg w-full p-8 space-y-6">
             <!-- Logo -->
             <router-link to="/" class="font-display text-5xl font-bold relative inline-block mx-auto mb-8">
                 Phour<span class="text-primary text-6xl absolute -bottom-2 -right-8 transform -rotate-12">to</span>
@@ -66,8 +66,8 @@
                             <i v-else data-feather="eye"></i>
                         </button>
                     </div>
-                    <router-link to="/forgotpass" class="block text-right text-xs mt-1 hover:underline">
-                    Forgot Password?
+                    <router-link to="/forgot-password" class="block text-right text-xs mt-1 hover:underline">
+                        Forgot Password?
                     </router-link>
                 </div>
 
@@ -103,7 +103,7 @@
         <!-- Footer Link -->
         <div
             class="absolute bottom-0 left-0 right-0 bg-primary text-text-default font-bold p-4 border-t-3 border-outline text-center">
-            Don't have account? <router-link to="/register" class="hover:underline">Register</router-link>
+            Don't have account? <router-link to="/register" class="hover:underline text-background">Register</router-link>
         </div>
     </div>
 </template>

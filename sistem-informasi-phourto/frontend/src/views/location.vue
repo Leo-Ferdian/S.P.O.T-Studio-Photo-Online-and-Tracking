@@ -32,7 +32,7 @@
 </script>
 
 <template>
-    <div class="bg-background min-h-screen font-display text-text-default pt-24 pb-12">
+    <div class="bg-background min-h-screen font-display text-text-default pt-12 pb-12">
         <main class="container mx-auto px-4">
             <!-- Header Halaman (Bagian yang Diperbaiki) -->
             <div class="flex items-center justify-between mb-12">

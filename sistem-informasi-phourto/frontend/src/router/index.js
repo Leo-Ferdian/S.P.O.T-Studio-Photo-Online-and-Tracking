@@ -20,6 +20,27 @@ const routes = [
         name: 'Register',
         component: Register,
     },
+    {
+        path: '/forgot-password',
+        name: 'ForgotPassword',
+        component: () => import('../views/auth/ForgotPassword.vue'),
+    },
+    {
+        path: '/about',
+        name: 'AboutUs',
+        component: () => import('../views/aboutus.vue'),
+    },
+    {
+        path: '/location',
+        name: 'Location',
+        component: () => import('../views/Location.vue'),
+    },
+    {
+        path: '/service/:planName', // Rute dinamis
+        name: 'ServiceDetail',
+        component: () => import('../views/ServiceDetail.vue'),
+        props: true // Mengirimkan `planName` sebagai prop ke komponen
+    },
     // TODO: Tambahkan rute privat untuk dashboard, booking, dll. di sini
 ];
 

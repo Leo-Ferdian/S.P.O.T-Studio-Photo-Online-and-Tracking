@@ -8,7 +8,7 @@
 </script>
 
 <template>
-    <footer class="bg-white text-text-default mt-16 p-8 border-t-3 border-outline">
+    <footer class="bg-white text-text-default p-8">
         <div class="container mx-auto grid md:grid-cols-3 items-start md:items-center">
             <div class="mb-8 md:mb-0">
                 <router-link to="/" class="font-display text-4xl font-bold relative inline-block">

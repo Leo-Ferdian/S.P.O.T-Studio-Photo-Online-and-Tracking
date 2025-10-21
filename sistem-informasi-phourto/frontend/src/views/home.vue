@@ -55,20 +55,27 @@
                     <TitleBadge text="OUR SERVICE" />
                 </div>
                 <div class="grid grid-cols-3 gap-6">
-                    <div class="border-3 border-accent-green">
+                    <!-- Link untuk Basic & Ramean Plan -->
+                    <router-link to="/service/basic-ramean"
+                        class="border-3 border-accent-green hover:opacity-80 transition-opacity">
                         <img src="https://placehold.co/400x500/dddddd/000000?text=Group" alt="Service 1"
                             class="w-full h-auto" />
-                    </div>
-                    <div class="border-3 border-outline">
+                    </router-link>
+
+                    <router-link to="/service/basic-ramean"
+                        class="border-3 border-outline hover:opacity-80 transition-opacity">
                         <img src="https://placehold.co/400x245/aaaaaa/000000?text=Recap" alt="Service 2"
                             class="w-full h-auto mb-6" />
                         <img src="https://placehold.co/400x245/bbbbbb/000000?text=Recap" alt="Service 3"
                             class="w-full h-auto" />
-                    </div>
-                    <div class="border-3 border-accent-blue">
+                    </router-link>
+
+                    <!-- Link untuk Pas Foto -->
+                    <router-link to="/service/pas-foto"
+                        class="border-3 border-accent-blue hover:opacity-80 transition-opacity">
                         <img src="https://placehold.co/400x500/eeeeee/000000?text=Pas+Foto" alt="Service 4"
                             class="w-full h-auto" />
-                    </div>
+                    </router-link>
                 </div>
             </section>
 

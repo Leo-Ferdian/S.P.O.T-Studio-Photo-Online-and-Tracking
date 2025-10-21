@@ -36,5 +36,18 @@ export const useAuthStore = defineStore('auth', {
             localStorage.removeItem('user');
             // Arahkan ke halaman login (akan ditangani oleh router)
         },
+        async requestPasswordReset(email) {
+            try {
+                // TODO: Panggil API backend POST /api/auth/forgot-password
+                // Untuk sekarang, kita simulasikan sukses setelah 2 detik
+                console.log(`Requesting password reset for: ${email}`);
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                // Jika API berhasil, return true
+                return true;
+            } catch (error) {
+                console.error("Forgot password request failed:", error);
+                throw error;
+            }
+        },
     },
 });
