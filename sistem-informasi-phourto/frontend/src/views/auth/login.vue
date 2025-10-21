@@ -66,7 +66,9 @@
                             <i v-else data-feather="eye"></i>
                         </button>
                     </div>
-                    <a href="#" class="block text-right text-xs mt-1 hover:underline">Forgot Password?</a>
+                    <router-link to="/forgotpass" class="block text-right text-xs mt-1 hover:underline">
+                    Forgot Password?
+                    </router-link>
                 </div>
 
                 <!-- Sign In Button -->
