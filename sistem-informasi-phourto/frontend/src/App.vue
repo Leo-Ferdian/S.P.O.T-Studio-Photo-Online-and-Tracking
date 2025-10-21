@@ -1,42 +1,33 @@
 <script setup>
 import TheHeader from './components/layout/TheHeader.vue';
 import TheFooter from './components/layout/TheFooter.vue';
-import { onMounted } from 'vue';
-import router from './router';
-import feather from 'feather-icons';
+import { computed } from 'vue';
+import { useRoute } from 'vue-router';
 
-// Render ikon saat komponen dimuat dan setelah navigasi
-onMounted(() => {
-  feather.replace();
-});
-router.afterEach(() => {
-  setTimeout(() => feather.replace(), 0);
+const route = useRoute();
+
+// Komputasi untuk mengecek apakah layout utama (header/footer) harus ditampilkan
+const showLayout = computed(() => {
+  return !['Login', 'Register'].includes(route.name);
 });
 </script>
 
 <template>
-  <div class="bg-background text-text-default min-h-screen font-sans">
-    <TheHeader />
+  <div class="min-h-screen font-sans">
+    <TheHeader v-if="showLayout" />
 
-    <main class="pt-20"> <router-view v-slot="{ Component }">
+    <main :class="{ 'pt-20': showLayout }">
+      <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
           <component :is="Component" />
         </transition>
       </router-view>
     </main>
 
-    <TheFooter />
+    <TheFooter v-if="showLayout" />
   </div>
 </template>
 
 <style>
-/* Style global jika diperlukan, termasuk transisi fade */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
+/* ... (style transisi fade Anda) ... */
 </style>
