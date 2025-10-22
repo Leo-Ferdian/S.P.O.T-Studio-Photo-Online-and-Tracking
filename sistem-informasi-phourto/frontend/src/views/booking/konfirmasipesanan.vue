@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import feather from 'feather-icons'
-import ActionButton from '../components/common/ActionButton.vue'
+
 
 const route = useRoute()
 const nama = ref('')
@@ -22,7 +22,7 @@ const backgrounds = [
 ]
 
 const handleSubmit = () => {
-  alert(`Terima kasih ${nama.value}! Pesananmu untuk ${tanggal.value} jam ${waktu.value} telah dikonfirmasi.`)
+  alert(`Terima kasih ${nama.value}! Pesananmu untuk ${tanggal.value} jam ${waktu.value} telah dikonfirmasi!`);
 }
 
 onMounted(() => feather.replace())
@@ -103,7 +103,6 @@ onMounted(() => feather.replace())
 
           <p class="text-sm mt-4">
             <strong>PENAMBAHAN ORANG (ADD ONS)</strong><br />
-            untuk penambahan orang bisa dilakukan ketika sudah di chat oleh Admin kita ya :)
           </p>
 
           <ActionButton text="Konfirmasi Pemesanan" class="bg-red-600 text-white w-full" />

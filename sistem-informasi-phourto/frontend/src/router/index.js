@@ -74,6 +74,22 @@ const routes = [
             },
             // Tambahkan rute admin lain di sini (bookings, packages, dll.)
         ]
+    },
+    {
+        path: '/konfirmasipesanan',
+        name: 'konfirmasipesanan',
+        component: () => import('../views/booking/konfirmasipesanan.vue'),
+    },
+    {
+        path: '/booking',
+        name: 'booking',
+        component: () => import('../views/booking/booking.vue'),
+
+    },
+    {
+        path: '/framecatalog',
+        name: 'framecatalog',
+        component: () => import('../views/framecatalog.vue'),
     }
 ];
 

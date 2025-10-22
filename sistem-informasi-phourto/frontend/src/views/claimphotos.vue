@@ -33,7 +33,7 @@ onMounted(() => {
 
       <!-- Konten Utama -->
       <div
-        class="bg-primary text-text-default border-4 border-outline shadow-solid max-w-3xl mx-auto p-10 rounded-lg"
+        class="bg-primary text-text-default border-4 border-outline shadow-strong max-w-3xl mx-auto p-10"
       >
         <h1 class="text-2xl md:text-3xl font-bold text-center mb-8">CLAIM PHOTOS</h1>
 
@@ -44,7 +44,7 @@ onMounted(() => {
               id="email"
               type="email"
               placeholder="Enter your email"
-              class="w-full p-3 border-3 border-outline rounded shadow-solid focus:outline-none focus:ring-2 focus:ring-outline"
+              class="w-full p-3 border-3 border-outline shadow-solid focus:outline-none focus:ring-2 focus:ring-outline"
             />
           </div>
 
@@ -54,7 +54,7 @@ onMounted(() => {
               id="phone"
               type="text"
               placeholder="Enter your phone number"
-              class="w-full p-3 border-3 border-outline rounded shadow-solid focus:outline-none focus:ring-2 focus:ring-outline"
+              class="w-full p-3 border-3 border-outline shadow-solid focus:outline-none focus:ring-2 focus:ring-outline"
             />
           </div>
 
@@ -75,7 +75,7 @@ onMounted(() => {
 <style scoped>
 /* Warna diatur sesuai tema desain */
 .bg-background {
-  background-color: #fff500; /* Kuning terang */
+  background-color: hwb(58 0% 0%); /* Kuning terang */
 }
 
 .bg-primary {
@@ -90,8 +90,21 @@ onMounted(() => {
   border-color: #000000; /* Outline hitam */
 }
 
-/* Efek shadow-solid sesuai style project */
+/* Efek shadow-solid (biasa) */
 .shadow-solid {
   box-shadow: 4px 4px 0 #000000;
+}
+
+/* Shadow lebih kuat untuk form utama */
+.shadow-strong {
+  box-shadow: 8px 8px 0 #000000;
+}
+
+/* Hilangkan semua rounded */
+.rounded,
+.rounded-lg,
+.rounded-md,
+.rounded-sm {
+  border-radius: 0 !important;
 }
 </style>
