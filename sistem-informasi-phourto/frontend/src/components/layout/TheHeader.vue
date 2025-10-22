@@ -21,7 +21,7 @@ const handleLogout = () => {
             <div class="hidden md:flex items-center space-x-3">
                 <router-link to="/about" class="bg-primary text-text-default font-display px-4 py-1 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all duration-100">About Us</router-link>
                 <router-link to="/location" class="bg-primary text-text-default font-display px-4 py-1 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all duration-100">Location</router-link>
-                <router-link to="/claim" class="bg-primary text-text-default font-display px-4 py-1 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all duration-100">Claim Photos</router-link>
+                <router-link to="/claimphotos" class="bg-primary text-text-default font-display px-4 py-1 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all duration-100">Claim Photos</router-link>
                 <router-link to="/frames" class="bg-primary text-text-default font-display px-4 py-1 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all duration-100">Frame Catalog</router-link>
             </div>
 

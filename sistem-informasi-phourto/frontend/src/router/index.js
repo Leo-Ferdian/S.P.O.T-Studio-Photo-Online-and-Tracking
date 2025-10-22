@@ -47,12 +47,17 @@ const routes = [
         component: () => import('../views/BranchDetail.vue'),
         props: true // Mengirimkan `branchName` sebagai prop ke komponen
     },
-    
+
     {
         path: '/booking/summary', // URL untuk halaman summary
         name: 'BookingSummary',
         component: () => import('../views/booking/Summary.vue'),
         meta: { requiresAuth: true }
+    },
+    {
+        path: '/claimphotos', // URL untuk halaman claim photos
+        name: 'claimphotos',
+        component: () => import('../views/claimphotos.vue'),
     },
     // TODO: Tambahkan rute privat untuk dashboard, booking, dll. di sini
 ];

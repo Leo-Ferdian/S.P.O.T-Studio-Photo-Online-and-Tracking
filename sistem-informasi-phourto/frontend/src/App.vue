@@ -10,7 +10,7 @@
 
   // 1. Tampilkan Header utama HANYA jika bukan halaman dengan header kustom
   const showMainHeader = computed(() => {
-    const pagesWithCustomHeader = ['Login', 'Register', 'Location', 'ServiceDetail', 'AboutUs', 'ForgotPassword'];
+    const pagesWithCustomHeader = ['Login', 'Register', 'Location', 'ServiceDetail', 'AboutUs', 'ForgotPassword', 'claimphotos'];
     return !pagesWithCustomHeader.includes(route.name);
   });
 
