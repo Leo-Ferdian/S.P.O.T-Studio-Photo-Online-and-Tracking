@@ -9,7 +9,7 @@
 
     const isLoading = ref(true);
 
-    // Data galeri statis sebagai contoh. Nanti bisa diambil dari API.
+    // Data galeri statis sebagai contoh.
     const galleryData = {
         'basic-ramean': {
             title: 'BASIC PLAN & RAMEAN PLAN',
@@ -24,12 +24,39 @@
                 { url: 'https://placehold.co/600x400/FF8A65/000000', label: 'ORANGE' },
             ]
         },
-        // Anda bisa menambahkan data untuk plan lain di sini
+        
+        // =============================================
+        //  MODIFIKASI DI SINI: Data 'pas-foto' dilengkapi
+        // =============================================
         'pas-foto': {
-            title: 'PAS FOTO',
-            images: [
-                // ... daftar gambar untuk pas foto
-            ]
+            title: 'PAS FOTO MENU', 
+            
+            images: [ 
+                { url: 'https://placehold.co/300x400/D32F2F/white?text=Pas+Foto+1', label: 'PAS FOTO MERAH' },
+                // ...
+            ],
+            
+            // DATA BARU: Ini data untuk kartu detail dari gambar
+            details: {
+              duration: 30,
+              price: 125000,
+              capacity: '1-2 Person',
+              capacityPrice: 'Rp 125.000 /Person',
+              backgrounds: [
+                'Pas Foto: Merah dan Biru',
+                'Bebas: Pink dan Abu'
+              ],
+              addOn: {
+                title: 'Add On Pas Foto:',
+                price: 'Rp 25.000,00'
+              },
+              whatYouGet: [
+                '1 Photo with Printed A4 Size',
+                'Photo 2x3 (8 pcs)',
+                'Photo 3x4 (2 pcs)',
+                'Photo 4x6 (2 pcs)'
+              ]
+            }
         }
     };
 
@@ -44,7 +71,6 @@
 <template>
     <div class="bg-background min-h-screen font-display text-text-default pt-24 pb-12">
         <main class="container mx-auto px-4">
-            <!-- Header Halaman -->
             <div class="flex items-center justify-between mb-12">
                 <div class="flex-1">
                     <div class="flex items-center space-x-2">
@@ -67,12 +93,72 @@
                 <div class="flex-1"></div>
             </div>
 
-            <!-- Loading State -->
             <div v-if="isLoading" class="text-center py-16">
                 <p>Loading gallery...</p>
             </div>
 
-            <!-- Galeri Foto -->
+            <div v-else-if="currentGallery && props.planName === 'pas-foto'" class="space-y-8">
+                
+                <div class="grid grid-cols-2  gap-6">
+                    <div class="bg-primary text-white">
+                        <div class="grid grid-cols-2">
+                            <img src="https://placehold.co/300x400/D32F2F/white?text=Pas+Foto+1" alt="Pas Foto Merah" class="w-full h-auto">
+                            <img src="https://placehold.co/300x400/D32F2F/white?text=Pas+Foto+2" alt="Pas Foto Merah" class="w-full h-auto">
+                            <img src="https://placehold.co/300x400/0288D1/white?text=Pas+Foto+3" alt="Pas Foto Biru" class="w-full h-auto">
+                            <img src="https://placehold.co/300x400/0288D1/white?text=Pas+Foto+4" alt="Pas Foto Biru" class="w-full h-auto">
+                        </div>
+                        <p class="w-full text-center py-3 font-bold text-xl uppercase">PAS FOTO</p>
+                    </div>
+                    <div class="bg-gray-700 text-white">
+                        <div class="grid grid-cols-2">
+                            <img src="https://placehold.co/300x400/EEEEEE/black?text=Bebas+1" alt="Background Bebas 1" class="w-full h-auto">
+                            <img src="https://placehold.co/300x400/EEEEEE/black?text=Bebas+2" alt="Background Bebas 2" class="w-full h-auto">
+                            <img src="https://placehold.co/300x400/EEEEEE/black?text=Bebas+3" alt="Background Bebas 3" class="w-full h-auto">
+                            <img src="https://placehold.co/300x400/EEEEEE/black?text=Bebas+4" alt="Background Bebas 4" class="w-full h-auto">
+                        </div>
+                        <p class="w-full text-center py-3 font-bold text-xl uppercase">BACKGROUND</p>
+                    </div>
+                </div>
+
+                <div class="bg-white text-black border-4 border-primary p-8">
+                    <h2 class="font-bold text-2xl text-center mb-4 uppercase">Pas Foto Menu</h2>
+                    <div class="flex justify-between items-center border-2 border-black/50 px-4 py-3 mb-6">
+                        <span class="flex items-center text-lg">
+                            <i data-feather="clock" class="w-5 h-5 mr-2"></i> {{ currentGallery.details.duration }} Minutes
+                        </span>
+                        <span class="flex items-center text-lg font-bold">
+                            <i data-feather="tag" class="w-5 h-5 mr-2"></i> Rp. {{ currentGallery.details.price.toLocaleString('id-ID') }},00
+                        </span>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-6 font-sans text-sm md:text-base">
+                        <div class="space-y-4">
+                            <div>
+                                <p class="font-bold">Capacity: {{ currentGallery.details.capacity }}</p>
+                                <p>{{ currentGallery.details.capacityPrice }}</p>
+                            </div>
+                            <div>
+                                <p class="font-bold">Pilihan Background:</p>
+                                <ul class="list-disc list-inside">
+                                    <li v-for="(bg, index) in currentGallery.details.backgrounds" :key="index">{{ bg }}</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <div>
+                                <p class="font-bold">{{ currentGallery.details.addOn.title }}</p>
+                                <p>{{ currentGallery.details.addOn.price }}</p>
+                            </div>
+                            <div>
+                                <p class="font-bold">What Do You Get:</p>
+                                <ul class="list-disc list-inside">
+                                    <li v-for="(item, index) in currentGallery.details.whatYouGet" :key="index">{{ item }}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div v-else-if="currentGallery" class="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div v-for="(item, index) in currentGallery.images" :key="index" class="border-4 border-outline">
                     <img :src="item.url" :alt="item.label" class="w-full h-auto object-cover">
@@ -80,7 +166,6 @@
                 </div>
             </div>
 
-            <!-- Not Found State -->
             <div v-else class="text-center py-16">
                 <h2 class="text-2xl font-bold">Galeri Tidak Ditemukan</h2>
                 <p class="font-sans mt-2">Maaf, kami tidak dapat menemukan detail untuk layanan ini.</p>
