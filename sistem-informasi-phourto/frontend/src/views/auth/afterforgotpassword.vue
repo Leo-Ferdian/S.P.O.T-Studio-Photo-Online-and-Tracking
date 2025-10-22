@@ -1,10 +1,10 @@
 <script setup>
-import { onMounted } from 'vue';
-import feather from 'feather-icons';
+  import { onMounted } from 'vue';
+  import feather from 'feather-icons';
 
-onMounted(() => {
-  feather.replace();
-});
+  onMounted(() => {
+    feather.replace();
+  });
 </script>
 
 <template>
@@ -29,29 +29,32 @@ onMounted(() => {
     </p>
 
     <!-- Tombol Back -->
-    <button
-      @click="$router.push('/auth/signin')"
-      class="bg-red-600 text-black text-sm px-8 py-3 font-semibold hover:bg-red-700 transition-all rounded-none"
-    >
+    <button @click="$router.push('/auth/signin')"
+      class="bg-red-600 text-black text-sm px-8 py-3 font-semibold hover:bg-red-700 transition-all rounded-none">
       Back To Sign In
     </button>
   </div>
 </template>
 
 <style scoped>
-.bg-yellow-400 {
-  background-color: #ffd700; /* warna kuning seperti di gambar */
-}
-.text-pink-600 {
-  color: #e82a6d;
-}
-.text-pink-700 {
-  color: #c0185a;
-}
-.bg-red-600 {
-  background-color: #e31b23;
-}
-.hover\:bg-red-700:hover {
-  background-color: #c91820;
-}
+  .bg-yellow-400 {
+    background-color: #ffd700;
+    /* warna kuning seperti di gambar */
+  }
+
+  .text-pink-600 {
+    color: #e82a6d;
+  }
+
+  .text-pink-700 {
+    color: #c0185a;
+  }
+
+  .bg-red-600 {
+    background-color: #e31b23;
+  }
+
+  .hover\:bg-red-700:hover {
+    background-color: #c91820;
+  }
 </style>
