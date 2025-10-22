@@ -72,6 +72,11 @@ const routes = [
                 name: 'AdminDashboard',
                 component: () => import('../views/admin/Dashboard.vue'),
             },
+            {
+                path: 'bookings',
+                name: 'AdminBookings',
+                component: () => import('../views/admin/BookingList.vue'),
+            },
             // Tambahkan rute admin lain di sini (bookings, packages, dll.)
         ]
     },

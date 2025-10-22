@@ -10,13 +10,13 @@
 
   // 1. Tampilkan Header utama HANYA jika bukan halaman dengan header kustom
   const showMainHeader = computed(() => {
-    const pagesWithCustomHeader = ['Login', 'Register', 'Location', 'ServiceDetail', 'AboutUs', 'ForgotPassword', 'claimphotos', 'konfirmasipesanan', 'booking', 'summary', 'framecatalog'];
+    const pagesWithCustomHeader = ['Login', 'Register', 'Location', 'ServiceDetail', 'AboutUs', 'ForgotPassword', 'claimphotos', 'konfirmasipesanan', 'booking', 'summary', 'framecatalog', 'AdminDashboard', 'AdminBookings'];
     return !pagesWithCustomHeader.includes(route.name);
   });
 
   // 2. Tampilkan Footer HANYA jika bukan halaman full-screen (auth)
   const showMainFooter = computed(() => {
-    const fullScreenPages = ['Login', 'Register', 'ForgotPassword'];
+    const fullScreenPages = ['Login', 'Register', 'ForgotPassword', 'AdminDashboard', 'AdminBookings'];
     return !fullScreenPages.includes(route.name);
   });
 
