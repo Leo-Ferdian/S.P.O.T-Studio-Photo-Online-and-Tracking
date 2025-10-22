@@ -41,6 +41,12 @@ const routes = [
         component: () => import('../views/ServiceDetail.vue'),
         props: true // Mengirimkan `planName` sebagai prop ke komponen
     },
+    {
+        path: '/location/:branchName', // Rute dinamis untuk detail cabang
+        name: 'BranchDetail',
+        component: () => import('../views/BranchDetail.vue'),
+        props: true // Mengirimkan `branchName` sebagai prop ke komponen
+    },
     // TODO: Tambahkan rute privat untuk dashboard, booking, dll. di sini
 ];
 

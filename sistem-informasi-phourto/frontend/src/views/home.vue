@@ -15,11 +15,10 @@
     ];
 
     const locations = [
-        "STUDIO SKA, Jl. Soekarno Hatta, Pekanbaru",
-        "STUDIO PEKANBARU, Jl. Durian, Pekanbaru",
-        "STUDIO MARPOYAN, Jl. Kaharudin Nst, Pekanbaru"
+        { name: "STUDIO SAIL", address: "Jl. Soekarno Hatta, Pekanbaru", slug: "studio-sail" },
+        { name: "STUDIO PANAM", address: "Jl. Durian, Pekanbaru", slug: "studio-panam" },
+        { name: "STUDIO MARPOYAN", address: "Jl. Kaharudin Nst, Pekanbaru", slug: "studio-marpoyan" }
     ];
-
     onMounted(() => {
         feather.replace();
     });
@@ -101,13 +100,16 @@
                 </div>
             </section>
 
-            <!-- Location -->
+            <!-- Our Location -->
             <section class="py-10">
                 <div class="text-center mb-8">
                     <TitleBadge text="OUR LOCATION" />
                 </div>
                 <div class="space-y-4 max-w-2xl mx-auto">
-                    <LocationButton v-for="loc in locations" :key="loc" :location="loc" />
+                    <!-- Loop melalui data lokasi dan buat router-link untuk setiap lokasi -->
+                    <router-link v-for="loc in locations" :key="loc.slug" :to="`/location/${loc.slug}`" class="block">
+                        <LocationButton :location="`${loc.name}, ${loc.address}`" />
+                    </router-link>
                 </div>
             </section>
         </main>
