@@ -4,10 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
+  "dev": "vite",
+  "build": "vite build",
+  "preview": "vite preview",
+  "test": "vitest run --environment happy-dom"
+},
   "dependencies": {
     "axios": "^1.12.2",
     "feather-icons": "^4.29.2",
@@ -17,9 +18,12 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.1",
+    "@vue/test-utils": "^2.4.6",
     "autoprefixer": "^10.4.21",
+    "happy-dom": "^20.0.8",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.14",
-    "vite": "^7.1.11"
+    "vite": "^7.1.11",
+    "vitest": "^4.0.2"
   }
 }
