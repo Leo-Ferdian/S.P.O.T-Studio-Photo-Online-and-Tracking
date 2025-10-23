@@ -10,15 +10,51 @@
 
   // 1. Tampilkan Header utama HANYA jika bukan halaman dengan header kustom
   const showMainHeader = computed(() => {
-    const pagesWithCustomHeader = ['Login', 'Register', 'Location', 'ServiceDetail', 'AboutUs', 'ForgotPassword', 'claimphotos', 'konfirmasipesanan', 'booking', 'summary', 'framecatalog', 'AdminDashboard', 'AdminBookings'];
+    const pagesWithCustomHeader = [
+      'Login',
+      'Register',
+      'Location',
+      'ServiceDetail',
+      'AboutUs',
+      'BranchDetail',
+      'ForgotPassword',
+      'claimphotos',
+      'BookingConfirmation',
+      'BookingAppointment',
+      'BookingSummary',
+      'framecatalog',
+      'BookingSuccess',
+      // Halaman Admin
+      'AdminDashboard',
+      'AdminBookings',
+      'AdminUsers',
+      'AdminPackages',
+      'AdminLogin'];
     return !pagesWithCustomHeader.includes(route.name);
   });
 
   // 2. Tampilkan Footer HANYA jika bukan halaman full-screen (auth)
   const showMainFooter = computed(() => {
-    const fullScreenPages = ['Login', 'Register', 'ForgotPassword', 'AdminDashboard', 'AdminBookings'];
+    const fullScreenPages = ['Login',
+      'Register',
+      'ForgotPassword',
+      'BookingSuccess',
+      // Halaman Admin
+      'AdminDashboard',
+      'AdminBookings',
+      'AdminUsers',
+      'AdminPackages',
+      'AdminLogin'];
     return !fullScreenPages.includes(route.name);
   });
+
+  // Tambahan: Cek apakah halaman adalah halaman auth
+  const isAuthRoute = computed(() => {
+    // Tambahkan 'AdminLogin' ke daftar
+    const authPages = ['Login', 'Register', 'ForgotPassword', 'AdminLogin'];
+    return authPages.includes(route.name);
+  });
+
 
 </script>
 

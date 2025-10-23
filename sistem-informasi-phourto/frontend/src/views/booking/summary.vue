@@ -1,44 +1,92 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import feather from 'feather-icons';
+    import { onMounted, computed, ref } from 'vue'; // Tambahkan ref
+    import { useBookingStore } from '../../stores/booking.stores'; // Perbaiki path
+    import feather from 'feather-icons';
+    import { useRouter } from 'vue-router';
+    import apiClient from '../../api/api'; // Impor apiClient
 
-// Data statis sebagai contoh. Idealnya, ini akan datang dari state management (Pinia)
-// atau sebagai props dari halaman sebelumnya.
-const bookingDetails = ref({
-    studio: 'Phourto Studio CH 1',
-    room: 'Room 4 : Spotlight',
-    date: 'Rabu, 17 September 2025',
-    time: '18.30 - 19.00',
-    duration: 30,
-    price: 179000,
-});
+    const bookingStore = useBookingStore();
+    const router = useRouter();
+    const isLoading = ref(false); // Tambahkan state loading
 
-const additionalPerson = ref({
-    count: 0,
-    price: 15000,
-});
+    // Format tanggal dari store
+    const formattedDate = computed(() => {
+        if (!bookingStore.selectedDate) return 'N/A';
+        // Pastikan selectedDate adalah objek Date
+        const dateObj = bookingStore.selectedDate instanceof Date ? bookingStore.selectedDate : new Date(bookingStore.selectedDate);
+        return dateObj.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    });
 
-const totalAddOn = computed(() => {
-    return additionalPerson.value.count * additionalPerson.value.price;
-});
+    // Fungsi untuk melanjutkan ke pembayaran
+    const proceedToPayment = async () => {
+        isLoading.value = true; // Mulai loading
+        try {
+            // --- INI ADALAH LOGIKA UTAMA ---
+            // 1. Ambil semua data booking dari store
+            const bookingPayload = {
+                // user_id diambil dari authStore di backend (tidak perlu dikirim dari frontend)
+                branch_id: bookingStore.selectedBranch?.id, // Pastikan ID ada
+                package_id: bookingStore.selectedPackage?.id, // Pastikan ID ada
+                booking_time: `${new Date(bookingStore.selectedDate).toISOString().split('T')[0]} ${bookingStore.selectedTime}:00`, // Format YYYY-MM-DD HH:MM:SS
+                // Kirim detail customer & add-ons jika backend memerlukannya
+                customer_name: bookingStore.customerDetails.name,
+                customer_email: bookingStore.customerDetails.email,
+                customer_whatsapp: bookingStore.customerDetails.whatsapp,
+                customer_instagram: bookingStore.customerDetails.instagram,
+                selected_background: bookingStore.selectedBackground,
+                additional_people: bookingStore.additionalPeople,
+                total_amount: bookingStore.grandTotal // Kirim total akhir
+            };
 
-const grandTotal = computed(() => {
-    return bookingDetails.value.price + totalAddOn.value;
-});
+            // Validasi data sebelum kirim
+            if (!bookingPayload.branch_id || !bookingPayload.package_id || !bookingPayload.booking_time || !bookingPayload.customer_name) {
+                throw new Error("Data booking tidak lengkap.");
+            }
 
-const incrementPerson = () => {
-    additionalPerson.value.count++;
-};
+            // 2. Panggil API backend untuk MEMBUAT booking
+            console.log("Mengirim data booking ke backend:", bookingPayload);
+            const bookingResponse = await apiClient.post('/bookings', bookingPayload);
+            const newBooking = bookingResponse.data.data;
+            console.log("Booking berhasil dibuat:", newBooking);
 
-const decrementPerson = () => {
-    if (additionalPerson.value.count > 0) {
-        additionalPerson.value.count--;
-    }
-};
+            // 3. Panggil API backend untuk MEMBUAT TRANSAKSI DOKU
+            // Diasumsikan endpointnya /bookings/:id/pay
+            console.log(`Memulai pembayaran untuk booking ID: ${newBooking.id}`);
+            // const paymentResponse = await apiClient.post(`/bookings/${newBooking.id}/pay`, { paymentType: 'QRIS_DOKU' });
+            // const paymentInfo = paymentResponse.data.data;
+            // console.log("Info pembayaran DOKU:", paymentInfo);
 
-onMounted(() => {
-    feather.replace();
-});
+            // --- AKHIR LOGIKA UTAMA ---
+
+
+            // --- SIMULASI PEMBAYARAN SUKSES (Hapus ini jika API sudah jalan) ---
+            console.log("Simulasi: Pembayaran dianggap berhasil.");
+            await new Promise(resolve => setTimeout(resolve, 1500)); // Delay simulasi
+            // --- AKHIR SIMULASI ---
+
+            // 4. Jika semua berhasil, arahkan ke halaman Success
+            router.push('/booking/success');
+
+            // 5. Reset state booking di Pinia setelah berhasil
+            bookingStore.resetBooking();
+
+        } catch (error) {
+            console.error("Failed to proceed to payment:", error);
+            alert(`Gagal memproses pesanan: ${error.response?.data?.message || error.message || 'Silakan coba lagi.'}`);
+            // Jangan reset store jika gagal, agar pengguna bisa mencoba lagi
+        } finally {
+            isLoading.value = false; // Selesai loading
+        }
+    };
+
+    onMounted(() => {
+        feather.replace();
+        // Validasi data booking saat halaman dimuat
+        if (!bookingStore.selectedPackage || !bookingStore.selectedDate || !bookingStore.selectedTime) {
+            console.warn("Data booking tidak lengkap, mengarahkan kembali ke home...");
+            router.push('/'); // Arahkan ke home jika data penting hilang
+        }
+    });
 </script>
 
 <template>
@@ -48,7 +96,8 @@ onMounted(() => {
             <div class="flex items-center justify-between mb-12">
                 <div class="flex-1">
                     <div class="flex items-center space-x-2">
-                        <button @click="$router.back()"
+                        <!-- Tombol kembali sekarang mengarah ke halaman konfirmasi -->
+                        <button @click="$router.push('/booking/confirm')"
                             class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5">
                             <i data-feather="arrow-left" class="w-6 h-6"></i>
                         </button>
@@ -64,71 +113,75 @@ onMounted(() => {
                 <div class="flex-1"></div>
             </div>
 
-            <!-- Konten Utama -->
+            <!-- Konten Utama: Ringkasan Read-Only -->
             <div class="grid md:grid-cols-2 gap-8 items-start">
                 <!-- Kolom Kiri: Detail Booking -->
                 <div class="space-y-4">
-                    <h2 class="text-2xl font-bold">{{ bookingDetails.studio }}<br>{{ bookingDetails.room }}</h2>
+                    <h2 class="text-2xl font-bold">{{ bookingStore.selectedBranch?.name || 'N/A' }}<br>{{
+                        bookingStore.selectedPackage?.room || 'N/A' }}</h2>
 
-                    <!-- Card Jadwal -->
-                    <div class="bg-white border-3 border-outline p-4 flex justify-between items-start">
+                    <!-- Card Jadwal (Read-Only) -->
+                    <div class="bg-white border-3 border-outline p-4">
                         <div class="font-sans">
-                            <p class="font-bold text-lg">{{ bookingDetails.date }}</p>
-                            <p class="font-bold text-lg">{{ bookingDetails.time }}</p>
-                            <p class="text-sm text-gray-600">WIB / Jakarta</p>
+                            <p class="font-bold text-lg">{{ formattedDate }}</p>
+                            <p class="font-bold text-lg">{{ bookingStore.selectedTime || '--:--' }}</p>
+                            <p class="text-sm text-gray-600">Asia/Jakarta</p>
                         </div>
-                        <button class="text-gray-500 hover:text-primary">
-                            <i data-feather="edit-2" class="w-5 h-5"></i>
-                        </button>
                     </div>
 
-                    <!-- Card Paket -->
-                    <div class="bg-white border-3 border-outline p-4 flex justify-between items-start">
+                    <!-- Card Paket (Read-Only) -->
+                    <div class="bg-white border-3 border-outline p-4">
                         <div class="font-sans">
-                            <p class="font-bold text-lg">{{ bookingDetails.duration }} Menit</p>
-                            <p class="text-sm text-gray-600">{{ bookingDetails.studio }} {{ bookingDetails.room }}</p>
-                            <p class="font-bold text-lg mt-2">Rp {{ bookingDetails.price.toLocaleString('id-ID') }}</p>
+                            <p class="font-bold text-lg">{{ bookingStore.selectedPackage?.duration || 0 }} Menit</p>
+                            <p class="text-sm text-gray-600">{{ bookingStore.selectedBranch?.name }} {{
+                                bookingStore.selectedPackage?.room }}</p>
+                            <p class="font-bold text-lg mt-2">Rp {{ (bookingStore.selectedPackage?.price ||
+                                0).toLocaleString('id-ID') }}</p>
                         </div>
-                        <button class="text-gray-500 hover:text-primary">
-                            <i data-feather="edit-2" class="w-5 h-5"></i>
-                        </button>
+                    </div>
+
+                    <!-- Detail Pelanggan (Read-Only) -->
+                    <div class="bg-white border-3 border-outline p-4 font-sans text-sm space-y-1">
+                        <p><span class="font-bold">Nama:</span> {{ bookingStore.customerDetails.name || 'N/A' }}</p>
+                        <p><span class="font-bold">Email:</span> {{ bookingStore.customerDetails.email || 'N/A' }}</p>
+                        <p><span class="font-bold">Whatsapp:</span> {{ bookingStore.customerDetails.whatsapp || 'N/A' }}
+                        </p>
+                        <p><span class="font-bold">Instagram:</span> {{ bookingStore.customerDetails.instagram || 'N/A'
+                            }}</p>
+                        <p><span class="font-bold">Background:</span> {{ bookingStore.selectedBackground || 'N/A' }}</p>
                     </div>
                 </div>
 
-                <!-- Kolom Kanan: Add-ons -->
+                <!-- Kolom Kanan: Ringkasan Add-ons & Total -->
                 <div class="space-y-4">
-                    <!-- Card Tambahan Orang -->
-                    <div class="bg-primary text-white p-4 border-3 border-outline shadow-solid font-sans">
+                    <!-- Card Tambahan Orang (Read-Only) -->
+                    <div v-if="bookingStore.additionalPeople > 0"
+                        class="bg-primary text-white p-4 border-3 border-outline shadow-solid font-sans">
                         <h3 class="font-display font-bold text-lg">-TAMBAHAN ORANG</h3>
-                        <p class="text-xs mb-3">Harga penambahan orang (include 1 cetakan/orang)</p>
-
-                        <div class="bg-black text-white p-2 flex justify-between items-center border-2 border-white">
-                            <span class="text-lg">Rp {{ additionalPerson.price.toLocaleString('id-ID') }}</span>
-                            <div class="flex items-center space-x-3">
-                                <button @click="decrementPerson"
-                                    class="w-6 h-6 flex items-center justify-center bg-white text-black font-bold text-xl">-</button>
-                                <span>{{ additionalPerson.count }}</span>
-                                <button @click="incrementPerson"
-                                    class="w-6 h-6 flex items-center justify-center bg-white text-black font-bold text-xl">+</button>
-                            </div>
+                        <div class="flex justify-between items-center mt-2">
+                            <span>{{ bookingStore.additionalPeople }} orang x Rp {{
+                                bookingStore.addOnPricePerPerson.toLocaleString('id-ID') }}</span>
+                            <span class="font-bold">Rp {{ bookingStore.totalAddOnPrice.toLocaleString('id-ID') }}</span>
                         </div>
                     </div>
 
-                    <!-- Anda bisa menambahkan card Add-ons lain di sini -->
+                    <!-- Total Keseluruhan -->
+                    <div class="bg-white border-3 border-outline p-4 text-center">
+                        <p class="font-sans text-sm mb-1">Total Pembayaran</p>
+                        <p class="font-display font-bold text-3xl">Rp {{ bookingStore.grandTotal.toLocaleString('id-ID')
+                            }}</p>
+                    </div>
                 </div>
             </div>
 
-            <!-- Tombol Verification di bawah -->
+            <!-- Tombol Lanjut ke Pembayaran -->
             <div class="text-center mt-12">
-                <button
-                    class="bg-primary text-text-default font-bold text-lg py-4 px-16 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-1 active:translate-y-1 transition-all">
-                    Verification
+                <button @click="proceedToPayment" :disabled="isLoading"
+                    class="bg-primary text-text-default font-bold text-lg py-4 px-16 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-1 active:translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                    {{ isLoading ? 'MEMPROSES...' : 'Lanjut ke Pembayaran' }}
                 </button>
-                <p class="font-sans text-center mt-4">Total: <span class="font-bold">Rp {{
-                    grandTotal.toLocaleString('id-ID') }}</span></p>
             </div>
 
         </main>
     </div>
 </template>
-

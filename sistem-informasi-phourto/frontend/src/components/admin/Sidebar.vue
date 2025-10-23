@@ -7,7 +7,7 @@
             <div>
                 <span class="text-xs text-gray-500">MAIN</span>
                 <!-- Menggunakan `router-link-exact-active` untuk styling -->
-                <router-link to="/admin/dashboard" class="flex items-center p-3 rounded-lg mt-1 transition-colors"
+                <router-link to="/admin/dashboard" class="flex items-center p-3 hover:bg-yellow-300 rounded-lg mt-1 transition-colors"
                     active-class="active-link">Dashboard</router-link>
             </div>
             <div>

@@ -1,167 +1,178 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import feather from 'feather-icons';
+    import { ref, onMounted, computed } from 'vue';
+    import feather from 'feather-icons';
+    import { useBookingStore } from '../stores/booking.stores.js';
 
-// Menerima `branchName` (slug dari URL) sebagai prop
-const props = defineProps({
-    branchName: String
-});
+    // Menerima `branchName` (slug dari URL) sebagai prop
+    const props = defineProps({
+        branchName: String
+    });
+    const bookingStore = useBookingStore();
+    const isLoading = ref(true);
+    const errorMessage = ref(null);
 
-const isLoading = ref(true);
-const errorMessage = ref(null);
+    // Fungsi untuk memilih paket dan menyimpan ke store
+    const selectPackage = (pkg) => {
+        // Asumsi `currentBranchData.value` berisi { id, name, slug }
+        const branchInfo = {
+            id: currentBranchData.value?.id || props.branchName, // Ganti dengan ID asli nanti
+            name: currentBranchData.value?.name,
+            slug: props.branchName
+        };
+        bookingStore.setBranchAndPackage(branchInfo, pkg);
+    };
 
-// ==================== PERUBAHAN UTAMA DI SINI ====================
-// Kita buat database statis untuk semua cabang di frontend
-// Nantinya, ini akan digantikan oleh satu panggilan API: GET /api/branches/${props.branchName}
-const allBranchesData = {
-    'studio-sail': {
-        name: "STUDIO SAIL",
-        packages: [
-            {
-                id: 1,
-                room: 'ROOM 1: BASIC',
-                image: 'https://placehold.co/600x400/FFF9C4/000000?text=Basic+Sail',
-                duration: 30,
-                price: 125000,
-                planType: 'Ramean Plan',
-                inclusions: [
-                    'For 5 Person (Max 10)',
-                    '(Rp15.000/pax)',
-                    '2 Photo Print Special'
-                ]
-            },
-            {
-                id: 2,
-                room: 'ROOM 2: FISHEYE ZOOM',
-                image: 'https://placehold.co/600x400/CFD8DC/000000?text=Fisheye+Sail',
-                duration: 30,
-                price: 85000,
-                capacity: '1-6 Person',
-                inclusions: [
-                    'What You Get:',
-                    'All Soft File',
-                    '2 Photo Print/Strip'
-                ]
-            },
-            {
-                id: 3,
-                room: 'ROOM 3: ELEVATOR',
-                image: 'https://placehold.co/600x400/D1C4E9/000000?text=Elevator+Sail',
-                duration: 20,
-                price: 115000,
-                planType: "Let's Film But Make It Fun",
-                inclusions: [
-                    '1-7 Person',
-                    'All Soft File',
-                    '2 Photo With Printed Special Frame'
-                ]
-            },
-            {
-                id: 4,
-                room: 'ROOM 4: SPOTLIGHT ZOOM',
-                image: 'https://placehold.co/600x400/B2EBF2/000000?text=Spotlight+Sail',
-                duration: 30,
-                price: 85000,
-                planType: 'For Those of You who Love Vintage Photos!',
-                capacity: '1-6 Person',
-                inclusions: [
-                    'Body Compotion, Old Money, Full Body.',
-                    'What You Get:',
-                    'All Soft File',
-                    '2 Photo Print/Strip'
-                ]
-            },
-        ]
-    },
-    'studio-panam': {
-        name: "STUDIO PANAM",
-        packages: [
-            {
-                id: 5,
-                room: 'ROOM 1: BASIC',
-                image: 'https://placehold.co/600x400/FFCDD2/000000?text=Basic+Panam',
-                duration: 30,
-                price: 125000,
-                planType: 'Ramean Plan',
-                inclusions: [
-                    'For 5 Person',
-                    'All Soft File',
-                    '2 Photo Print/Strip'
-                ]
-            },
-            {
-                id: 6,
-                room: 'ROOM 2: BLUE PURPLE NEON',
-                image: 'https://placehold.co/600x400/C5CAE9/000000?text=Neon+Panam',
-                duration: 30,
-                price: 135000,
-                planType: 'Fisheye Photo With Different Concept',
-                inclusions: [
-                    '1-10 Person',
-                    'All Soft File',
-                    '2 Photo Print/Strip'
-                ]
-            },
-            {
-                id: 7,
-                room: 'ROOM 5: BLANK SPACE',
-                image: 'https://placehold.co/600x400/E1BEE7/000000?text=Blank+Panam',
-                duration: 30,
-                price: 125000,
-                planType: 'Ramean Plan',
-                inclusions: [
-                    'For 5 Person',
-                    'All Soft File',
-                    '2 Photo Print Special'
-                ]
-            },
-            // Tambahkan paket lain untuk Panam di sini...
-        ]
-    },
-    'studio-marpoyan': {
-        name: "STUDIO MARPOYAN",
-        packages: [
-            {
-                id: 8,
-                room: 'ROOM 1: BASIC',
-                image: 'https://placehold.co/600x400/DCEDC8/000000?text=Basic+Marpoyan',
-                duration: 30,
-                price: 125000,
-                planType: 'Basic Plan',
-                inclusions: [
-                    '1-7 Person',
-                    'What You Get:',
-                    'All Soft File',
-                    '2 Photo Print/Strip'
-                ]
-            },
-            {
-                id: 9,
-                room: 'Y2K YEARBOOK CONCEPT',
-                image: 'https://placehold.co/600x400/BBDEFB/000000?text=Y2K+Marpoyan',
-                duration: 30,
-                price: 85000,
-                planType: 'For Those of You who like Fisheye Photos!',
-                inclusions: [
-                    'Maximal 1-6 Person',
-                    'What You Get:',
-                    'All Soft File',
-                    '2 Photo Print/Strip'
-                ]
-            },
-        ]
-    }
-};
+    // database statis untuk semua cabang di frontend
+    // Nantinya, ini akan digantikan oleh satu panggilan API: GET /api/branches/${props.branchName}
+    const allBranchesData = {
+        'studio-sail': {
+            name: "STUDIO SAIL",
+            packages: [
+                {
+                    id: 1,
+                    room: 'ROOM 1: BASIC',
+                    image: 'https://placehold.co/600x400/FFF9C4/000000?text=Basic+Sail',
+                    duration: 30,
+                    price: 125000,
+                    planType: 'Ramean Plan',
+                    inclusions: [
+                        'For 5 Person (Max 10)',
+                        '(Rp15.000/pax)',
+                        '2 Photo Print Special'
+                    ]
+                },
+                {
+                    id: 2,
+                    room: 'ROOM 2: FISHEYE ZOOM',
+                    image: 'https://placehold.co/600x400/CFD8DC/000000?text=Fisheye+Sail',
+                    duration: 30,
+                    price: 85000,
+                    capacity: '1-6 Person',
+                    inclusions: [
+                        'What You Get:',
+                        'All Soft File',
+                        '2 Photo Print/Strip'
+                    ]
+                },
+                {
+                    id: 3,
+                    room: 'ROOM 3: ELEVATOR',
+                    image: 'https://placehold.co/600x400/D1C4E9/000000?text=Elevator+Sail',
+                    duration: 20,
+                    price: 115000,
+                    planType: "Let's Film But Make It Fun",
+                    inclusions: [
+                        '1-7 Person',
+                        'All Soft File',
+                        '2 Photo With Printed Special Frame'
+                    ]
+                },
+                {
+                    id: 4,
+                    room: 'ROOM 4: SPOTLIGHT ZOOM',
+                    image: 'https://placehold.co/600x400/B2EBF2/000000?text=Spotlight+Sail',
+                    duration: 30,
+                    price: 85000,
+                    planType: 'For Those of You who Love Vintage Photos!',
+                    capacity: '1-6 Person',
+                    inclusions: [
+                        'Body Compotion, Old Money, Full Body.',
+                        'What You Get:',
+                        'All Soft File',
+                        '2 Photo Print/Strip'
+                    ]
+                },
+            ]
+        },
+        'studio-panam': {
+            name: "STUDIO PANAM",
+            packages: [
+                {
+                    id: 5,
+                    room: 'ROOM 1: BASIC',
+                    image: 'https://placehold.co/600x400/FFCDD2/000000?text=Basic+Panam',
+                    duration: 30,
+                    price: 125000,
+                    planType: 'Ramean Plan',
+                    inclusions: [
+                        'For 5 Person',
+                        'All Soft File',
+                        '2 Photo Print/Strip'
+                    ]
+                },
+                {
+                    id: 6,
+                    room: 'ROOM 2: BLUE PURPLE NEON',
+                    image: 'https://placehold.co/600x400/C5CAE9/000000?text=Neon+Panam',
+                    duration: 30,
+                    price: 135000,
+                    planType: 'Fisheye Photo With Different Concept',
+                    inclusions: [
+                        '1-10 Person',
+                        'All Soft File',
+                        '2 Photo Print/Strip'
+                    ]
+                },
+                {
+                    id: 7,
+                    room: 'ROOM 5: BLANK SPACE',
+                    image: 'https://placehold.co/600x400/E1BEE7/000000?text=Blank+Panam',
+                    duration: 30,
+                    price: 125000,
+                    planType: 'Ramean Plan',
+                    inclusions: [
+                        'For 5 Person',
+                        'All Soft File',
+                        '2 Photo Print Special'
+                    ]
+                },
+                // Tambahkan paket lain untuk Panam di sini...
+            ]
+        },
+        'studio-marpoyan': {
+            name: "STUDIO MARPOYAN",
+            packages: [
+                {
+                    id: 8,
+                    room: 'ROOM 1: BASIC',
+                    image: 'https://placehold.co/600x400/DCEDC8/000000?text=Basic+Marpoyan',
+                    duration: 30,
+                    price: 125000,
+                    planType: 'Basic Plan',
+                    inclusions: [
+                        '1-7 Person',
+                        'What You Get:',
+                        'All Soft File',
+                        '2 Photo Print/Strip'
+                    ]
+                },
+                {
+                    id: 9,
+                    room: 'Y2K YEARBOOK CONCEPT',
+                    image: 'https://placehold.co/600x400/BBDEFB/000000?text=Y2K+Marpoyan',
+                    duration: 30,
+                    price: 85000,
+                    planType: 'For Those of You who like Fisheye Photos!',
+                    inclusions: [
+                        'Maximal 1-6 Person',
+                        'What You Get:',
+                        'All Soft File',
+                        '2 Photo Print/Strip'
+                    ]
+                },
+            ]
+        }
+    };
 
-// Computed property untuk mengambil data cabang yang sedang aktif berdasarkan URL
-const currentBranchData = computed(() => allBranchesData[props.branchName]);
-// ==================== AKHIR PERUBAHAN ====================
+    // Computed property untuk mengambil data cabang yang sedang aktif berdasarkan URL
+    const currentBranchData = computed(() => allBranchesData[props.branchName]);
+    // ==================== AKHIR PERUBAHAN ====================
 
 
-onMounted(() => {
-    isLoading.value = false;
-    setTimeout(() => feather.replace(), 0);
-});
+    onMounted(() => {
+        isLoading.value = false;
+        setTimeout(() => feather.replace(), 0);
+    });
 </script>
 
 <template>
@@ -217,10 +228,28 @@ onMounted(() => {
                             <li v-for="(item, index) in pkg.inclusions" :key="index">{{ item }}</li>
                         </ul>
                     </div>
-                    <button
+                    <div class="text-center">
+                        <router-link 
+                        :to="`/booking/${props.branchName}/${pkg.id}`" @click="selectPackage(pkg)"
+                        class="block w-full text-center bg-background text-text-default font-bold py-2 border-3 border-outline shadow-solid hover:bg-yellow-300 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all mt-auto">
+                        Booking Room
+                        </router-link>
+                    </div>
+                    <!-- <router-link 
+                        :to="`/booking/${props.branchName}/${pkg.id}`" @click="selectPackage(pkg)"
+                        class="block w-full text-center bg-background text-text-default font-bold py-2 border-3 border-outline shadow-solid hover:bg-yellow-300 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all mt-auto">
+                        Booking Room
+                    </router-link> -->
+                    <!-- <button
                         class="w-full bg-background text-text-default font-bold py-2 border-3 border-outline shadow-solid hover:bg-yellow-300 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all">
                         Booking Room
-                    </button>
+                    </button> -->
+                    <!-- <button
+                            :to="`/booking/${props.branchName}/${pkg.id}`"
+                            @click="selectPackage(pkg)"
+                            class="w-full bg-background text-text-default font-bold py-2 border-3 border-outline shadow-solid hover:bg-yellow-300 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all">
+                            Booking Room
+                        </button>  -->
                 </div>
             </div>
         </main>

@@ -1,9 +1,16 @@
 <script setup>
     import { ref, onMounted } from 'vue';
     import feather from 'feather-icons';
+    import { useClickOutside } from '../../composables/useClickOutside';
 
     const isLangOpen = ref(false);
     const isProfileOpen = ref(false);
+
+    const langDropdownRef = ref(null);
+    const profileDropdownRef = ref(null);
+
+    useClickOutside(langDropdownRef, () => { isLangOpen.value = false });
+    useClickOutside(profileDropdownRef, () => { isProfileOpen.value = false });
 
     onMounted(() => feather.replace());
 </script>
@@ -19,14 +26,14 @@
         </div>
         <div class="flex items-center space-x-6">
             <!-- Language Dropdown -->
-            <div class="relative">
+            <div class="relative" ref="langDropdownRef">
                 <button @click="isLangOpen = !isLangOpen" class="flex items-center space-x-2">
                     <img src="https://flagcdn.com/gb.svg" width="24" alt="English Flag">
                     <span class="font-sans font-bold">English</span>
                     <i data-feather="chevron-down" class="w-4 h-4"></i>
                 </button>
                 <div v-if="isLangOpen" @click="isLangOpen = false"
-                    class="absolute right-0 mt-2 w-48 bg-white text-black border-2 border-black shadow-solid font-sans rounded-md py-1">
+                    class="absolute right-0 mt-2 w-48 bg-white text-black border-2 border-black shadow-solid font-sans rounded-md py-1 z-10">
                     <p class="px-4 py-2 text-xs text-gray-400">Select Language</p>
                     <a href="#" class="flex justify-between items-center px-4 py-2 hover:bg-gray-100">English <i
                             data-feather="check" class="w-4 h-4 text-green-500"></i></a>
@@ -34,7 +41,7 @@
                 </div>
             </div>
             <!-- Profile Dropdown -->
-            <div class="relative">
+            <div class="relative" ref="profileDropdownRef">
                 <button @click="isProfileOpen = !isProfileOpen" class="flex items-center space-x-2">
                     <img class="w-10 h-10 rounded-full border-2 border-black" src="https://placehold.co/40x40"
                         alt="Admin avatar">
@@ -45,7 +52,7 @@
                     <i data-feather="chevron-down" class="w-4 h-4"></i>
                 </button>
                 <div v-if="isProfileOpen" @click="isProfileOpen = false"
-                    class="absolute right-0 mt-2 w-48 bg-white text-black border-2 border-black shadow-solid font-sans rounded-md py-1">
+                    class="absolute right-0 mt-2 w-48 bg-white text-black border-2 border-black shadow-solid font-sans rounded-md py-1 z-10">
                     <a href="#" class="flex items-center px-4 py-2 hover:bg-gray-100"><i data-feather="user"
                             class="w-4 h-4 mr-2"></i> Manage Account</a>
                     <a href="#" class="flex items-center px-4 py-2 hover:bg-gray-100"><i data-feather="lock"

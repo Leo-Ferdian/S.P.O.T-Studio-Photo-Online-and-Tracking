@@ -49,7 +49,6 @@ const routes = [
         component: () => import('../views/BranchDetail.vue'),
         props: true // Mengirimkan `branchName` sebagai prop ke komponen
     },
-
     {
         path: '/booking/summary', // URL untuk halaman summary
         name: 'BookingSummary',
@@ -62,6 +61,31 @@ const routes = [
         component: () => import('../views/claimphotos.vue'),
     },
     // TODO: Tambahkan rute privat untuk dashboard, booking, dll. di sini
+    {
+        path: '/booking/confirm', // Rute baru untuk halaman konfirmasi
+        name: 'BookingConfirmation',
+        component: () => import('../views/booking/Confirmation.vue'),
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/framecatalog',
+        name: 'framecatalog',
+        component: () => import('../views/framecatalog.vue'),
+    },
+    {
+        path: '/booking/:branchSlug/:packageId', // Rute baru untuk halaman booking
+        name: 'BookingAppointment',
+        component: () => import('../views/booking/BookingAppointment.vue'),
+        props: true, // Mengirimkan `branchSlug` & `packageId` sebagai prop
+        meta: { requiresAuth: true } // Halaman ini butuh login
+    },
+    {
+        path: '/booking/success', // Rute untuk halaman sukses/verifikasi
+        name: 'BookingSuccess',
+        component: () => import('../views/booking/Success.vue'),
+        meta: { requiresAuth: true }
+    },
+    // Grup rute untuk admin
     {
         path: '/admin',
         component: AdminLayout,
@@ -77,25 +101,24 @@ const routes = [
                 name: 'AdminBookings',
                 component: () => import('../views/admin/BookingList.vue'),
             },
+            {
+                path: 'users',
+                name: 'AdminUsers',
+                component: () => import('../views/admin/UserList.vue'), // Pastikan ini ada
+            },
+            {
+                path: 'packages',
+                name: 'AdminPackages',
+                component: () => import('../views/admin/PackageManagement.vue'), // Pastikan ini ada
+            },
+            {
+                path: '/admin/login', // Rute khusus login admin
+                name: 'AdminLogin',
+                component: () => import('../views/auth/AdminLogin.vue'), // Komponen baru
+            },
             // Tambahkan rute admin lain di sini (bookings, packages, dll.)
         ]
     },
-    {
-        path: '/konfirmasipesanan',
-        name: 'konfirmasipesanan',
-        component: () => import('../views/booking/konfirmasipesanan.vue'),
-    },
-    {
-        path: '/booking',
-        name: 'booking',
-        component: () => import('../views/booking/booking.vue'),
-
-    },
-    {
-        path: '/framecatalog',
-        name: 'framecatalog',
-        component: () => import('../views/framecatalog.vue'),
-    }
 ];
 
 const router = createRouter({
@@ -103,19 +126,34 @@ const router = createRouter({
     routes,
 });
 
-router.beforeEach((to, from, next) => {
-    const authStore = useAuthStore();
-    const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
-    const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin);
+// router.beforeEach((to, from, next) => {
+//     const authStore = useAuthStore();
+//     const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
+//     const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin);
+//     const isAdminLoginPage = to.name === 'AdminLogin';
 
-    if (requiresAuth && !authStore.isLoggedIn) {
-        next('/login');
-    } else if (requiresAdmin && !authStore.isAdmin) {
-        // Jika butuh admin tapi user bukan admin, alihkan ke halaman utama
-        next('/');
-    } else {
-        next();
-    }
-});
+//     // Jika mencoba akses halaman yg butuh login tapi belum login
+//     if (requiresAuth && !authStore.isLoggedIn) {
+//         // Arahkan ke login admin jika tujuannya adalah area admin
+//         if (to.path.startsWith('/admin')) {
+//             next('/admin/login');
+//         } else {
+//             next('/login'); // Arahkan ke login customer biasa
+//         }
+//     }
+//     // Jika mencoba akses halaman yg butuh admin tapi bukan admin
+//     else if (requiresAdmin && !authStore.isAdmin) {
+//         next('/'); // Alihkan ke halaman utama
+//     }
+//     // Jika SUDAH login dan mencoba akses halaman login (admin atau customer)
+//     else if (authStore.isLoggedIn && (to.name === 'Login' || isAdminLoginPage)) {
+//          // Jika admin, arahkan ke dashboard admin, jika customer, ke dashboard customer
+//         next(authStore.isAdmin ? '/admin/dashboard' : '/dashboard');
+//     }
+//     // Jika semua kondisi aman
+//     else {
+//         next();
+//     }
+// });
 
 export default router;

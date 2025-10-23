@@ -22,6 +22,13 @@ export const useAuthStore = defineStore('auth', {
                 localStorage.setItem('userToken', token);
                 localStorage.setItem('user', JSON.stringify(user));
 
+                // Arahkan ke dashboard yang sesuai setelah login
+                if (user.role === 'admin') {
+                    router.push('/admin/dashboard');
+                } else {
+                    router.push('/dashboard'); // Asumsi dashboard customer di /dashboard
+                }
+
                 return true;
             } catch (error) {
                 console.error("Login failed:", error);
