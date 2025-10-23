@@ -7,9 +7,9 @@ const PackageController = require('../controllers/package.controller');
 router.get('/', PackageController.getAll);
 
 // Impor komponen
-const AdminPackageController = require('../../controllers/admin/package.controller');
-const authMiddleware = require('../../middlewares/auth.middleware');
-const isAdmin = require('../../middlewares/admin.middleware'); // <-- Impor middleware admin
+const AdminPackageController = require('../controllers/admin/package.controller');
+const authMiddleware = require('../middlewares/auth.middleware');
+const isAdmin = require('../middlewares/admin.middleware'); // <-- Impor middleware admin
 
 // Terapkan middleware untuk semua rute di file ini
 // Permintaan harus lolos dari authMiddleware DULU, baru kemudian isAdmin

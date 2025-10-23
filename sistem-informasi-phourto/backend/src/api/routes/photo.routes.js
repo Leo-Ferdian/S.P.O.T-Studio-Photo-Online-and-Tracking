@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const AdminPhotoController = require('../../controllers/admin/photo.controller');
-const authMiddleware = require('../../middlewares/auth.middleware');
-const isAdmin = require('../../middlewares/admin.middleware');
+const AdminPhotoController = require('../controllers/admin/photo.controller');
+const authMiddleware = require('../middlewares/auth.middleware');
+const isAdmin = require('../middlewares/admin.middleware');
 
 // Lindungi semua rute dengan middleware otentikasi dan otorisasi admin
 router.use(authMiddleware, isAdmin);

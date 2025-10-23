@@ -4,7 +4,7 @@ const asyncHandler = require('../../utils/asyncHandler');
 const apiError = require('../../utils/apiError');
 const { validationResult } = require('express-validator');
 const apiResponse = require('../../utils/apiResponse');
-const logger = require('../../config/logger');
+const logger = require('../../utils/logger');
 
 class BookingController {
     /**

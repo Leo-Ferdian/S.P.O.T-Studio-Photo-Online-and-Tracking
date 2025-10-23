@@ -15,8 +15,16 @@ const branchBodyValidationRules = () => {
 const branchIdValidationRules = () => {
     return;
 };
+const getBranchByIdValidationRules = () => {
+    return [
+        param('id')
+            .isInt().withMessage('ID cabang harus berupa angka.')
+            .toInt(),
+    ];
+};
 
 module.exports = {
     branchBodyValidationRules,
     branchIdValidationRules,
+    getBranchByIdValidationRules,
 };

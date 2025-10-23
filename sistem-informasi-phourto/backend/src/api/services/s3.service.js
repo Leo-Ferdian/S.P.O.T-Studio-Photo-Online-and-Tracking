@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { S3Client, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const multer = require('multer');
@@ -25,7 +26,7 @@ class S3Service {
         this.upload = multer({
             storage: multerS3({
                 s3: s3Client,
-                bucket: process.env.S3_BUCKET_NAME,
+                bucket: process.env.AWS_BUCKET_NAME,
                 acl: 'private', // File diatur sebagai privat, hanya bisa diakses dengan URL khusus
                 contentType: multerS3.AUTO_CONTENT_TYPE, // Otomatis mendeteksi tipe file
                 key: function (req, file, cb) {
@@ -58,7 +59,7 @@ class S3Service {
      */
     async getSignedUrl(key) {
         const command = new GetObjectCommand({
-            Bucket: process.env.S3_BUCKET_NAME,
+            Bucket: process.env.AWS_BUCKET_NAME,
             Key: key,
         });
 
@@ -78,7 +79,7 @@ class S3Service {
      */
     async deleteFile(key) {
         const command = new DeleteObjectCommand({
-            Bucket: process.env.S3_BUCKET_NAME,
+            Bucket: process.env.AWS_BUCKET_NAME,
             Key: key,
         });
 

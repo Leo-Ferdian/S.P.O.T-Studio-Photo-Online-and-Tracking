@@ -4,7 +4,7 @@ const router = express.Router();
 // Impor komponen
 const UserController = require('../controllers/user.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
-const { updateProfileValidationRules, changePasswordValidationRules } = require('../validators/user.validator');
+const { updateProfileValidationRules, changePasswordValidationRules } = require('../validator/user.validator');
 
 // Semua rute di bawah ini dilindungi dan memerlukan login
 router.use(authMiddleware);

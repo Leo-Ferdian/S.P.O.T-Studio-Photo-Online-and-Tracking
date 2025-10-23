@@ -1,6 +1,6 @@
 const PhotoService = require('../../services/photo.service');
 const asyncHandler = require('../../../utils/asyncHandler');
-const ApiResponse = require('../../../utils/responseHandler');
+const ApiResponse = require('../../../utils/apiResponse');
 const ApiError = require('../../../utils/apiError'); // Impor ApiError untuk validasi
 
 class AdminPhotoController {
