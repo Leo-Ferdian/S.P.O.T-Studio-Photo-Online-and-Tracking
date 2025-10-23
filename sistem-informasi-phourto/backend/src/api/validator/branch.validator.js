@@ -1,30 +1,28 @@
 const { body, param } = require('express-validator');
 
-/**
- * Aturan validasi untuk data body saat membuat atau memperbarui cabang.
- * Ini akan memeriksa 'name', 'address', dan 'city'.
- */
-const branchBodyValidationRules = () => {
-    return;
+// Validasi untuk body (Create & Update)
+const branchValidationRules = () => {
+    return [
+        body('name')
+            .notEmpty().withMessage('Nama cabang tidak boleh kosong')
+            .isString().withMessage('Nama cabang harus berupa teks'),
+        body('address')
+            .notEmpty().withMessage('Alamat tidak boleh kosong')
+            .isString().withMessage('Alamat harus berupa teks'),
+        body('operating_hours')
+            .optional()
+            .isString().withMessage('Jam operasional harus berupa teks'),
+    ];
 };
 
-/**
- * Aturan validasi untuk parameter 'id' di URL.
- * Memastikan ID adalah angka bulat positif.
- */
+// Validasi untuk parameter ID
 const branchIdValidationRules = () => {
-    return;
-};
-const getBranchByIdValidationRules = () => {
     return [
-        param('id')
-            .isInt().withMessage('ID cabang harus berupa angka.')
-            .toInt(),
+        param('id').isInt().withMessage('ID cabang harus berupa angka')
     ];
 };
 
 module.exports = {
-    branchBodyValidationRules,
+    branchValidationRules,
     branchIdValidationRules,
-    getBranchByIdValidationRules,
 };

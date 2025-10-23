@@ -5,7 +5,7 @@ const router = express.Router();
 const AdminBookingController = require('../../controllers/admin/booking.controller');
 const authMiddleware = require('../../middlewares/auth.middleware');
 const isAdmin = require('../../middlewares/admin.middleware');
-const { updateStatusValidationRules } = require('../../validators/booking.validator');
+const { updateStatusValidationRules } = require('../../validator/booking.validator');
 
 // Terapkan middleware keamanan untuk semua rute di file ini
 router.use(authMiddleware, isAdmin);

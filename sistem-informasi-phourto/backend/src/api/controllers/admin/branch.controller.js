@@ -1,48 +1,54 @@
-const BranchService = require('../../services/branch.service');
 const asyncHandler = require('../../../utils/asyncHandler');
-const ApiResponse = require('../../../utils/apiResponse');
+const apiResponse = require('../../../utils/apiResponse');
 const { validationResult } = require('express-validator');
+const apiError = require('../../../utils/apiError');
+// const AdminBranchService = require('../../services/admin/branch.service'); // Nanti
 
 class AdminBranchController {
-    // C: Create
+
+    // GET /
+    getAllBranches = asyncHandler(async (req, res) => {
+        const branches = [{ id: 1, name: "Cabang Pusat" }];
+        new apiResponse(res, 200, branches, 'Semua cabang berhasil diambil.');
+    });
+
+    // POST /
     createBranch = asyncHandler(async (req, res) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
+            throw new apiError(400, 'Validasi gagal.', errors.array());
         }
-        const newBranch = await BranchService.createBranch(req.body);
-        new ApiResponse(res, 201, newBranch, 'Cabang baru berhasil dibuat.');
+        const newBranch = { id: 2, ...req.body };
+        new apiResponse(res, 201, newBranch, 'Cabang baru berhasil dibuat.');
     });
 
-    // R: Read All
-    getAllBranches = asyncHandler(async (req, res) => {
-        const branches = await BranchService.getAllBranches();
-        new ApiResponse(res, 200, branches, 'Semua data cabang berhasil diambil.');
-    });
-
-    // R: Read One
+    // GET /:id
     getBranchById = asyncHandler(async (req, res) => {
-        const { id } = req.params;
-        const branchData = await BranchService.getBranchById(id);
-        new ApiResponse(res, 200, branchData, 'Detail cabang berhasil diambil.');
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            throw new apiError(400, 'Validasi ID gagal.', errors.array());
+        }
+        const branch = { id: req.params.id, name: "Cabang Detail" };
+        new apiResponse(res, 200, branch, 'Detail cabang berhasil diambil.');
     });
 
-    // U: Update
+    // PUT /:id
     updateBranch = asyncHandler(async (req, res) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
+            throw new apiError(400, 'Validasi gagal.', errors.array());
         }
-        const { id } = req.params;
-        const updatedBranch = await BranchService.updateBranch(id, req.body);
-        new ApiResponse(res, 200, updatedBranch, 'Data cabang berhasil diperbarui.');
+        const updatedBranch = { id: req.params.id, ...req.body };
+        new apiResponse(res, 200, updatedBranch, 'Cabang berhasil diperbarui.');
     });
 
-    // D: Delete
+    // DELETE /:id
     deleteBranch = asyncHandler(async (req, res) => {
-        const { id } = req.params;
-        await BranchService.deleteBranch(id);
-        new ApiResponse(res, 200, null, 'Cabang berhasil dihapus.');
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            throw new apiError(400, 'Validasi ID gagal.', errors.array());
+        }
+        new apiResponse(res, 200, null, 'Cabang berhasil dihapus.');
     });
 }
 

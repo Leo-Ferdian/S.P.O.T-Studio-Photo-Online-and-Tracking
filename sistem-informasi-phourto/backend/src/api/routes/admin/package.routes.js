@@ -5,7 +5,7 @@ const router = express.Router();
 const AdminPackageController = require('../../controllers/admin/package.controller');
 const authMiddleware = require('../../middlewares/auth.middleware');
 const isAdmin = require('../../middlewares/admin.middleware');
-const { packageBodyValidationRules, packageIdValidationRules } = require('../../validators/package.validator');
+const { packageBodyValidationRules, packageIdValidationRules } = require('../../validator/package.validator');
 
 // =================================================================
 // PENGAMANAN RUTE: Terapkan middleware untuk SEMUA rute di file ini

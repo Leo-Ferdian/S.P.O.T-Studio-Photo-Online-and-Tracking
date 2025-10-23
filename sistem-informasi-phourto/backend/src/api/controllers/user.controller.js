@@ -1,9 +1,10 @@
-const UserService = require('../services/user.service');
+const UserService = require('../services/user.service'); // Pastikan nama file service benar
 const asyncHandler = require('../../utils/asyncHandler');
 const apiResponse = require('../../utils/apiResponse');
 const { validationResult } = require('express-validator');
+const apiError = require('../../utils/apiError'); // Anda mungkin butuh ini
 
-class UserController { // Implementasi operasi CRUD untuk pengguna yang terautentikasi
+class UserController {
     // C: Change my own password
     changeMyPassword = asyncHandler(async (req, res) => {
         const errors = validationResult(req);
@@ -12,8 +13,14 @@ class UserController { // Implementasi operasi CRUD untuk pengguna yang terauten
         }
 
         const userId = req.user.id;
-        const { old_password, new_password } = req.body;
-        await UserService.changeUserPassword(userId, old_password, new_password);
+        const { oldPassword, newPassword } = req.body;
+        
+        // Anda bisa tambahkan validasi ini (walaupun validator sudah mengecek)
+        if (!oldPassword || !newPassword) {
+            throw new apiError(400, 'Password lama dan baru diperlukan.');
+        }
+
+        await UserService.changeUserPassword(userId, oldPassword, newPassword);
         new apiResponse (res, 200, null, 'Password berhasil diubah.');
     });
 
@@ -32,6 +39,8 @@ class UserController { // Implementasi operasi CRUD untuk pengguna yang terauten
         }
 
         const userId = req.user.id;
+        // req.body sekarang sudah camelCase: { fullName: "...", whatsappNumber: "..." }
+        // Langsung kirim ke service
         const updatedUser = await UserService.updateUserProfile(userId, req.body);
         new apiResponse (res, 200, updatedUser, 'Profil berhasil diperbarui.');
     });

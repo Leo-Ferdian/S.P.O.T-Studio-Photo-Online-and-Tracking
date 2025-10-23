@@ -1,13 +1,9 @@
+// src/api/services/user.services.js
 const db = require('../../config/database');
 const bcrypt = require('bcryptjs');
 const apiError = require('../../utils/apiError');
 
 class UserService {
-    /**
-     * Mengambil detail profil pengguna berdasarkan ID.
-     * @param {number} userId - ID pengguna.
-     * @returns {object} - Data profil pengguna (tanpa password).
-     */
     async getUserProfileById(userId) {
         const result = await db.query(
             'SELECT id, full_name, email, whatsapp_number, created_at FROM phourto.users WHERE id = $1',
@@ -16,37 +12,36 @@ class UserService {
         if (result.rows.length === 0) {
             throw new apiError (404, 'Pengguna tidak ditemukan.');
         }
-        return result.rows;
+        return result.rows[0];
     }
 
     /**
-     * Memperbarui detail profil pengguna.
-     * @param {number} userId - ID pengguna.
-     * @param {object} updateData - Data yang akan diperbarui (full_name, whatsapp_number).
-     * @returns {object} - Data profil pengguna yang sudah diperbarui.
+     * @param {object} updateData - Data dalam format camelCase: { fullName, whatsappNumber }
      */
     async updateUserProfile(userId, updateData) {
-        const { full_name, whatsapp_number } = updateData;
+        // Terima data sebagai camelCase
+        const { fullName, whatsappNumber } = updateData;
 
-        // Membangun query secara dinamis untuk memperbarui hanya kolom yang diberikan
-        const fields =1;
-        const values =1;
+        // Perbaiki inisialisasi array
+        const fields = []; 
+        const values = []; 
         let queryIndex = 1;
 
-        if (full_name) {
-            fields.push(`full_name = $${queryIndex++}`);
-            values.push(full_name);
+        // Lakukan "penerjemahan" di sini
+        if (fullName) {
+            fields.push(`full_name = $${queryIndex++}`); // -> snake_case
+            values.push(fullName);
         }
-        if (whatsapp_number) {
-            fields.push(`whatsapp_number = $${queryIndex++}`);
-            values.push(whatsapp_number);
+        if (whatsappNumber) {
+            fields.push(`whatsapp_number = $${queryIndex++}`); // -> snake_case
+            values.push(whatsappNumber);
         }
 
         if (fields.length === 0) {
             throw new apiError (400, 'Tidak ada data yang dikirim untuk diperbarui.');
         }
 
-        values.push(userId); // Tambahkan userId untuk klausa WHERE
+        values.push(userId); 
 
         const query = `
             UPDATE phourto.users
@@ -56,14 +51,12 @@ class UserService {
         `;
 
         const result = await db.query(query, values);
-        return result.rows;
+        return result.rows[0]; // Kembalikan objek
     }
 
     /**
-     * Mengubah password pengguna.
-     * @param {number} userId - ID pengguna.
-     * @param {string} oldPassword - Password lama.
-     * @param {string} newPassword - Password baru.
+     * @param {string} oldPassword - Password lama (camelCase)
+     * @param {string} newPassword - Password baru (camelCase)
      */
     async changeUserPassword(userId, oldPassword, newPassword) {
         const userResult = await db.query('SELECT password FROM phourto.users WHERE id = $1', [userId]);
@@ -71,22 +64,22 @@ class UserService {
             throw new apiError (404, 'Pengguna tidak ditemukan.');
         }
 
-        const user = userResult.rows;
+        const user = userResult.rows[0]; // Ambil objek
+
+        // Gunakan parameter camelCase
         const isMatch = await bcrypt.compare(oldPassword, user.password);
         if (!isMatch) {
             throw new apiError (401, 'Password lama yang Anda masukkan salah.');
         }
 
         const salt = await bcrypt.genSalt(10);
+        // Gunakan parameter camelCase
         const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-        await db.query('UPDATE phourto.users SET password = $1 WHERE id = $2', [hashedPassword, userId]);
+        await db.query('UPDATE phourto.users SET password = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [hashedPassword, userId]);
     }
 
-    /**
-     * Menghapus akun pengguna.
-     * @param {number} userId - ID pengguna.
-     */
+    // (Fungsi ini sudah benar, tidak perlu diubah)
     async deleteUserAccount(userId) {
         const result = await db.query('DELETE FROM phourto.users WHERE id = $1', [userId]);
         if (result.rowCount === 0) {

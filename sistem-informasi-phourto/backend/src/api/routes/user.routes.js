@@ -1,28 +1,50 @@
+// src/api/routes/user.routes.js
 const express = require('express');
 const router = express.Router();
 
-// Impor komponen
-const UserController = require('../controllers/user.controller');
-const authMiddleware = require('../middlewares/auth.middleware');
-const { updateProfileValidationRules, changePasswordValidationRules } = require('../validator/user.validator');
+// 1. IMPOR SEMUA BAGIAN
+// ==========================================================
+// Ini adalah baris yang hilang/salah di file Anda:
+const userController = require('../controllers/user.controller'); 
 
-// Semua rute di bawah ini dilindungi dan memerlukan login
+// Impor middleware dan validator yang sudah kita buat
+const authMiddleware = require('../middlewares/auth.middleware');
+const UserValidator = require('../validator/user.validator'); 
+// ==========================================================
+
+
+// 2. GUNAKAN MIDDLEWARE AUTENTIKASI
+// Ini akan melindungi SEMUA rute di bawah ini.
+// Tidak ada yang bisa mengakses /profile atau /password tanpa token.
 router.use(authMiddleware);
 
-// Rute untuk mendapatkan profil pengguna yang sedang login
-// GET /api/profile/me
-router.get('/me', UserController.getMyProfile);
 
-// Rute untuk memperbarui profil pengguna yang sedang login
-// PUT /api/profile/me
-router.put('/me', updateProfileValidationRules(), UserController.updateMyProfile);
+// 3. DEFINISIKAN RUTE
 
-// Rute untuk mengubah password
-// PUT /api/profile/change-password
-router.put('/change-password', changePasswordValidationRules(), UserController.changeMyPassword);
+// Rute untuk [R]ead Profil: GET /api/users/profile
+router.get(
+    '/profile', 
+    userController.getMyProfile // <-- Perbaikan dari getUserProfile
+);
 
-// Rute untuk menghapus akun
-// DELETE /api/profile/me
-router.delete('/me', UserController.deleteMyAccount);
+// Rute untuk [U]pdate Profil: PUT /api/users/profile
+router.put(
+    '/profile',
+    UserValidator.updateProfileValidationRules(), // Jalankan validasi
+    userController.updateMyProfile                // Baru jalankan controller
+);
+
+// Rute untuk [C]hange Password: PATCH /api/users/password
+router.patch(
+    '/password',
+    UserValidator.changePasswordValidationRules(), // Jalankan validasi
+    userController.changeMyPassword                // Baru jalankan controller
+);
+
+// Rute untuk [D]elete Akun: DELETE /api/users/profile
+router.delete(
+    '/profile', 
+    userController.deleteMyAccount
+);
 
 module.exports = router;

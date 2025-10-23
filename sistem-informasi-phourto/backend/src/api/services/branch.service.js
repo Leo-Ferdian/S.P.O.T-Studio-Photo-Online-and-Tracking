@@ -16,7 +16,7 @@ class BranchService {
                 ORDER BY name ASC
             `;
             const result = await db.query(query);
-            return result.rows;
+            return result.rows; // <-- BENAR (mengembalikan array)
         } catch (error) {
             logger.error('DB Error (getAllBranches):', error);
             throw new ApiError('Gagal mengambil data cabang dari database.', 500);
@@ -29,7 +29,6 @@ class BranchService {
      * @returns {object} Data cabang
      */
     async getBranchById(branchId) {
-        // FUNGSI INI SUDAH SANGAT BAIK, TIDAK PERLU DIUBAH
         try {
             const query = `
                 SELECT id, name, address, city, created_at, updated_at
@@ -42,9 +41,8 @@ class BranchService {
                 throw new ApiError(`Cabang dengan ID ${branchId} tidak ditemukan.`, 404);
             }
 
-            return result.rows;
+            return result.rows[0]; // <-- PERBAIKAN: Kembalikan objek pertama
         } catch (error) {
-            // Memastikan error yang sudah kita buat tidak dibungkus ulang
             if (error instanceof ApiError) {
                 throw error;
             }
@@ -69,7 +67,7 @@ class BranchService {
                 RETURNING *
             `;
             const result = await db.query(query, [name, address, city]);
-            return result.rows;
+            return result.rows[0]; // <-- PERBAIKAN: Kembalikan objek pertama
         } catch (error) {
             logger.error('DB Error (createBranch):', error);
             throw new ApiError('Gagal membuat cabang baru di database.', 500);
@@ -96,7 +94,7 @@ class BranchService {
             if (result.rows.length === 0) {
                 throw new ApiError(`Gagal memperbarui. Cabang dengan ID ${branchId} tidak ditemukan.`, 404);
             }
-            return result.rows;
+            return result.rows[0]; // <-- PERBAIKAN: Kembalikan objek pertama
         } catch (error) {
             if (error instanceof ApiError) {
                 throw error;
@@ -111,6 +109,7 @@ class BranchService {
      * @param {number} branchId - ID dari cabang yang akan dihapus.
      */
     async deleteBranch(branchId) {
+        // FUNGSI INI SUDAH SANGAT BAIK, TIDAK PERLU DIUBAH
         try {
             const query = 'DELETE FROM phourto.branches WHERE id = $1';
             const result = await db.query(query, [branchId]);
@@ -118,7 +117,6 @@ class BranchService {
             if (result.rowCount === 0) {
                 throw new ApiError(`Gagal menghapus. Cabang dengan ID ${branchId} tidak ditemukan.`, 404);
             }
-            // Tidak perlu mengembalikan apa-apa karena penghapusan berhasil
         } catch (error) {
             if (error instanceof ApiError) {
                 throw error;

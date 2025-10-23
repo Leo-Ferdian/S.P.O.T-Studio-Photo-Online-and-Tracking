@@ -10,9 +10,11 @@ const paymentRoutes = require('./src/api/routes/payment.routes');
 const photoRoutes = require('./src/api/routes/photo.routes');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const morgan = require('morgan');
 
 // Impor rute
 const authRoutes = require('./src/api/routes/auth.routes');
+const userRoutes = require('./src/api/routes/user.routes');
 const packageRoutes = require('./src/api/routes/package.routes');
 const branchRoutes = require('./src/api/routes/branch.routes');
 const bookingRoutes = require('./src/api/routes/booking.routes');
@@ -21,15 +23,8 @@ const adminPackageRoutes = require('./src/api/routes/admin/package.routes');
 const adminBranchRoutes = require('./src/api/routes/admin/branch.routes');
 const adminBookingRoutes = require('./src/api/routes/admin/booking.routes');
 const adminPhotoRoutes = require('./src/api/routes/admin/photo.routes');
-const adminUserRoutes = require('./src/api/routes/admin/user.routes');
+// const adminUserRoutes = require('./src/api/routes/admin/user.routes');
 // const { registerValidationRules, loginValidationRules } = require('./src/api/validator/auth.validator');    
-
-// Middleware
-app.use(cors()); // Mengaktifkan CORS
-app.use(express.json()); // Mem-parsing body request sebagai JSON
-app.use(express.urlencoded({ extended: true }));
-app.use(helmet()); // Menambahkan header keamanan
-app.use(limiter); // Membatasi jumlah request untuk mencegah serangan DDoS
 
 // Rate Limiting
 const limiter = rateLimit({
@@ -39,6 +34,14 @@ const limiter = rateLimit({
     legacyHeaders: false,
     message: 'Terlalu banyak permintaan dari IP ini, silakan coba lagi setelah 15 menit.'
 });
+
+// Middleware
+app.use(cors()); // Mengaktifkan CORS
+app.use(express.json()); // Mem-parsing body request sebagai JSON
+app.use(express.urlencoded({ extended: true }));
+app.use(helmet()); // Menambahkan header keamanan
+app.use(limiter); // Membatasi jumlah request untuk mencegah serangan DDoS
+app.use(morgan('combined', { stream: logger.stream })); // Logging dengan morgan dan winston
 
 // Rute Utama
 app.get('/', (req, res) => {
@@ -50,7 +53,7 @@ app.use('/api/admin/packages', adminPackageRoutes); // Rute paket admin
 app.use('/api/admin/branches', adminBranchRoutes); // Rute cabang admin
 app.use('/api/admin/bookings', adminBookingRoutes); // Rute booking admin
 app.use('/api/admin/photos', adminPhotoRoutes); // Rute foto admin
-app.use('/api/admin/users', adminUserRoutes); // Rute user admin
+// app.use('/api/admin/users', adminUserRoutes); // Rute user admin
 
 // Route API
 app.use('/api/auth', authRoutes); // Rute autentikasi
@@ -60,6 +63,7 @@ app.use('/api/bookings', bookingRoutes); // Rute booking
 app.use('/api/profile', profileRoutes); // Gunakan rute profil
 app.use('/api/payments', paymentRoutes); // Rute pembayaran
 app.use('/api/photos', photoRoutes); // Rute foto
+app.use('/api/users', userRoutes); // Rute user
 
 // Logging
 app.use(morganMiddleware); // Gunakan morgan middleware untuk logging
@@ -72,25 +76,22 @@ app.get('/api/protected', authenticateToken, (req, res) => {
     });
 });
 
+//Error handling middleware
+app.use((req, res, next) => {
+    next(new apiError(404, 'Endpoint tidak ditemukan.'));
+});
+
+//cors configuration
+app.use(cors({
+    origin: 'http://localhost:5173', // nanti diubah ke domain frontend
+    credentials: true
+}));
+app.use(errorHandler);
+
 // Jalankan Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Server berjalan di port ${PORT}`);
 });
-
-//Error handling middleware
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).send('Terjadi kesalahan pada server!');
-});
-
-//cors configuration
-app.use(cors({
-    origin: 'http://localhost:3000', // nanti diubah ke domain frontend
-    credentials: true
-}));
-
-app.use(errorHandler);
 // Export app untuk testing atau penggunaan lainnya
 module.exports = app;
-

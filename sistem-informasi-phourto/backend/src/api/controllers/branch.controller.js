@@ -2,6 +2,7 @@ const BranchService = require('../services/branch.service');
 const apiError = require('../../utils/apiError');
 const asyncHandler = require('../../utils/asyncHandler');
 const apiResponse = require('../../utils/apiResponse');
+const { validationResult } = require('express-validator');
 
 // class BranchController {
 //     async getAll(req, res) {

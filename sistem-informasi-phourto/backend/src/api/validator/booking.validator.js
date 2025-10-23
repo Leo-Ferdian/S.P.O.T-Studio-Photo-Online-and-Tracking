@@ -1,37 +1,56 @@
+// src/api/validator/booking.validator.js
 const { body, param } = require('express-validator');
 
-// Validasi input untuk membuat booking baru
+// Ambil daftar status valid dari service Anda
+// Atau definisikan di sini agar konsisten
+const VALID_STATUSES = [
+    'PENDING_PAYMENT',
+    'PAID',
+    'COMPLETED',
+    'CANCELLED',
+    'EXPIRED',
+    'FAILED'
+];
+
 const createBookingValidationRules = () => {
     return [
+        // --- PERBAIKAN: Gunakan snake_case agar cocok dengan controller & service ---
         body('package_id')
-            .notEmpty().withMessage('package_id wajib diisi.')
-            .isInt({ gt: 0 }).withMessage('package_id harus berupa angka positif.'),
+            .notEmpty().withMessage('package_id tidak boleh kosong')
+            .isInt().withMessage('package_id harus berupa angka'),
 
         body('branch_id')
-            .notEmpty().withMessage('branch_id wajib diisi.')
-            .isInt({ gt: 0 }).withMessage('branch_id harus berupa angka positif.'),
+            .notEmpty().withMessage('branch_id tidak boleh kosong')
+            .isInt().withMessage('branch_id harus berupa angka'),
 
         body('booking_time')
-            .notEmpty().withMessage('booking_time wajib diisi.')
-            .isISO8601().withMessage('booking_time harus dalam format tanggal valid (ISO 8601).')
-            .custom((value) => {
-                const date = new Date(value);
-                if (isNaN(date.getTime())) {
-                    throw new Error('booking_time tidak valid.');
-                }
-                return true;
-            })
+            .notEmpty().withMessage('booking_time tidak boleh kosong')
+            .isISO8601().withMessage('Format booking_time harus ISO8601 (contoh: 2025-10-28T10:00:00Z)'),
+
+        body('payment_type')
+            .notEmpty().withMessage('payment_type tidak boleh kosong')
+            .isString().withMessage('payment_type harus berupa string'),
     ];
 };
 
-/**
- * Aturan validasi untuk memperbarui status booking oleh admin.
- */
+// --- TAMBAHAN BARU: Ini yang dicari oleh file rute Anda ---
 const updateStatusValidationRules = () => {
-    return;
-};
+    return [
+        // Validasi ID di URL
+        param('id').isInt().withMessage('ID booking harus berupa angka'),
 
+        // Validasi body request (harus berisi 'status')
+        body('status')
+            .notEmpty().withMessage('Status tidak boleh kosong')
+            .isString().withMessage('Status harus berupa teks')
+            .toUpperCase() // Ubah ke huruf besar
+            .isIn(VALID_STATUSES) // Pastikan statusnya adalah salah satu yang valid
+            .withMessage(`Status tidak valid. Harus salah satu dari: ${VALID_STATUSES.join(', ')}`)
+    ];
+};
+// --- AKHIR TAMBAHAN BARU ---
 
 module.exports = {
-    createBookingValidationRules, updateStatusValidationRules
+    createBookingValidationRules,
+    updateStatusValidationRules, // <-- PERBAIKAN: Ekspor fungsi baru
 };
