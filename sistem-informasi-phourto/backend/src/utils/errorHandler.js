@@ -1,15 +1,23 @@
-// const { path } = require("../../../server");
-const { logger: { error } } = require("./logger");
+const { logger } = require("./logger");
 
 // Middleware penanganan error
 const errorHandler = (err, req, res, next) => {
-    const statusCode = err.statusCode || 500;
+    let statusCode = err.statusCode || 500;
 
-    // Log error
-    logger.error(
-        `[${req.method}] ${req.originalUrl} - ${statusCode} - ${err.message}`,
-        { stack: err.stack, body: req.body, params: req.params, query: req.query }
-    );
+    // --- PERBAIKAN: Tangani error validasi dari express-validator ---
+    // Error validasi mungkin tidak memiliki statusCode, tapi memiliki 'errors'
+    if (err.errors && Array.isArray(err.errors) && err.errors[0]?.msg) {
+        statusCode = 400; // Paksa jadi 400
+    }
+    // --- AKHIR PERBAIKAN ---
+
+    // --- PERBAIKAN: Hanya log jika BUKAN mode tes ---
+    if (process.env.NODE_ENV !== 'test') {
+        logger.error(
+            `[${req.method}] ${req.originalUrl} - ${statusCode} - ${err.message}`,
+            { stack: err.stack } // Disederhanakan agar tidak terlalu ramai
+        );
+    }
 
     res.status(statusCode).json({
         success: false,

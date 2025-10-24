@@ -1,36 +1,24 @@
-const PhotoService = require('../../services/photo.service');
-const S3Service = require('../../services/s3.service');
-const asyncHandler = require('../../../utils/asyncHandler');
-const ApiResponse = require('../../../utils/responseHandler');
+const PhotoService = require('../services/photo.service');
+const asyncHandler = require('../../utils/asyncHandler');
+const apiResponse = require('../../utils/apiResponse');
 
-class AdminPhotoController {
+class PhotoController {
+
     /**
-     * Menangani unggahan beberapa file foto untuk sebuah booking.
+     * @desc    Mendapatkan semua foto milik pengguna yang sedang login
+     * @route   GET /api/photos
+     * @access  Private
      */
-    uploadPhotos = [
-        // Langkah 1: Gunakan middleware 'upload' dari S3Service.
-        // 'photos' adalah nama field, dan 100 adalah batas maksimal file.
-        S3Service.upload.array('photos', 100),
+    getMyPhotos = asyncHandler(async (req, res) => {
+        // Ambil ID pengguna dari token (yang disisipkan oleh authMiddleware)
+        const userId = req.user.id; 
+        
+        const photos = await PhotoService.getPhotosByUserId(userId);
+        
+        new apiResponse(res, 200, photos, 'Foto berhasil diambil.');
+    });
 
-        // Langkah 2: Gunakan asyncHandler untuk menangani logika setelah upload selesai.
-        asyncHandler(async (req, res) => {
-            const { bookingId } = req.params;
-            const files = req.files; // Informasi file yang diunggah tersedia di req.files
-
-            if (!files || files.length === 0) {
-                new ApiResponse(res, 400, null, 'Tidak ada file yang valid untuk diunggah.');
-                return;
-            }
-
-            // Simpan informasi file ke database
-            const savedPhotos = await PhotoService.addPhotosToBooking(bookingId, files);
-
-            new ApiResponse(res, 201, {
-                message: `${savedPhotos.length} foto berhasil diunggah untuk booking ID ${bookingId}.`,
-                photos: savedPhotos
-            });
-        })
-    ];
+    // Anda bisa tambahkan fungsi lain di sini nanti (getById, delete, dll.)
 }
 
-module.exports = new AdminPhotoController();
+module.exports = new PhotoController();

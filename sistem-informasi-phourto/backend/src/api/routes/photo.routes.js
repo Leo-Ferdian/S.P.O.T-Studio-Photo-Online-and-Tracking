@@ -1,14 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const AdminPhotoController = require('../controllers/admin/photo.controller');
+const PhotoController = require('../controllers/photo.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
-const isAdmin = require('../middlewares/admin.middleware');
 
-// Lindungi semua rute dengan middleware otentikasi dan otorisasi admin
-router.use(authMiddleware, isAdmin);
+// Terapkan middleware keamanan ke semua rute foto
+router.use(authMiddleware);
 
-// Rute untuk mengunggah foto ke booking tertentu
-// Method: POST, URL: /api/admin/photos/upload/:bookingId
-router.post('/upload/:bookingId', AdminPhotoController.uploadPhotos);
+// GET /api/photos
+router.get('/', PhotoController.getMyPhotos);
+
+// Anda bisa tambahkan rute lain di sini nanti
+// GET /api/photos/:id
+// DELETE /api/photos/:id
 
 module.exports = router;

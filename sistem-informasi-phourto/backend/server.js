@@ -1,32 +1,30 @@
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors'); // Untuk mengizinkan request dari frontend
-const { logger, morganMiddleware } = require('./src/utils/logger'); // Impor logger dan morgan middleware
-const errorHandler = require('./src/utils/errorHandler.js');
-const app = express();
-const apiError = require('./src/utils/apiError');
-const profileRoutes = require('./src/api/routes/user.routes'); // Impor rute profil
-const paymentRoutes = require('./src/api/routes/payment.routes');
-const photoRoutes = require('./src/api/routes/photo.routes');
+const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const morgan = require('morgan');
+const { logger, morganMiddleware } = require('./src/utils/logger');
+const errorHandler = require('./src/utils/errorHandler.js');
+const apiError = require('./src/utils/apiError');
+const app = express();
 
-// Impor rute
-const authRoutes = require('./src/api/routes/auth.routes');
-const userRoutes = require('./src/api/routes/user.routes');
-const packageRoutes = require('./src/api/routes/package.routes');
-const branchRoutes = require('./src/api/routes/branch.routes');
-const bookingRoutes = require('./src/api/routes/booking.routes');
-const authenticateToken = require('./src/api/middlewares/auth.middleware');
-const adminPackageRoutes = require('./src/api/routes/admin/package.routes');
-const adminBranchRoutes = require('./src/api/routes/admin/branch.routes');
-const adminBookingRoutes = require('./src/api/routes/admin/booking.routes');
-const adminPhotoRoutes = require('./src/api/routes/admin/photo.routes');
-// const adminUserRoutes = require('./src/api/routes/admin/user.routes');
-// const { registerValidationRules, loginValidationRules } = require('./src/api/validator/auth.validator');    
+// =================================================================
+// 1. KONFIGURASI MIDDLEWARE (URUTAN PENTING)
+// =================================================================
 
-// Rate Limiting
+// Konfigurasi CORS (HARUS PALING ATAS)
+const corsOptions = {
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Ambil dari .env
+    credentials: true
+};
+app.use(cors(corsOptions)); 
+
+// Middleware Keamanan & Parser
+app.use(helmet()); // Header keamanan
+app.use(express.json()); // Parsing JSON
+app.use(express.urlencoded({ extended: true })); // Parsing URL-encoded
+
+// Definisi Rate Limiter (HARUS DIBUAT SEBELUM DIGUNAKAN)
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 menit
     max: 100, // Batasi setiap IP hingga 100 permintaan per 15 menit
@@ -35,63 +33,92 @@ const limiter = rateLimit({
     message: 'Terlalu banyak permintaan dari IP ini, silakan coba lagi setelah 15 menit.'
 });
 
-// Middleware
-app.use(cors()); // Mengaktifkan CORS
-app.use(express.json()); // Mem-parsing body request sebagai JSON
-app.use(express.urlencoded({ extended: true }));
-app.use(helmet()); // Menambahkan header keamanan
-app.use(limiter); // Membatasi jumlah request untuk mencegah serangan DDoS
-app.use(morgan('combined', { stream: logger.stream })); // Logging dengan morgan dan winston
+// Terapkan limiter ke semua request
+app.use(limiter);
 
-// Rute Utama
+// Gunakan logging HANYA jika BUKAN mode tes
+// Ini memperbaiki error 'stream.write' dan 'timeout' di Jest
+if (process.env.NODE_ENV !== 'test') {
+    app.use(morganMiddleware);
+}
+
+
+// =================================================================
+// 2. IMPOR RUTE
+// =================================================================
+
+// Rute Publik & Pengguna
+const authRoutes = require('./src/api/routes/auth.routes');
+const userRoutes = require('./src/api/routes/user.routes');
+const packageRoutes = require('./src/api/routes/package.routes'); // Asumsi ini rute publik
+const branchRoutes = require('./src/api/routes/branch.routes'); // Rute cabang publik
+const bookingRoutes = require('./src/api/routes/booking.routes');
+const paymentRoutes = require('./src/api/routes/payment.routes');
+const photoRoutes = require('./src/api/routes/photo.routes');
+const authenticateToken = require('./src/api/middlewares/auth.middleware');
+
+// Rute Admin
+const adminPackageRoutes = require('./src/api/routes/admin/package.routes');
+const adminBranchRoutes = require('./src/api/routes/admin/branch.routes');
+const adminBookingRoutes = require('./src/api/routes/admin/booking.routes');
+const adminPhotoRoutes = require('./src/api/routes/admin/photo.routes');
+
+
+// =================================================================
+// 3. DEFINISI RUTE API
+// =================================================================
+
 app.get('/', (req, res) => {
     res.send('Selamat datang di S.P.O.T API!');
 });
 
-// Rute Admin
-app.use('/api/admin/packages', adminPackageRoutes); // Rute paket admin
-app.use('/api/admin/branches', adminBranchRoutes); // Rute cabang admin
-app.use('/api/admin/bookings', adminBookingRoutes); // Rute booking admin
-app.use('/api/admin/photos', adminPhotoRoutes); // Rute foto admin
-// app.use('/api/admin/users', adminUserRoutes); // Rute user admin
+// Rute API Publik & Pengguna
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes); // Ini sudah mencakup rute /profile
+app.use('/api/packages', packageRoutes); 
+app.use('/api/branches', branchRoutes); 
+app.use('/api/bookings', bookingRoutes);
+app.use('/api/payments', paymentRoutes); // Untuk webhook DOKU
+app.use('/api/photos', photoRoutes); 
 
-// Route API
-app.use('/api/auth', authRoutes); // Rute autentikasi
-app.use('/api/packages', packageRoutes); // Rute paket
-app.use('/api/branches', branchRoutes); // Rute cabang
-app.use('/api/bookings', bookingRoutes); // Rute booking
-app.use('/api/profile', profileRoutes); // Gunakan rute profil
-app.use('/api/payments', paymentRoutes); // Rute pembayaran
-app.use('/api/photos', photoRoutes); // Rute foto
-app.use('/api/users', userRoutes); // Rute user
+// Rute API Admin
+app.use('/api/admin/packages', adminPackageRoutes);
+app.use('/api/admin/branches', adminBranchRoutes);
+app.use('/api/admin/bookings', adminBookingRoutes);
+app.use('/api/admin/photos', adminPhotoRoutes);
 
-// Logging
-app.use(morganMiddleware); // Gunakan morgan middleware untuk logging
-
-// Rute Protected
+// Rute Protected (Untuk Tes)
 app.get('/api/protected', authenticateToken, (req, res) => {
     res.json({
-        message: `Halo ${req.user.name}, endpoint ini terproteksi!`,
+        message: `Halo ${req.user.name}, endpoint ini terproteksi!`, // Pastikan JWT Anda punya 'name'
         user: req.user
     });
 });
 
-//Error handling middleware
+
+// =================================================================
+// 4. ERROR HANDLING (HARUS SETELAH RUTE)
+// =================================================================
+
+// Tangani 404 - Rute tidak ditemukan
 app.use((req, res, next) => {
-    next(new apiError(404, 'Endpoint tidak ditemukan.'));
+    next(new apiError('Endpoint tidak ditemukan.', 404));
 });
 
-//cors configuration
-app.use(cors({
-    origin: 'http://localhost:5173', // nanti diubah ke domain frontend
-    credentials: true
-}));
+// Gunakan Error Handler Kustom Anda (Ini harus menjadi 'app.use' terakhir)
 app.use(errorHandler);
 
-// Jalankan Server
+
+// =================================================================
+// 5. JALANKAN SERVER (HARUS PALING AKHIR)
+// =================================================================
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`Server berjalan di port ${PORT}`);
-});
-// Export app untuk testing atau penggunaan lainnya
+
+if (process.env.NODE_ENV !== 'test') {
+    app.listen(PORT, () => {
+        logger.info(`Server berjalan di port ${PORT}`);
+    });
+}
+
+// Export app untuk testing
 module.exports = app;

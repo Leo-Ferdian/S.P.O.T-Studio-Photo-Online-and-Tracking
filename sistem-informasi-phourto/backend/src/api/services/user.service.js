@@ -10,7 +10,7 @@ class UserService {
             [userId]
         );
         if (result.rows.length === 0) {
-            throw new apiError (404, 'Pengguna tidak ditemukan.');
+            throw new apiError ('Pengguna tidak ditemukan.', 404);
         }
         return result.rows[0];
     }
