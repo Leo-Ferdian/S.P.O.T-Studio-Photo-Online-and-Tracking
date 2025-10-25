@@ -5,21 +5,6 @@ const apiResponse = require('../../utils/apiResponse');
 const asyncHandler = require('../../utils/asyncHandler');
 
 class AuthController {
-    // async register(req, res) {
-    //     // Cek hasil validasi registrasi
-    //     const errors = validationResult(req);
-    //     if (!errors.isEmpty()) {
-    //         throw new apiError('Validasi gagal.', 400, errors.array());
-    //         // return res.status(400).json({ errors: errors.array() });
-    //     }
-
-    //     try {
-    //         const newUser = await AuthService.registerUser(req.body);
-    //         new apiResponse(res, 201, newUser, 'Registrasi berhasil. Silakan login.');
-    //     } catch (error) {
-    //         res.status(error.statusCode || 500).json({ message: error.message || 'Terjadi kesalahan pada server.' });
-    //     }
-    // }
     checkAvailability = asyncHandler(async (req, res) => {
         const { username, email } = req.query;
         if (!username && !email) {
@@ -29,21 +14,6 @@ class AuthController {
         new apiResponse(res, 200, { isAvailable }, 'Pemeriksaan ketersediaan berhasil.');
     });
 
-
-    // async login(req, res) {
-    //     // Cek hasil validasi login
-    //     const errors = validationResult(req);
-    //     if (!errors.isEmpty()) {
-    //         throw new apiError('Validasi gagal.', 400, errors.array());
-    //     }
-
-    //     try {
-    //         const { token, user } = await AuthService.loginUser(req.body);
-    //         new apiResponse(res, 200, { token, user }, 'Login berhasil.');
-    //     } catch (error) {
-    //         res.status(error.statusCode || 500).json({ message: error.message || 'Terjadi kesalahan pada server.' });
-    //     }
-    // }
     register = asyncHandler(async (req, res) => {
         // Cek hasil validasi registrasi
         const errors = validationResult(req);
