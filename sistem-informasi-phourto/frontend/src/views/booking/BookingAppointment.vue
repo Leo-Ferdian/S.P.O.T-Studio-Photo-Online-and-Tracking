@@ -99,7 +99,13 @@
       availableTimes.value = response.data.data; // Asumsi API mengembalikan array string ["10:00", "11:00"]
     } catch (error) {
       console.error("Failed to fetch available times:", error);
-      availableTimes.value = ["18.00", "18.30", "19.00", "19.30", "20.00", "20.30", "21.00", "21.30", "22.00", "22.30"]; // Data dummy jika error
+      availableTimes.value = [
+        "09.00", "09.30", "10.00", "10.30", "11.00", "11.30",
+        "12.00", "12.30", "13.00", "13.30", "14.00", "14.30",
+        "15.00", "15.30", "16.00", "16.30", "17.00", "17.30",
+        "18.00", "18.30", "19.00", "19.30", "20.00", "20.30",
+        "21.00", "21.30", "22.00", "22.30"
+      ];
     } finally {
       isLoadingTimes.value = false;
       setTimeout(() => feather.replace(), 0); // Re-render ikon
@@ -197,11 +203,11 @@
           <div v-if="isLoadingTimes" class="text-center p-4">Loading waktu...</div>
           <div v-else-if="selectedDate && availableTimes.length === 0" class="text-center p-4 text-sm text-gray-500">
             Tidak ada jadwal tersedia pada tanggal ini.</div>
-          <div v-else-if="selectedDate && availableTimes.length > 0" class="grid grid-cols-2 gap-3">
-            <button v-for="time in availableTimes" :key="time" @click="handleTimeSelect(time)" :class="[
-                        'p-3 border-3 border-outline shadow-solid font-bold transition-all duration-100 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 font-display',
-                        selectedTime === time ? 'bg-black text-white' : 'bg-primary text-white hover:bg-red-600'
-                    ]">
+          <div v-else-if="selectedDate && availableTimes.length > 0" class="grid grid-cols-4 gap-2">
+                        <button v-for="time in availableTimes" :key="time" @click="handleTimeSelect(time)" :class="[
+                    'p-2 border-3 border-outline shadow-solid font-bold transition-all duration-100 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 font-display',
+                    selectedTime === time ? 'bg-black text-white' : 'bg-primary text-white hover:bg-red-600'
+                ]">
               {{ time }}
             </button>
           </div>
