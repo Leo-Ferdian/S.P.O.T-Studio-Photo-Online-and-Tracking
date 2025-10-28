@@ -1,35 +1,35 @@
-# .env
-# .env.local
-# .env.development.local
-# .env.test.local
-# .env.production.local
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# # ========================
-# # Logs
-# # ========================
-# logs/
-# *.log
-# *.log.*
-# debug.log
-# error.log
+# ========================
+# Logs
+# ========================
+logs/
+*.log
+*.log.*
+debug.log
+error.log
 
-# # ========================
-# # System files
-# # ========================
-# .DS_Store
-# Thumbs.db
+# ========================
+# System files
+# ========================
+.DS_Store
+Thumbs.db
 
-# # ========================
-# # IDE / Editor
-# # ========================
-# .vscode/
-# .idea/
-# *.swp
-# *.swo
+# ========================
+# IDE / Editor
+# ========================
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# # ========================
-# # Test / Coverage
-# # ========================
-# coverage/
-# .nyc_output/
-# jest-html-reporters-*.html
+# ========================
+# Test / Coverage
+# ========================
+coverage/
+.nyc_output/
+jest-html-reporters-*.html
