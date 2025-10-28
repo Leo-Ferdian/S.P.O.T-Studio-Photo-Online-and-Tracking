@@ -35,8 +35,8 @@
 
         <div class="space-y-6 md:justify-self-start w-full max-w-md">
           <div class="border-4 border-outline">
-            <img src="https://placehold.co/400x400/81D4FA/000000?text=Recap+Pose" alt="Recap Pose"
-              class="w-full h-auto object-cover">
+            <img src="@/assets/recap-pose-room1ch1-2.jpg" alt="Recap Pose"
+            class="w-full h-auto object-cover">
           </div>
           <div class="border-4 border-outline">
             <img src="https://placehold.co/400x400/B39DDB/000000?text=Fisheye+Blur" alt="Fisheye Blur"
