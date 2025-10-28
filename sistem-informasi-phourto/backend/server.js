@@ -41,7 +41,7 @@ app.use(express.json()); // Mem-parsing body request sebagai JSON
 app.use(express.urlencoded({ extended: true }));
 app.use(helmet()); // Menambahkan header keamanan
 app.use(limiter); // Membatasi jumlah request untuk mencegah serangan DDoS
-app.use(morgan('combined', { stream: logger.stream })); // Logging dengan morgan dan winston
+// app.use(morgan('combined', { stream: logger.stream }));// Logging dengan morgan dan winston
 
 // Rute Utama
 app.get('/', (req, res) => {
