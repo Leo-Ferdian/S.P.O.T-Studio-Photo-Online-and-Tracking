@@ -79,7 +79,7 @@ onMounted(() => {
 }
 
 .bg-primary {
-  background-color: #d62828; /* Merah cerah */
+  background-color: hwb(0 2% 4%); /* Merah cerah */
 }
 
 .text-text-default {

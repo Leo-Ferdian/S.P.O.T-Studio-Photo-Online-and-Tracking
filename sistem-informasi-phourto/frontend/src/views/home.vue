@@ -8,10 +8,10 @@
 
     // Data ini bisa diganti dengan data dari API nanti
     const rooms = [
-        { name: 'RECAP POSE', image: 'https://placehold.co/400x500/000000/FFFFFF?text=Recap+Pose' },
-        { name: 'TWIVOR', image: 'https://placehold.co/400x500/cccccc/000000?text=Twivor' },
-        { name: 'KALA', image: 'https://placehold.co/400x500/999999/FFFFFF?text=Kala' },
-        { name: 'FLOWER STUDIO', image: 'https://placehold.co/400x500/eeeeee/000000?text=Flower' },
+        { name: 'EMERALDGREEN', image: new URL('@/assets/fisheye-emeraldgreen1.jpg', import.meta.url).href },
+        { name: 'ELEVATOR', image: new URL('@/assets/fisheye-elevator.jpg', import.meta.url).href },
+        { name: 'BLUEPURPLE', image: new URL('@/assets/fisheye-bluepurple1.jpg', import.meta.url).href },
+        { name: 'FLOWER STUDIO', image: new URL('@/assets/recap-pose-flowerstudio1.jpg', import.meta.url).href },
     ];
 
     const locations = [
@@ -51,7 +51,7 @@
             <!-- Our Service -->
             <section class="py-10">
                 <div class="text-center mb-8">
-                    <TitleBadge text="OUR SERVICE" />
+                    <TitleBadge text="OUR SERVICE" class="bg-white text-black px-6 py-3 rounded-lg" >OUR SERVICE</TitleBadge> 
                 </div>
                 <div class="grid grid-cols-3 gap-6">
                     <!-- Link untuk Basic & Ramean Plan -->
@@ -89,14 +89,14 @@
                         Your Inspiration Here 👉</a>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <img src="https://placehold.co/300x400/cccccc/000000?text=Pose1" alt="Inspiration 1"
-                        class="border-3 border-outline" />
-                    <img src="https://placehold.co/300x400/dddddd/000000?text=Pose2" alt="Inspiration 2"
-                        class="border-3 border-outline" />
-                    <img src="https://placehold.co/300x400/eeeeee/000000?text=Pose3" alt="Inspiration 3"
-                        class="border-3 border-outline" />
-                    <img src="https://placehold.co/300x400/fafafa/000000?text=Pose4" alt="Inspiration 4"
-                        class="border-3 border-outline" />
+                    <img src="@/assets/recap-pose-room1ch3-3.jpg" alt="Inspiration 1"
+                         class="border-3 border-outline w-[300px] h-[400px] object-cover mx-auto" />
+                    <img src="@/assets/recap-pose-room1ch3.jpg" alt="Inspiration 2"
+                        class="border-3 border-outline w-[300px] h-[400px] object-cover mx-auto" />
+                    <img src="@/assets/recap-pose-room1ch2.jpg" alt="Inspiration 3"
+                        class="border-3 border-outline w-[300px] h-[400px] object-cover mx-auto" />
+                    <img src="@/assets/recap-pose-room1ch2-3.jpg" alt="Inspiration 4"
+                        class="border-3 border-outline w-[300px] h-[400px] object-cover mx-auto" />
                 </div>
             </section>
 
