@@ -2,28 +2,41 @@
     import { ref, onMounted, computed } from 'vue';
     import feather from 'feather-icons';
 
+    // ============================================================
+    import bgungu from '../assets/bgungu.jpg';
+    import bglightgrey from '../assets/bglightgrey.jpg';
+    import bgcreamm from '../assets/bgcreamm.jpg';
+    import bgmintgreen from '../assets/bgmintgreen.jpg';
+    import bgbluenavy from '../assets/bgbluenavy.jpg';
+    import bgmaroon from '../assets/bgmaroon.jpg';
+    import bgwhite from '../assets/bgwhite.jpg';
+    import bgorange from '../assets/bgorange.jpg';
+
     // Menerima `planName` dari URL sebagai prop
     const props = defineProps({
-        planName: String
+    planName: String
     });
 
     const isLoading = ref(true);
 
-    // Data galeri statis sebagai contoh.
-    const galleryData = {
+    // ============================================================
+    //  Data galeri statis
+    // ============================================================
+        const galleryData = {
         'basic-ramean': {
-            title: 'BASIC PLAN & RAMEAN PLAN',
-            images: [
-                { url: 'https://placehold.co/600x400/D1C4E9/000000', label: 'PURPLE' },
-                { url: 'https://placehold.co/600x400/CFD8DC/000000', label: 'LIGHT GREY' },
-                { url: 'https://placehold.co/600x400/FFF9C4/000000', label: 'LIGHT CREAM' },
-                { url: 'https://placehold.co/600x400/B2EBF2/000000', label: 'MINT GREY' },
-                { url: 'https://placehold.co/600x400/1A237E/FFFFFF', label: 'BLUE NAVY' },
-                { url: 'https://placehold.co/600x400/B71C1C/FFFFFF', label: 'MAROON' },
-                { url: 'https://placehold.co/600x400/FAFAFA/000000', label: 'WHITE' },
-                { url: 'https://placehold.co/600x400/FF8A65/000000', label: 'ORANGE' },
-            ]
-        },
+        title: 'BASIC PLAN & RAMEAN PLAN',
+        images: [
+        { url: bgungu, label: 'PURPLE' },
+        { url: bglightgrey, label: 'LIGHT GREY' },
+        { url: bgcreamm, label: 'LIGHT CREAM' },
+        { url: bgmintgreen, label: 'MINT GREEN' },
+        { url: bgbluenavy, label: 'BLUE NAVY' },
+        { url: bgmaroon, label: 'MAROON' },
+        { url: bgwhite, label: 'WHITE' },
+        { url: bgorange, label: 'ORANGE' },
+        ]
+    },
+
         
         // =============================================
         //  MODIFIKASI DI SINI: Data 'pas-foto' dilengkapi
@@ -102,19 +115,19 @@
                 <div class="grid grid-cols-2  gap-6">
                     <div class="bg-primary text-white">
                         <div class="grid grid-cols-2">
-                            <img src="https://placehold.co/300x400/D32F2F/white?text=Pas+Foto+1" alt="Pas Foto Merah" class="w-full h-auto">
-                            <img src="https://placehold.co/300x400/D32F2F/white?text=Pas+Foto+2" alt="Pas Foto Merah" class="w-full h-auto">
-                            <img src="https://placehold.co/300x400/0288D1/white?text=Pas+Foto+3" alt="Pas Foto Biru" class="w-full h-auto">
-                            <img src="https://placehold.co/300x400/0288D1/white?text=Pas+Foto+4" alt="Pas Foto Biru" class="w-full h-auto">
+                            <img src="@/assets/pas-photo-merah.jpg" alt="Pas Foto Merah" class="w-full h-auto">
+                            <img src="@/assets/pas-photo-merah.jpg" alt="Pas Foto Merah" class="w-full h-auto">
+                            <img src="@/assets/pas-photo-biru.jpg" alt="Pas Foto Biru" class="w-full h-auto">
+                            <img src="@/assets/pas-photo-biru.jpg" alt="Pas Foto Biru" class="w-full h-auto">
                         </div>
                         <p class="w-full text-center py-3 font-bold text-xl uppercase">PAS FOTO</p>
                     </div>
                     <div class="bg-gray-700 text-white">
                         <div class="grid grid-cols-2">
-                            <img src="https://placehold.co/300x400/EEEEEE/black?text=Bebas+1" alt="Background Bebas 1" class="w-full h-auto">
-                            <img src="https://placehold.co/300x400/EEEEEE/black?text=Bebas+2" alt="Background Bebas 2" class="w-full h-auto">
-                            <img src="https://placehold.co/300x400/EEEEEE/black?text=Bebas+3" alt="Background Bebas 3" class="w-full h-auto">
-                            <img src="https://placehold.co/300x400/EEEEEE/black?text=Bebas+4" alt="Background Bebas 4" class="w-full h-auto">
+                            <img src="@/assets/pas-photo-merah.jpg" alt="Pas Foto Merah" class="w-full h-auto">
+                            <img src="@/assets/pas-photo-merah.jpg" alt="Pas Foto Merah" class="w-full h-auto">
+                            <img src="@/assets/pas-photo-biru.jpg" alt="Pas Foto Biru" class="w-full h-auto">
+                            <img src="@/assets/pas-photo-biru.jpg" alt="Pas Foto Biru" class="w-full h-auto">
                         </div>
                         <p class="w-full text-center py-3 font-bold text-xl uppercase">BACKGROUND</p>
                     </div>
