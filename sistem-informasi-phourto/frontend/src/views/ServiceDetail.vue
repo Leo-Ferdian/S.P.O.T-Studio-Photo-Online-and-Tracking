@@ -116,18 +116,18 @@
                     <div class="bg-primary text-white">
                         <div class="grid grid-cols-2">
                             <img src="@/assets/pas-photo-merah.jpg" alt="Pas Foto Merah" class="w-full h-auto">
-                            <img src="@/assets/pas-photo-merah.jpg" alt="Pas Foto Merah" class="w-full h-auto">
-                            <img src="@/assets/pas-photo-biru.jpg" alt="Pas Foto Biru" class="w-full h-auto">
-                            <img src="@/assets/pas-photo-biru.jpg" alt="Pas Foto Biru" class="w-full h-auto">
+                            <img src="@/assets/pasphotomerah.jpg" alt="Pas Foto Merah" class="w-full h-auto">
+                            <img src="@/assets/bebas3.jpg" alt="Pas Foto Biru" class="w-full h-auto">
+                            <img src="@/assets/bebas4.jpg" alt="Pas Foto Biru" class="w-full h-auto">
                         </div>
                         <p class="w-full text-center py-3 font-bold text-xl uppercase">PAS FOTO</p>
                     </div>
                     <div class="bg-gray-700 text-white">
                         <div class="grid grid-cols-2">
-                            <img src="@/assets/pas-photo-merah.jpg" alt="Pas Foto Merah" class="w-full h-auto">
-                            <img src="@/assets/pas-photo-merah.jpg" alt="Pas Foto Merah" class="w-full h-auto">
-                            <img src="@/assets/pas-photo-biru.jpg" alt="Pas Foto Biru" class="w-full h-auto">
-                            <img src="@/assets/pas-photo-biru.jpg" alt="Pas Foto Biru" class="w-full h-auto">
+                            <img src="@/assets/bebas5.jpg" alt="Pas Foto Merah" class="w-full h-auto">
+                            <img src="@/assets/bebas6.jpg" alt="Pas Foto Merah" class="w-full h-auto">
+                            <img src="@/assets/bebas1.jpg" alt="Pas Foto Biru" class="w-full h-auto">
+                            <img src="@/assets/bebas2.jpg" alt="Pas Foto Biru" class="w-full h-auto">
                         </div>
                         <p class="w-full text-center py-3 font-bold text-xl uppercase">BACKGROUND</p>
                     </div>
