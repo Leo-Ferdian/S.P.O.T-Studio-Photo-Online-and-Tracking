@@ -31,7 +31,7 @@
                 {
                     id: 1,
                     room: 'ROOM 1: BASIC',
-                    image: 'https://placehold.co/600x400/FFF9C4/000000?text=Basic+Sail',
+                    image: new URL('@/assets/basicsail.jpg', import.meta.url).href,
                     duration: 30,
                     price: 125000,
                     planType: 'Ramean Plan',
@@ -44,7 +44,7 @@
                 {
                     id: 2,
                     room: 'ROOM 2: FISHEYE ZOOM',
-                    image: 'https://placehold.co/600x400/CFD8DC/000000?text=Fisheye+Sail',
+                    image: new URL('@/assets/fisheyesail.jpg', import.meta.url).href,
                     duration: 30,
                     price: 85000,
                     capacity: '1-6 Person',
@@ -57,7 +57,7 @@
                 {
                     id: 3,
                     room: 'ROOM 3: ELEVATOR',
-                    image: 'https://placehold.co/600x400/D1C4E9/000000?text=Elevator+Sail',
+                    image: new URL('@/assets/elevatorsail.jpg', import.meta.url).href,
                     duration: 20,
                     price: 115000,
                     planType: "Let's Film But Make It Fun",
@@ -70,7 +70,7 @@
                 {
                     id: 4,
                     room: 'ROOM 4: SPOTLIGHT ZOOM',
-                    image: 'https://placehold.co/600x400/B2EBF2/000000?text=Spotlight+Sail',
+                    image: new URL('@/assets/spotlight.jpg', import.meta.url).href,
                     duration: 30,
                     price: 85000,
                     planType: 'For Those of You who Love Vintage Photos!',
@@ -90,7 +90,7 @@
                 {
                     id: 5,
                     room: 'ROOM 1: BASIC',
-                    image: 'https://placehold.co/600x400/FFCDD2/000000?text=Basic+Panam',
+                    image: new URL('@/assets/basicpanam.jpg', import.meta.url).href,
                     duration: 30,
                     price: 125000,
                     planType: 'Ramean Plan',
@@ -116,7 +116,7 @@
                 {
                     id: 7,
                     room: 'ROOM 5: BLANK SPACE',
-                    image: 'https://placehold.co/600x400/E1BEE7/000000?text=Blank+Panam',
+                    image: new URL('@/assets/blank.jpg', import.meta.url).href,
                     duration: 30,
                     price: 125000,
                     planType: 'Ramean Plan',
@@ -135,7 +135,7 @@
                 {
                     id: 8,
                     room: 'ROOM 1: BASIC',
-                    image: 'https://placehold.co/600x400/DCEDC8/000000?text=Basic+Marpoyan',
+                    image: new URL('@/assets/basicmarpoyan.jpg', import.meta.url).href,
                     duration: 30,
                     price: 125000,
                     planType: 'Basic Plan',
@@ -149,7 +149,7 @@
                 {
                     id: 9,
                     room: 'Y2K YEARBOOK CONCEPT',
-                    image: 'https://placehold.co/600x400/BBDEFB/000000?text=Y2K+Marpoyan',
+                    image: new URL('@/assets/y2kmarpoyan.jpg', import.meta.url).href,
                     duration: 30,
                     price: 85000,
                     planType: 'For Those of You who like Fisheye Photos!',
