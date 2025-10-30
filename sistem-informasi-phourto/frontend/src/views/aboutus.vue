@@ -39,7 +39,7 @@
             class="w-full h-auto object-cover">
           </div>
           <div class="border-4 border-outline">
-            <img src="https://placehold.co/400x400/B39DDB/000000?text=Fisheye+Blur" alt="Fisheye Blur"
+            <img src="@/assets/recap-pose-room1ch3-3.jpg" alt="Fisheye Blur"
               class="w-full h-auto object-cover">
           </div>
         </div>

@@ -9,8 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@vue-leaflet/vue-leaflet": "^0.10.1",
     "axios": "^1.12.2",
     "feather-icons": "^4.29.2",
+    "leaflet": "^1.9.4",
     "pinia": "^3.0.3",
     "vue": "^3.5.22",
     "vue-router": "^4.6.0"
