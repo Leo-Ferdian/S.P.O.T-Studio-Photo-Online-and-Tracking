@@ -1,36 +1,32 @@
-const PhotoService = require('../../services/photo.service');
-const S3Service = require('../../services/s3.service');
-const asyncHandler = require('../../../utils/asyncHandler');
-const ApiResponse = require('../../../utils/responseHandler');
+const PhotoService = require('../services/photo.service');
+const asyncHandler = require('../../utils/asyncHandler');
+const ApiResponse = require('../../utils/responseHandler');
+const ApiError = require('../../utils/apiError');
 
-class AdminPhotoController {
+class PhotoController {
     /**
-     * Menangani unggahan beberapa file foto untuk sebuah booking.
+     * Mengambil galeri foto untuk sebuah booking milik pengguna yang sedang login.
      */
-    uploadPhotos = [
-        // Langkah 1: Gunakan middleware 'upload' dari S3Service.
-        // 'photos' adalah nama field, dan 100 adalah batas maksimal file.
-        S3Service.upload.array('photos', 100),
+    getBookingGallery = asyncHandler(async (req, res) => {
+        // Ambil bookingId dari parameter URL
+        const { bookingId } = req.params;
+        
+        // Ambil userId dari token JWT (yang sudah divalidasi oleh authMiddleware)
+        const userId = req.user.id; 
 
-        // Langkah 2: Gunakan asyncHandler untuk menangani logika setelah upload selesai.
-        asyncHandler(async (req, res) => {
-            const { bookingId } = req.params;
-            const files = req.files; // Informasi file yang diunggah tersedia di req.files
+        if (!bookingId) {
+            throw new ApiError(400, "Booking ID diperlukan.");
+        }
 
-            if (!files || files.length === 0) {
-                new ApiResponse(res, 400, null, 'Tidak ada file yang valid untuk diunggah.');
-                return;
-            }
+        // Panggil service untuk mengambil URL foto yang aman
+        // Service ini akan memverifikasi bahwa bookingId tersebut benar-benar milik userId
+        const photoUrls = await PhotoService.getPhotosByBooking(bookingId, userId);
 
-            // Simpan informasi file ke database
-            const savedPhotos = await PhotoService.addPhotosToBooking(bookingId, files);
+        new ApiResponse(res, 200, photoUrls, "Galeri berhasil diambil.");
+    });
 
-            new ApiResponse(res, 201, {
-                message: `${savedPhotos.length} foto berhasil diunggah untuk booking ID ${bookingId}.`,
-                photos: savedPhotos
-            });
-        })
-    ];
+    // Di masa depan, Anda bisa menambahkan fungsi lain di sini
+    // seperti selectFavoritePhotos, dll.
 }
 
-module.exports = new AdminPhotoController();
+module.exports = new PhotoController();

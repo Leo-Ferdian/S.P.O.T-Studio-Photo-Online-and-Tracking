@@ -1,4 +1,3 @@
-// src/api/services/user.services.js
 const db = require('../../config/database');
 const bcrypt = require('bcryptjs');
 const apiError = require('../../utils/apiError');
@@ -13,7 +12,7 @@ class UserService {
             throw new apiError (404, 'Pengguna tidak ditemukan.');
         }
         return result.rows[0];
-    }
+    } // untuk halaman my profile di user dashboard
 
     /**
      * @param {object} updateData - Data dalam format camelCase: { fullName, whatsappNumber }

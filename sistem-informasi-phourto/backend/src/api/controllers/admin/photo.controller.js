@@ -1,5 +1,6 @@
 const PhotoService = require('../../services/photo.service');
 const asyncHandler = require('../../../utils/asyncHandler');
+const S3Service = require('../../services/s3.service');
 const ApiResponse = require('../../../utils/apiResponse');
 const ApiError = require('../../../utils/apiError'); // Impor ApiError untuk validasi
 

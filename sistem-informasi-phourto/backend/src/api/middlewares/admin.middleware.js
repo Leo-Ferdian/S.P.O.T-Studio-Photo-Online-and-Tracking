@@ -14,17 +14,17 @@ const isAdmin = asyncHandler(async (req, res, next) => {
     // Ambil peran pengguna dari database
     const userResult = await db.query('SELECT role FROM phourto.users WHERE id = $1', [userId]);
 
-    // Jika pengguna tidak ditemukan di database (meskipun token valid, ini kasus aneh)
+    // Jika pengguna tidak ditemukan di database
     if (userResult.rows.length === 0) {
         throw new apiError (404, 'Pengguna yang terkait dengan token ini tidak ditemukan.');
     }
 
-    const userRole = userResult.rows.role;
+    // Ambil 'role' dari objek pertama di dalam array 'rows'
+    const userRole = userResult.rows[0].role;
 
     // Periksa apakah perannya adalah 'admin'
-    if (userRole!== 'admin') {
+    if (userRole !== 'admin') {
         // Jika bukan admin, kirim error 403 Forbidden
-        // 403 artinya "Saya tahu siapa Anda, tapi Anda tidak diizinkan mengakses ini."
         throw new apiError (403, 'Akses ditolak. Anda tidak memiliki hak akses admin.');
     }
 

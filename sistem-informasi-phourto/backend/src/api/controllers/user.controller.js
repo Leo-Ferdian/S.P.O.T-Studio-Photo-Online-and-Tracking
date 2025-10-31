@@ -1,8 +1,8 @@
-const UserService = require('../services/user.service'); // Pastikan nama file service benar
+const UserService = require('../services/user.service');
 const asyncHandler = require('../../utils/asyncHandler');
 const apiResponse = require('../../utils/apiResponse');
 const { validationResult } = require('express-validator');
-const apiError = require('../../utils/apiError'); // Anda mungkin butuh ini
+const apiError = require('../../utils/apiError');
 
 class UserController {
     // C: Change my own password
