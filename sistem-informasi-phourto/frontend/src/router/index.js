@@ -1,9 +1,9 @@
-import { createRouter, createWebHistory } from 'vue-router';
-import Home from '../views/home.vue';
-import Login from '../views/auth/login.vue';
-import Register from '../views/auth/register.vue';
-import AdminLayout from '../components/layout/AdminLayout.vue';
-import { useAuthStore } from '../stores/auth.stores';
+import { createRouter, createWebHistory } from 'vue-router'
+import Home from '../views/home.vue'
+import Login from '../views/auth/login.vue'
+import Register from '../views/auth/register.vue'
+import AdminLayout from '../components/layout/AdminLayout.vue'
+import { useAuthStore } from '../stores/auth.stores' // gunakan alias '@' jika sudah diset di vite.config.js
 
 const routes = [
     {
@@ -14,18 +14,26 @@ const routes = [
     {
         path: '/login',
         name: 'Login',
-        // Lazy loading: Komponen hanya di-load saat halamannya diakses
         component: Login,
+        meta: { requiresGuest: true },
     },
     {
         path: '/register',
         name: 'Register',
         component: Register,
+        meta: { requiresGuest: true },
+    },
+    {
+        path: '/admin/login',
+        name: 'AdminLogin',
+        component: () => import('../views/auth/AdminLogin.vue'),
+        meta: { requiresGuest: true },
     },
     {
         path: '/forgot-password',
         name: 'ForgotPassword',
         component: () => import('../views/auth/ForgotPassword.vue'),
+        meta: { requiresGuest: true },
     },
     {
         path: '/about',
@@ -38,58 +46,57 @@ const routes = [
         component: () => import('../views/Location.vue'),
     },
     {
-        path: '/service/:planName', // Rute dinamis
+        path: '/service/:planName',
         name: 'ServiceDetail',
         component: () => import('../views/ServiceDetail.vue'),
-        props: true // Mengirimkan `planName` sebagai prop ke komponen
+        props: true,
     },
     {
-        path: '/location/:branchName', // Rute dinamis untuk detail cabang
+        path: '/location/:branchName',
         name: 'BranchDetail',
         component: () => import('../views/BranchDetail.vue'),
-        props: true // Mengirimkan `branchName` sebagai prop ke komponen
+        props: true,
     },
     {
-        path: '/booking/summary', // URL untuk halaman summary
+        path: '/booking/summary',
         name: 'BookingSummary',
         component: () => import('../views/booking/Summary.vue'),
-        meta: { requiresAuth: true }
+        meta: { requiresAuth: true },
     },
     {
-        path: '/claimphotos', // URL untuk halaman claim photos
-        name: 'claimphotos',
+        path: '/claimphotos',
+        name: 'ClaimPhotos',
         component: () => import('../views/claimphotos.vue'),
     },
-    // TODO: Tambahkan rute privat untuk dashboard, booking, dll. di sini
     {
-        path: '/booking/confirm', // Rute baru untuk halaman konfirmasi
+        path: '/booking/confirm',
         name: 'BookingConfirmation',
         component: () => import('../views/booking/Confirmation.vue'),
-        meta: { requiresAuth: true }
+        meta: { requiresAuth: true },
     },
     {
         path: '/framecatalog',
-        name: 'framecatalog',
+        name: 'FrameCatalog',
         component: () => import('../views/framecatalog.vue'),
     },
     {
-        path: '/booking/:branchSlug/:packageId', // Rute baru untuk halaman booking
+        path: '/booking/:branchSlug/:packageId',
         name: 'BookingAppointment',
         component: () => import('../views/booking/BookingAppointment.vue'),
-        props: true, // Mengirimkan `branchSlug` & `packageId` sebagai prop
-        meta: { requiresAuth: true } // Halaman ini butuh login
+        props: true,
+        meta: { requiresAuth: true },
     },
     {
-        path: '/booking/success', // Rute untuk halaman sukses/verifikasi
+        path: '/booking/success',
         name: 'BookingSuccess',
         component: () => import('../views/booking/Success.vue'),
-        meta: { requiresAuth: true }
+        meta: { requiresAuth: true },
     },
-    // Grup rute untuk admin
+    // --- Grup rute untuk admin ---
     {
         path: '/admin',
         component: AdminLayout,
-        meta: { requiresAuth: true, requiresAdmin: true }, // Lindungi seluruh grup
+        meta: { requiresAuth: true, requiresAdmin: true },
         children: [
             {
                 path: 'dashboard',
@@ -104,56 +111,52 @@ const routes = [
             {
                 path: 'users',
                 name: 'AdminUsers',
-                component: () => import('../views/admin/UserList.vue'), // Pastikan ini ada
+                component: () => import('../views/admin/UserList.vue'),
             },
             {
                 path: 'packages',
                 name: 'AdminPackages',
-                component: () => import('../views/admin/PackageManagement.vue'), // Pastikan ini ada
+                component: () => import('../views/admin/PackageManagement.vue'),
             },
-            {
-                path: '/admin/login', // Rute khusus login admin
-                name: 'AdminLogin',
-                component: () => import('../views/auth/AdminLogin.vue'), // Komponen baru
-            },
-            // Tambahkan rute admin lain di sini (bookings, packages, dll.)
-        ]
+        ],
     },
-];
+]
 
 const router = createRouter({
     history: createWebHistory(),
     routes,
-});
+})
 
-// router.beforeEach((to, from, next) => {
-//     const authStore = useAuthStore();
-//     const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
-//     const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin);
-//     const isAdminLoginPage = to.name === 'AdminLogin';
+// --- NAVIGATION GUARD ---
+router.beforeEach((to, from, next) => {
+    // Pastikan auth store diambil setiap kali navigasi
+    const authStore = useAuthStore()
 
-//     // Jika mencoba akses halaman yg butuh login tapi belum login
-//     if (requiresAuth && !authStore.isLoggedIn) {
-//         // Arahkan ke login admin jika tujuannya adalah area admin
-//         if (to.path.startsWith('/admin')) {
-//             next('/admin/login');
-//         } else {
-//             next('/login'); // Arahkan ke login customer biasa
-//         }
-//     }
-//     // Jika mencoba akses halaman yg butuh admin tapi bukan admin
-//     else if (requiresAdmin && !authStore.isAdmin) {
-//         next('/'); // Alihkan ke halaman utama
-//     }
-//     // Jika SUDAH login dan mencoba akses halaman login (admin atau customer)
-//     else if (authStore.isLoggedIn && (to.name === 'Login' || isAdminLoginPage)) {
-//          // Jika admin, arahkan ke dashboard admin, jika customer, ke dashboard customer
-//         next(authStore.isAdmin ? '/admin/dashboard' : '/dashboard');
-//     }
-//     // Jika semua kondisi aman
-//     else {
-//         next();
-//     }
-// });
+    const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
+    const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin)
+    const requiresGuest = to.matched.some(record => record.meta.requiresGuest)
 
-export default router;
+    // Butuh login tapi belum login
+    if (requiresAuth && !authStore.isLoggedIn) {
+        authStore.returnUrl = to.fullPath
+        if (to.path.startsWith('/admin')) {
+            next('/admin/login')
+        } else {
+            next('/login')
+        }
+    }
+    // Butuh admin tapi user bukan admin
+    else if (requiresAdmin && !authStore.isAdmin) {
+        next('/')
+    }
+    // Sudah login tapi masuk halaman tamu (login/register)
+    else if (authStore.isLoggedIn && requiresGuest) {
+        next(authStore.isAdmin ? '/admin/dashboard' : '/')
+    }
+    // Aman
+    else {
+        next()
+    }
+})
+
+export default router

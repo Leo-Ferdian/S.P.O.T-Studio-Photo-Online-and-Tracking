@@ -1,38 +1,38 @@
 <script setup>
-    import { onMounted } from 'vue';
-    import feather from 'feather-icons';
-    import TittleBadge from '../components/common/TittleBadge.vue';
-    import ActionButton from '../components/common/ActionButton.vue';
-    import RoomCard from '../components/common/RoomCard.vue';
-    import LocationButton from '../components/common/LocationButton.vue';
-    
+import { onMounted } from 'vue';
+import feather from 'feather-icons';
+import TittleBadge from '../components/common/TittleBadge.vue';
+import ActionButton from '../components/common/ActionButton.vue';
+import RoomCard from '../components/common/RoomCard.vue';
+import LocationButton from '../components/common/LocationButton.vue';
 
-    // Data ini bisa diganti dengan data dari API nanti
-    const rooms = [
-        { name: 'EMERALDGREEN', image: new URL('@/assets/fisheye-emeraldgreen1.jpg', import.meta.url).href },
-        { name: 'ELEVATOR', image: new URL('@/assets/fisheye-elevator.jpg', import.meta.url).href },
-        { name: 'BLUEPURPLE', image: new URL('@/assets/fisheye-bluepurple1.jpg', import.meta.url).href },
-        { name: 'FLOWER STUDIO', image: new URL('@/assets/recap-pose-flowerstudio1.jpg', import.meta.url).href },
-    ];
 
-    const locations = [
-        { name: "STUDIO SAIL", address: "Jl. Soekarno Hatta, Pekanbaru", slug: "studio-sail" },
-        { name: "STUDIO PANAM", address: "Jl. Durian, Pekanbaru", slug: "studio-panam" },
-        { name: "STUDIO MARPOYAN", address: "Jl. Kaharudin Nst, Pekanbaru", slug: "studio-marpoyan" }
-    ];
+// Data ini bisa diganti dengan data dari API nanti
+const rooms = [
+    { name: 'EMERALDGREEN', image: new URL('@/assets/fisheye-emeraldgreen1.jpg', import.meta.url).href },
+    { name: 'ELEVATOR', image: new URL('@/assets/fisheye-elevator.jpg', import.meta.url).href },
+    { name: 'BLUEPURPLE', image: new URL('@/assets/fisheye-bluepurple1.jpg', import.meta.url).href },
+    { name: 'FLOWER STUDIO', image: new URL('@/assets/recap-pose-flowerstudio1.jpg', import.meta.url).href },
+];
 
-    // Import gambar untuk Our Service
-    const serviceImages = {
+const locations = [
+    { name: "STUDIO SAIL", address: "Jl. Soekarno Hatta, Pekanbaru", slug: "studio-sail" },
+    { name: "STUDIO PANAM", address: "Jl. Durian, Pekanbaru", slug: "studio-panam" },
+    { name: "STUDIO MARPOYAN", address: "Jl. Kaharudin Nst, Pekanbaru", slug: "studio-marpoyan" }
+];
+
+// Import gambar untuk Our Service
+const serviceImages = {
     basic1: new URL('@/assets/recap-pose-room1ch1.jpg', import.meta.url).href,
     basic: new URL('@/assets/recap-pose-room1ch2-3.jpg', import.meta.url).href,
     basic2: new URL('@/assets/recap-pose-room1ch2-2.jpg', import.meta.url).href,
     emerald: new URL('@/assets/fisheye-emeraldgreen3.jpg', import.meta.url).href,
     pasFotom: new URL('@/assets/pas-photo-merah.jpg', import.meta.url).href,
     pasFotob: new URL('@/assets/pas-photo-biru.jpg', import.meta.url).href
-    };
-    onMounted(() => {
-        feather.replace();
-    });
+};
+onMounted(() => {
+    feather.replace();
+});
 </script>
 
 <template>
@@ -61,62 +61,33 @@
 
             <!-- OUR SERVICE -->
             <section class="py-10">
-            <div class="text-center mb-8">
-                <TittleBadge text="OUR SERVICE" class="bg-white text-black px-6 py-3 rounded-lg" /> 
-            </div>
+                <div class="text-center mb-8">
+                    <TittleBadge text="OUR SERVICE" class="bg-white text-black px-6 py-3 rounded-lg" />
+                </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Basic & Ramean Plan -->
-                <router-link
-                to="/service/basic-ramean"
-                class="border-3 border-accent-green hover:opacity-80 transition-opacity block"
-                >
-                <img
-                    :src="serviceImages.basic1"
-                    alt="Basic & Ramean Plan"
-                    class="w-full h-auto rounded-lg"
-                />
-                <img
-                    :src="serviceImages.basic"
-                    alt="Fisheye Emerald"
-                    class="w-full h-auto rounded-lg"
-                />
-                </router-link>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Basic & Ramean Plan -->
+                    <router-link to="/service/basic-ramean"
+                        class="border-3 border-accent-green hover:opacity-80 transition-opacity block">
+                        <img :src="serviceImages.basic1" alt="Basic & Ramean Plan" class="w-full h-auto rounded-lg" />
+                        <img :src="serviceImages.basic" alt="Fisheye Emerald" class="w-full h-auto rounded-lg" />
+                    </router-link>
 
-                <router-link
-                to="/service/basic-ramean"
-                class="border-3 border-outline hover:opacity-80 transition-opacity block"
-                >
-                <img
-                    :src="serviceImages.basic2"
-                    alt="Basic & Ramean Plan 2"
-                    class="w-full h-auto mb-6 rounded-lg"
-                />
-                <img
-                    :src="serviceImages.emerald"
-                    alt="Fisheye Emerald"
-                    class="w-full h-auto rounded-lg"
-                />
-                </router-link>
+                    <router-link to="/service/basic-ramean"
+                        class="border-3 border-outline hover:opacity-80 transition-opacity block">
+                        <img :src="serviceImages.basic2" alt="Basic & Ramean Plan 2"
+                            class="w-full h-auto mb-6 rounded-lg" />
+                        <img :src="serviceImages.emerald" alt="Fisheye Emerald" class="w-full h-auto rounded-lg" />
+                    </router-link>
 
-                <!-- Pas Foto -->
-                <router-link
-                to="/service/pas-foto"
-                class="border-3 border-accent-blue hover:opacity-80 transition-opacity block"
-                >
-                <img
-                    :src="serviceImages.pasFotom"
-                    alt="Pas Foto"
-                    class="w-full h-auto rounded-lg"
-                />
-                <img
-                    :src="serviceImages.pasFotob"
-                    alt="Pas Foto"
-                    class="w-full h-auto rounded-lg"
-                />
-                </router-link>
-                
-            </div>
+                    <!-- Pas Foto -->
+                    <router-link to="/service/pas-foto"
+                        class="border-3 border-accent-blue hover:opacity-80 transition-opacity block">
+                        <img :src="serviceImages.pasFotom" alt="Pas Foto" class="w-full h-auto rounded-lg" />
+                        <img :src="serviceImages.pasFotob" alt="Pas Foto" class="w-full h-auto rounded-lg" />
+                    </router-link>
+
+                </div>
             </section>
 
 
@@ -132,7 +103,7 @@
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <img src="@/assets/recap-pose-room1ch3-3.jpg" alt="Inspiration 1"
-                         class="border-3 border-outline w-[300px] h-[400px] object-cover mx-auto" />
+                        class="border-3 border-outline w-[300px] h-[400px] object-cover mx-auto" />
                     <img src="@/assets/recap-pose-room1ch3.jpg" alt="Inspiration 2"
                         class="border-3 border-outline w-[300px] h-[400px] object-cover mx-auto" />
                     <img src="@/assets/recap-pose-room1ch2.jpg" alt="Inspiration 3"

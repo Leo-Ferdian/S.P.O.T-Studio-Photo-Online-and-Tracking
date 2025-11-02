@@ -1,6 +1,6 @@
 <script setup>
-  import TheHeader from './components/layout/TheHeader.vue';
-  import TheFooter from './components/layout/TheFooter.vue';
+  import AppHeader from './components/layout/AppHeader.vue';
+  import AppFooter from './components/layout/AppFooter.vue';
   import { computed } from 'vue';
   import { useRoute } from 'vue-router';
 
@@ -61,7 +61,7 @@
 <template>
   <div class="min-h-screen font-sans">
     <!-- Header utama hanya akan tampil jika `showMainHeader` bernilai true -->
-    <TheHeader v-if="showMainHeader" />
+    <AppHeader v-if="showMainHeader" />
 
     <!-- Padding atas pada main hanya ditambahkan jika header utama tampil -->
     <main :class="{ 'pt-20': showMainHeader }">
@@ -73,7 +73,7 @@
     </main>
 
     <!-- Footer akan tampil jika `showMainFooter` bernilai true -->
-    <TheFooter v-if="showMainFooter" />
+    <AppFooter v-if="showMainFooter" />
   </div>
 </template>
 

@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors'); 
+const cors = require('cors');
 const { logger, morganMiddleware } = require('./src/utils/logger');
 const errorHandler = require('./src/utils/errorHandler.js');
 const apiError = require('./src/utils/apiError');
@@ -25,24 +25,25 @@ const adminBranchRoutes = require('./src/api/routes/admin/branch.routes');
 const adminBookingRoutes = require('./src/api/routes/admin/booking.routes');
 const adminPhotoRoutes = require('./src/api/routes/admin/photo.routes');
 const adminUserRoutes = require('./src/api/routes/admin/user.routes.js');
+const adminDashboardRoutes = require('./src/api/routes/admin/dashboard.routes.js');
 
 // Rate Limiting
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, 
-    max: 100, 
+    windowMs: 15 * 60 * 1000,
+    max: 100,
     standardHeaders: true,
     legacyHeaders: false,
     message: 'Terlalu banyak permintaan dari IP ini, silakan coba lagi setelah 15 menit.'
 });
 
 // Middleware Global
-app.use(cors()); 
-app.use(express.json()); 
+app.use(cors());
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(helmet()); 
-app.use(limiter); 
+app.use(helmet());
+app.use(limiter);
 // app.use(morgan('combined', { stream: logger.stream }));// Logging dengan morgan dan winston
-app.use(morganMiddleware); 
+app.use(morganMiddleware);
 
 
 // =========================================================
@@ -55,12 +56,12 @@ app.get('/', (req, res) => {
 });
 
 // Rute Auth (Login/Register)
-app.use('/api/auth', authRoutes); 
+app.use('/api/auth', authRoutes);
 
 // Rute Katalog Publik (Package dan Branch)
 // TIDAK MEMBUTUHKAN TOKEN, jadi dipasang di sini.
-app.use('/api/packages', packageRoutes); 
-app.use('/api/branches', branchRoutes); 
+app.use('/api/packages', packageRoutes);
+app.use('/api/branches', branchRoutes);
 
 
 // =========================================================
@@ -68,17 +69,18 @@ app.use('/api/branches', branchRoutes);
 // =========================================================
 
 // Route API (Pelanggan)
-app.use('/api/users', userRoutes); 
-app.use('/api/bookings', bookingRoutes); 
-app.use('/api/payments', paymentRoutes); 
-app.use('/api/photos', photoRoutes); 
+app.use('/api/users', userRoutes);
+app.use('/api/bookings', bookingRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/photos', photoRoutes);
 
 // Rute Admin
-app.use('/api/admin/packages', adminPackageRoutes); 
-app.use('/api/admin/branches', adminBranchRoutes); 
-app.use('/api/admin/bookings', adminBookingRoutes); 
-app.use('/api/admin/photos', adminPhotoRoutes); 
-app.use('/api/admin/users', adminUserRoutes); 
+app.use('/api/admin/packages', adminPackageRoutes);
+app.use('/api/admin/branches', adminBranchRoutes);
+app.use('/api/admin/bookings', adminBookingRoutes);
+app.use('/api/admin/photos', adminPhotoRoutes);
+app.use('/api/admin/users', adminUserRoutes);
+app.use('/api/admin/dashboard', adminDashboardRoutes);
 
 
 // Error handling for 404 (Endpoint not found)
