@@ -5,9 +5,9 @@ const multer = require('multer');
 const multerS3 = require('multer-s3');
 const path = require('path');
 const ApiError = require('../../utils/apiError');
-const logger = require('../../utils/logger');
+const { logger } = require('../../utils/logger');
 
-// 1. Inisialisasi S3 Client menggunakan AWS SDK v3 (versi terbaru)
+// 1. Inisialisasi S3 Client
 const s3Client = new S3Client({
     region: process.env.AWS_REGION,
     credentials: {
@@ -16,70 +16,97 @@ const s3Client = new S3Client({
     }
 });
 
+const BUCKET_NAME = process.env.AWS_BUCKET_NAME;
+
+// Validasi ENV
+if (!BUCKET_NAME || !process.env.AWS_REGION || !process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+    logger.error("Konfigurasi AWS S3 tidak lengkap! Pastikan .env terisi (AWS_BUCKET_NAME, AWS_REGION, dll).");
+    // Proses bisa tetap berjalan, tapi upload akan gagal
+}
+
 class S3Service {
     constructor() {
         /**
-         * Middleware 'upload' ini adalah inti dari refactoring.
-         * Ia menggunakan multer dan multer-s3 untuk menangani unggahan file
-         * secara langsung (streaming) ke bucket S3 tanpa menyimpannya di server lokal.
+         * Middleware 'upload' ini adalah inti dari service.
+         * Ia menangani streaming file langsung ke S3.
+         * Ini akan digunakan oleh 'admin/photo.controller.js'.
          */
         this.upload = multer({
             storage: multerS3({
                 s3: s3Client,
-                bucket: process.env.AWS_BUCKET_NAME,
-                acl: 'private', // File diatur sebagai privat, hanya bisa diakses dengan URL khusus
-                contentType: multerS3.AUTO_CONTENT_TYPE, // Otomatis mendeteksi tipe file
+                bucket: BUCKET_NAME,
+                acl: 'private', // File privat, hanya bisa diakses dengan Pre-signed URL
+                contentType: multerS3.AUTO_CONTENT_TYPE,
                 key: function (req, file, cb) {
-                    // Membuat path file yang unik di dalam bucket S3
-                    const bookingId = req.params.bookingId || 'misc';
-                    const fileName = `${Date.now().toString()}-${path.basename(file.originalname)}`;
-                    const filePath = `booking-${bookingId}/${fileName}`;
+                    // Path file di S3: bookings/[uuid-booking-id]/[timestamp]-[nama-file-asli]
+                    // req.params.bookingId akan diisi oleh rute Admin
+                    const bookingId = req.params.bookingId || 'unknown-booking';
+                    
+                    // Membersihkan nama file
+                    const baseName = path.basename(file.originalname).replace(/[^a-zA-Z0-9.\-_]/g, '');
+                    const fileName = `${Date.now().toString()}-${baseName}`;
+                    
+                    // Ini akan menjadi 'file_key' di tabel 'photos' kita
+                    const filePath = `bookings/${bookingId}/${fileName}`;
+                    
+                    logger.debug(`S3 Key generated: ${filePath}`);
                     cb(null, filePath);
                 }
             }),
-            limits: { fileSize: 1024 * 1024 * 10 }, // Batas ukuran file: 10MB
+            limits: { fileSize: 1024 * 1024 * 20 }, // Batas ukuran file: 20MB
             fileFilter: function (req, file, cb) {
-                // Memfilter untuk hanya menerima file gambar
-                const allowedTypes = /jpeg|jpg|png|gif/;
+                // Memfilter untuk hanya menerima file gambar (termasuk format Apple)
+                const allowedTypes = /jpeg|jpg|png|heic|heif/;
                 const mimetype = allowedTypes.test(file.mimetype);
+                // Cek ekstensi file juga
                 const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
 
-                if (mimetype && extname) {
+                if (mimetype || extname) { // Mengizinkan jika mimetype atau ekstensi cocok
                     return cb(null, true);
                 }
-                cb(new ApiError(400, "Tipe file tidak diizinkan. Hanya unggah file gambar."));
+                cb(new ApiError(400, "Tipe file tidak diizinkan. Hanya (jpeg, jpg, png, heic, heif)."));
             }
         });
     }
 
     /**
      * Menghasilkan URL sementara yang aman (Pre-signed URL) untuk mengakses file privat di S3.
-     * @param {string} key - Path file di dalam bucket S3 (contoh: 'booking-123/foto.jpg').
-     * @returns {Promise<string>} - Pre-signed URL yang valid untuk waktu terbatas.
+     * Ini akan dipanggil oleh 'photo.service.js' untuk pelanggan.
+     * @param {string} key - Path file di dalam bucket S3 (cth: 'bookings/uuid/foto.jpg').
+     * @returns {Promise<string>} - Pre-signed URL yang valid.
      */
     async getSignedUrl(key) {
+        if (!key) {
+            logger.warn('getSignedUrl dipanggil dengan key kosong.');
+            return null;
+        }
+
         const command = new GetObjectCommand({
-            Bucket: process.env.AWS_BUCKET_NAME,
+            Bucket: BUCKET_NAME,
             Key: key,
         });
 
         try {
-            // URL akan valid selama 1 jam (3600 detik)
-            const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+            // URL akan valid selama 7 hari (standar yang baik untuk link download)
+            const sevenDaysInSeconds = 60 * 60 * 24 * 7;
+            const url = await getSignedUrl(s3Client, command, { expiresIn: sevenDaysInSeconds });
             return url;
         } catch (error) {
             logger.error(`Gagal membuat pre-signed URL untuk key ${key}:`, error);
-            throw new ApiError(500, 'Gagal menghasilkan URL gambar.');
+            // Jangan melempar error agar jika 1 dari 100 foto gagal, galeri tetap tampil
+            return null; 
         }
     }
 
     /**
      * Menghapus sebuah file dari bucket AWS S3.
-     * @param {string} key - Path file di dalam bucket S3 (misal: 'booking-123/foto.jpg').
+     * @param {string} key - Path file di dalam bucket S3.
      */
     async deleteFile(key) {
+        if (!key) return;
+
         const command = new DeleteObjectCommand({
-            Bucket: process.env.AWS_BUCKET_NAME,
+            Bucket: BUCKET_NAME,
             Key: key,
         });
 
@@ -88,10 +115,12 @@ class S3Service {
             logger.info(`File berhasil dihapus dari S3: ${key}`);
         } catch (error) {
             logger.error(`Gagal menghapus file dari S3 (key: ${key}):`, error);
-            // Kita tidak melempar error di sini agar proses utama tidak berhenti,
+            // Kita tidak melempar error di sini agar proses utama (jika ada) tidak berhenti,
             // Cukup mencatatnya sebagai kegagalan.
         }
     }
 }
 
+// Ekspor sebagai instance agar 'upload' bisa langsung digunakan sebagai middleware
 module.exports = new S3Service();
+

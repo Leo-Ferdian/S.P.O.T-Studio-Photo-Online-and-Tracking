@@ -1,0 +1,978 @@
+{
+	"info": {
+		"_postman_id": "f5a7f0a9-a7e8-4b71-9f93-c9a7c3d7e5d1",
+		"name": "S.P.O.T. Backend API (V2.0 - V1.10)",
+		"description": "Koleksi Postman Lengkap untuk menguji Arsitektur Backend S.P.O.T. (V1.10 - 10 Tabel) yang telah difaktorkan ulang.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Area 1: Autentikasi (Auth)",
+			"description": "Menguji register, login, dan pengambilan token.",
+			"item": [
+				{
+					"name": "Register Customer (Baru)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"full_name\": \"Andi Budiman\",\n    \"email\": \"andi.budi@email.com\",\n    \"phone_number\": \"081234567891\",\n    \"password\": \"andi123\",\n    \"confirmPassword\": \"andi123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/auth/register",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						},
+						"description": "Mendaftarkan pengguna 'customer' baru. (Skema V1.8)"
+					},
+					"response": []
+				},
+				{
+					"name": "Login (Customer)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Skrip tes Postman untuk menyimpan Token JWT secara otomatis",
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data.token) {",
+									"        pm.collectionVariables.set(\"customer_token\", jsonData.data.token);",
+									"        console.log(\"Token Customer berhasil disimpan.\");",
+									"    } else {",
+									"        console.error(\"Token tidak ditemukan di respons login Customer.\");",
+									"    }",
+									"} else {",
+									"    console.warn(\"Login Customer gagal, token tidak disimpan.\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"budi.santoso@email.com\",\n    \"password\": \"budi123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/auth/login",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Login sebagai 'budi.santoso@email.com' (dari data seed).\nToken akan disimpan ke Variabel Koleksi: `customer_token`."
+					},
+					"response": []
+				},
+				{
+					"name": "Login (Admin)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Skrip tes Postman untuk menyimpan Token JWT secara otomatis",
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data.token) {",
+									"        pm.collectionVariables.set(\"admin_token\", jsonData.data.token);",
+									"        console.log(\"Token Admin berhasil disimpan.\");",
+									"    } else {",
+									"        console.error(\"Token tidak ditemukan di respons login Admin.\");",
+									"    }",
+									"} else {",
+									"    console.warn(\"Login Admin gagal, token tidak disimpan.\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin@phour.to\",\n    \"password\": \"admin123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/auth/login",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Login sebagai 'admin@phour.to' (dari data seed).\nToken akan disimpan ke Variabel Koleksi: `admin_token`."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Area 2: Katalog (Publik)",
+			"description": "Menguji endpoint publik untuk melihat katalog (Area 3 Refactor)",
+			"item": [
+				{
+					"name": "Katalog Lengkap (Semua Paket, Ruangan, Cabang)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Skrip ini mengambil ID Paket pertama (Paket Basic Panam)",
+									"// dan menyimpannya untuk tes 'Get Package Details'",
+									"",
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data.length > 0) {",
+									"        // Ambil package_id dari item pertama",
+									"        var firstPackageId = jsonData.data[0].package_id;",
+									"        pm.collectionVariables.set(\"package_id_panam_basic\", firstPackageId);",
+									"        console.log(\"package_id (Panam Basic) disimpan: \", firstPackageId);",
+									"    } else {",
+									"        console.warn(\"Tidak ada data paket di respons Katalog.\");",
+									"    }",
+									"} else {",
+									"    console.error(\"Gagal mengambil katalog.\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/api/packages/catalog",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"packages",
+								"catalog"
+							]
+						},
+						"description": "Memanggil `PackageService.getFullCatalog()` (V1.10). Ini adalah *query* JOIN 3-tabel."
+					},
+					"response": []
+				},
+				{
+					"name": "Detail Paket (Termasuk Addons)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/api/packages/{{package_id_panam_basic}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"packages",
+								"{{package_id_panam_basic}}"
+							]
+						},
+						"description": "Memanggil `PackageService.getPackageDetails()` (V1.10). Ini adalah *query* JOIN 2-tabel (Paket + Addons)."
+					},
+					"response": []
+				},
+				{
+					"name": "Semua Cabang (Branches)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/api/branches",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"branches"
+							]
+						},
+						"description": "Memanggil `BranchService.getAllBranches()` (V1.10)."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Area 3: Profil Pelanggan (Perlu Auth)",
+			"description": "Menguji endpoint di `/api/users/*`. Membutuhkan `customer_token`.",
+			"item": [
+				{
+					"name": "Get My Profile",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{customer_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/api/users/profile",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"profile"
+							]
+						},
+						"description": "Memanggil `UserController.getMyProfile` (Refactor V1.9)."
+					},
+					"response": []
+				},
+				{
+					"name": "Update My Profile",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{customer_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"full_name\": \"Budi Santoso (Updated)\",\n    \"phone_number\": \"081211112222\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/users/profile",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"profile"
+							]
+						},
+						"description": "Memanggil `UserController.updateMyProfile` (Refactor V1.9)."
+					},
+					"response": []
+				},
+				{
+					"name": "Change My Password",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{customer_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"currentPassword\": \"budi123\",\n    \"newPassword\": \"budiBaru456!\",\n    \"confirmNewPassword\": \"budiBaru456!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/users/password",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"password"
+							]
+						},
+						"description": "Memanggil `UserController.changeMyPassword` (Refactor V1.9)."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Area 4: Alur Booking (Perlu Auth Customer)",
+			"description": "Menguji alur pemesanan lengkap (Area 4, 5, 6 Refactor).",
+			"item": [
+				{
+					"name": "1. [HARUSNYA GAGAL] Cek Ketersediaan (API V1.0)",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{customer_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"startTime\": \"2025-11-30T03:00:00.000Z\",\n    \"packageId\": \"{{package_id_panam_basic}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/bookings/availability",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"bookings",
+								"availability"
+							]
+						},
+						"description": "ENDPOINT INI SEHARUSNYA GAGAL (404 Not Found).\nKita telah mengganti endpoint ini. Logika 'checkAvailability' sekarang ada di DALAM 'Buat Booking' (V1.8)."
+					},
+					"response": []
+				},
+				{
+					"name": "2. Buat Booking (PENDING)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Skrip ini mengambil ID Booking yang baru dibuat",
+									"// dan menyimpannya untuk tes selanjutnya (Update Status, Reschedule, Upload Foto)",
+									"",
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data.booking_id) {",
+									"        var newBookingId = jsonData.data.booking_id;",
+									"        pm.collectionVariables.set(\"booking_id_test\", newBookingId);",
+									"        console.log(\"booking_id (Tes Baru) disimpan: \", newBookingId);",
+									"    } else {",
+									"        console.warn(\"Tidak ada booking_id di respons.\");",
+									"    }",
+									"} else {",
+									"    console.error(\"Gagal membuat booking.\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{customer_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"package_id\": \"{{package_id_panam_basic}}\",\n    \"start_time\": \"2025-11-30T10:00:00.000Z\",\n    \"addons\": []\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/bookings",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"bookings"
+							]
+						},
+						"description": "Memanggil `BookingService.createBooking` (V1.8).\nIni akan membuat pesanan dengan status 'PENDING' dan `payment_deadline` 60 menit.\nAkan menyimpan `booking_id` baru ke `booking_id_test`."
+					},
+					"response": []
+				},
+				{
+					"name": "3. [GAGAL] Buat Booking (Bentrok)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{customer_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"package_id\": \"{{package_id_panam_basic}}\",\n    \"start_time\": \"2025-11-30T10:00:00.000Z\",\n    \"addons\": []\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/bookings",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"bookings"
+							]
+						},
+						"description": "Memanggil `createBooking` (V1.8) dengan waktu yang SAMA.\nTes ini *seharusnya* gagal dengan error 409 (Conflict) dari `_checkSlotAvailability`."
+					},
+					"response": []
+				},
+				{
+					"name": "4. Get My Bookings (Riwayat)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{customer_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/api/bookings/my-history",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"bookings",
+								"my-history"
+							]
+						},
+						"description": "Memanggil `BookingService.getMyBookings` (V1.8)."
+					},
+					"response": []
+				},
+				{
+					"name": "5. Get My Booking Details",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{customer_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/api/bookings/{{booking_id_test}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"bookings",
+								"{{booking_id_test}}"
+							]
+						},
+						"description": "Memanggil `BookingService.getBookingById` (V1.8). Ini akan mengambil detail pesanan + addons + history."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Area 5: Admin - Booking (Perlu Auth Admin)",
+			"description": "Menguji endpoint di `/api/admin/bookings/*`. Membutuhkan `admin_token`.",
+			"item": [
+				{
+					"name": "Get All Bookings (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/api/admin/bookings?page=1&limit=5&status=PENDING",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"bookings"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								},
+								{
+									"key": "status",
+									"value": "PENDING"
+								}
+							]
+						},
+						"description": "Memanggil `AdminBookingController.getAllBookings` (V1.8)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Booking Details (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/api/admin/bookings/{{booking_id_test}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"bookings",
+								"{{booking_id_test}}"
+							]
+						},
+						"description": "Memanggil `AdminBookingController.getBookingDetailsByAdmin` (V1.8). Ini akan mengambil detail pesanan + addons + history + info pelanggan."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Status (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"PAID-FULL\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/admin/bookings/{{booking_id_test}}/status",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"bookings",
+								"{{booking_id_test}}",
+								"status"
+							]
+						},
+						"description": "Memanggil `AdminBookingController.updateBookingStatus` (V1.8).\nIni akan mengubah status `PENDING` -> `PAID-FULL` dan mencatatnya di `booking_history`."
+					},
+					"response": []
+				},
+				{
+					"name": "Reschedule Booking (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"newStartTime\": \"2025-11-30T11:00:00.000Z\",\n    \"reason\": \"Pemindahan jadwal oleh Admin atas permintaan pelanggan.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/admin/bookings/{{booking_id_test}}/reschedule",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"bookings",
+								"{{booking_id_test}}",
+								"reschedule"
+							]
+						},
+						"description": "Memanggil `AdminBookingController.rescheduleBooking` (V1.8).\nIni akan memindahkan slot dari 10:00 -> 11:00 dan mencatatnya di `booking_history`."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Area 6: Admin - Foto (Perlu Auth Admin)",
+			"description": "Menguji alur pengiriman foto (Area 7 Refactor).",
+			"item": [
+				{
+					"name": "Upload Foto (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "photos",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/admin/photos/upload/{{booking_id_test}}",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"photos",
+								"upload",
+								"{{booking_id_test}}"
+							]
+						},
+						"description": "Memanggil `AdminPhotoController.uploadPhotos` (V1.10).\nIni akan:\n1. (Validator) Cek status (PAID-FULL).\n2. (S3 Service) Upload ke S3.\n3. (Photo Service) INSERT ke `photos`.\n4. (Photo Service) UPDATE `bookings` (status -> COMPLETED, `photo_delivery_url` -> diisi).\n5. (Photo Service) INSERT ke `booking_history`."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Area 7: Galeri Pelanggan (Perlu Auth)",
+			"description": "Menguji alur pengambilan foto (Area 7 Refactor).",
+			"item": [
+				{
+					"name": "Get My Gallery (Customer)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{customer_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/api/photos/{{booking_id_test}}/gallery",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"photos",
+								"{{booking_id_test}}",
+								"gallery"
+							]
+						},
+						"description": "Memanggil `PhotoController.getBookingGallery` (V1.10).\nIni akan:\n1. (Photo Service) Verifikasi kepemilikan (user_id == booking_id).\n2. (Photo Service) SELECT `file_key` dari `photos`.\n3. (S3 Service) Memanggil `getSignedUrl` untuk setiap file."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Area 8: Admin - Katalog & User (Perlu Auth Admin)",
+			"description": "Menguji endpoint CRUD untuk Katalog dan User (Area 8 Refactor).",
+			"item": [
+				{
+					"name": "Get All Users (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/api/admin/users",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"users"
+							]
+						},
+						"description": "Memanggil `AdminUserController.getAllUsers` (V1.9)."
+					},
+					"response": []
+				},
+				{
+					"name": "Update User Role (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"role\": \"admin\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/admin/users/UUID-USER-DISINI/role",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"users",
+								"UUID-USER-DISINI",
+								"role"
+							]
+						},
+						"description": "Memanggil `AdminUserController.updateUserRole` (V1.9)."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Full Package (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"packageData\": {\n        \"room_id\": \"UUID-ROOM-ID-DISINI\", \n        \"package_name\": \"Paket Tes Baru (V1.10)\",\n        \"capacity\": \"1-5 Orang\",\n        \"duration\": \"30 Menit (15 Sesi + 15 Pilih)\",\n        \"inclusions\": \"- 2 Cetak 4R\\n- Semua File\",\n        \"price\": 150000.00,\n        \"price_type\": \"per_package\",\n        \"duration_in_minutes\": 30\n    },\n    \"addons\": [\n        {\n            \"addon_name\": \"Tambahan Orang (Tes)\",\n            \"addon_price\": 50000.00,\n            \"addon_unit\": \"per orang\",\n            \"max_qty\": 3\n        },\n        {\n            \"addon_name\": \"Tambahan Cetak (Tes)\",\n            \"addon_price\": 15000.00,\n            \"addon_unit\": \"per cetak\",\n            \"max_qty\": 10\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/admin/packages",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"packages"
+							]
+						},
+						"description": "Memanggil `AdminPackageController.createFullPackage` (V1.10).\nIni akan membuat 1 Paket dan 2 Addon dalam satu transaksi database."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseURL",
+			"value": "http://localhost:5000",
+			"type": "string"
+		},
+		{
+			"key": "admin_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "customer_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "package_id_panam_basic",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "booking_id_test",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

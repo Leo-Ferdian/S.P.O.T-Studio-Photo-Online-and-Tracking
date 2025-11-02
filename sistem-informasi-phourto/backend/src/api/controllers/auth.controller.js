@@ -18,26 +18,44 @@ class AuthController {
     });
 
     register = asyncHandler(async (req, res) => {
+        // 1. Tangani error validasi (dari auth.validator.js)
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            // === PERBAIKAN DI SINI ===
-            // Urutan benar: statusCode, message, errors array
-            throw new ApiError(400, 'Validasi gagal.', errors.array()); 
-            // =========================
+            // FIX: Mengembalikan respons error secara langsung (Status 400).
+            return res.status(400).json({
+                success: false,
+                message: 'Validasi gagal.',
+                errors: errors.array()
+            });
         }
+
         const newUser = await AuthService.registerUser(req.body);
-        new ApiResponse(res, 201, newUser, 'Registrasi berhasil. Silakan login.');
+
+        // Hapus detail sensitif sebelum respons
+        delete newUser.role;
+        
+        new ApiResponse(res, 201, newUser, 'Registrasi berhasil.');
     });
 
     login = asyncHandler(async (req, res) => {
+        // 1. Tangani error validasi (untuk email/password kosong)
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-             // === PERBAIKAN DI SINI ===
-            // Urutan benar: statusCode, message, errors array
-            throw new ApiError(400, 'Validasi gagal.', errors.array());
-             // =========================
+             // FIX: Mengembalikan respons error secara langsung (Status 400).
+            return res.status(400).json({
+                success: false,
+                message: 'Validasi gagal.',
+                errors: errors.array()
+            });
         }
-        const { token, user } = await AuthService.loginUser(req.body.email, req.body.password); // Ambil email & pass langsung
+
+        const { email, password } = req.body;
+        
+        const { token, user } = await AuthService.loginUser(email, password);
+
+        // Pasang token di header dan kirim respons
+        res.setHeader('Authorization', `Bearer ${token}`);
+        
         new ApiResponse(res, 200, { token, user }, 'Login berhasil.');
     });
 

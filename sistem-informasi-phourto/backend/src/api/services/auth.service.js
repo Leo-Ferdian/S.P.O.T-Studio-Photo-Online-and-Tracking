@@ -1,115 +1,126 @@
 const db = require('../../config/database');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-// Hapus require('dotenv').config(); di sini, idealnya sudah dipanggil di file utama (server.js)
-const ApiError = require('../../utils/apiError'); // Pastikan path benar dan 'A' besar
-const logger = require('../../utils/logger'); // Impor logger untuk debugging
+const ApiError = require('../../utils/apiError');
+const { logger } = require('../../utils/logger'); 
+// const { v4: uuidv4 } = require('uuid'); // (Tidak digunakan di file ini)
+
+// Impor dari file V1.9 yang kita buat di Langkah 10f
+const { USER_ROLES } = require('../../config/constants'); 
 
 class AuthService {
     /**
      * Mendaftarkan pengguna baru.
+     * (Refactored V1.9)
      */
-    async registerUser({ full_name, whatsapp_number, email, password }) {
-        // Cek duplikasi email ATAU nomor whatsapp
+    async registerUser({ full_name, phone_number, email, password }) {
+        // Cek duplikasi email ATAU nomor telepon
         const existingUser = await db.query(
-            'SELECT email, whatsapp_number FROM phourto.users WHERE email = $1 OR whatsapp_number = $2',
-            [email, whatsapp_number]
+            'SELECT email, phone_number FROM users WHERE email = $1 OR phone_number = $2',
+            [email, phone_number]
         );
 
         if (existingUser.rows.length > 0) {
-            // Berikan pesan error yang lebih spesifik
-            const conflictingField = existingUser.rows[0].email === email ? 'Email' : 'Nomor WhatsApp';
-            throw new ApiError(409, `${conflictingField} sudah terdaftar.`); // 409 Conflict
+            const conflictingField = existingUser.rows[0].email === email ? 'Email' : 'Nomor Telepon';
+            throw new ApiError(409, `${conflictingField} sudah terdaftar.`);
         }
 
         // Hashing password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
-        logger.debug("Hashed Password for registration:", hashedPassword); // Gunakan logger
 
-        // Simpan pengguna baru, pastikan kolom 'role' ada default 'customer' di DB atau set di sini
+        // Simpan pengguna baru
         const newUserResult = await db.query(
-            `INSERT INTO phourto.users (full_name, whatsapp_number, email, password) 
-             VALUES ($1, $2, $3, $4) 
-             RETURNING id, full_name, email, role, created_at`, // Kembalikan data yang relevan
-            [full_name, whatsapp_number, email, hashedPassword]
+            `INSERT INTO users (full_name, phone_number, email, password_hash, "role") 
+            VALUES ($1, $2, $3, $4, $5) 
+            RETURNING user_id, full_name, email, "role", created_at`,
+            [full_name, phone_number, email, hashedPassword, USER_ROLES.CUSTOMER]
         );
 
         if (newUserResult.rows.length === 0) {
             throw new ApiError(500, 'Gagal menyimpan pengguna baru ke database.');
         }
 
-        return newUserResult.rows[0]; // Kembalikan objek user baru
+        return newUserResult.rows[0];
     }
 
     /**
      * Melakukan login pengguna.
+     * (Refactored V1.9 + V1.7 Debugging)
      */
-    async loginUser(email, password) { // Terima parameter terpisah, bukan objek
+    async loginUser(email, password) {
         // Cari pengguna berdasarkan email
-        const userResult = await db.query('SELECT * FROM phourto.users WHERE email = $1', [email]);
+        const userResult = await db.query('SELECT * FROM users WHERE email = $1', [email]);
 
+        // === PERBAIKAN V1.7 (DEBUGGING) ===
         if (userResult.rows.length === 0) {
-            // Email tidak ditemukan
-            throw new ApiError(401, 'Email atau password salah.'); // 401 Unauthorized
+            // SPESIFIK: Email tidak ditemukan
+            logger.warn(`Percobaan login gagal: Email tidak ditemukan (${email})`); // <-- Sekarang akan berfungsi
+            throw new ApiError(404, `Email tidak ditemukan: ${email}`); 
         }
+        // === AKHIR PERBAIKAN ===
 
         const user = userResult.rows[0];
 
         // Verifikasi password
-        const isMatch = await bcrypt.compare(password, user.password);
+        const isMatch = await bcrypt.compare(password, user.password_hash);
 
+        // === PERBAIKAN V1.7 (DEBUGGING) ===
         if (!isMatch) {
-            // Password tidak cocok
-            throw new ApiError(401, 'Email atau password salah.'); // 401 Unauthorized
+            // SPESIFIK: Password salah
+            logger.warn(`Percobaan login gagal: Password salah untuk email (${email})`); // <-- Sekarang akan berfungsi
+            throw new ApiError(401, 'Password salah.'); // 401 Unauthorized
         }
+        // === AKHIR PERBAIKAN ===
 
-        // Buat Token JWT dengan payload yang relevan
+        // Buat Token JWT
         const payload = {
-            id: user.id,
-            role: user.role // SANGAT PENTING: sertakan role untuk otorisasi admin
+            user_id: user.user_id,
+            role: user.role
         };
 
         const secret = process.env.JWT_SECRET;
-        const expiresIn = process.env.JWT_EXPIRES_IN || '1d'; // Ambil dari .env atau default 1 hari
+        const expiresIn = process.env.JWT_EXPIRES_IN || '1d';
 
         if (!secret) {
-            logger.error("JWT_SECRET belum diatur di file .env!");
+            logger.error("JWT_SECRET belum diatur di file .env!"); // .error() juga akan berfungsi
             throw new ApiError(500, "Konfigurasi autentikasi server bermasalah.");
         }
 
         const token = jwt.sign(payload, secret, { expiresIn });
 
-        // Hapus password dari objek user sebelum dikirim ke client
-        delete user.password;
+        // Hapus password hash dari objek user
+        delete user.password_hash;
 
-        // Kembalikan token dan data user (tanpa password)
         return { token, user };
     }
 
-    // --- Fungsi Tambahan yang Mungkin Ada (dari controller) ---
-
-    async checkAvailability(username, email) {
-        // Implementasi logika cek ketersediaan (jika diperlukan)
-        // ...
-        return true; // Placeholder
-    }
-
-    async getUserProfile(userId) {
-        const result = await db.query('SELECT id, full_name, email, whatsapp_number, role, created_at FROM phourto.users WHERE id = $1', [userId]);
+    /**
+     * Mendapatkan profil pengguna.
+     * (Refactored V1.9)
+     */
+    async getUserProfile(user_id) { 
+        const result = await db.query(
+            'SELECT user_id, full_name, email, phone_number, "role", created_at FROM users WHERE user_id = $1',
+            [user_id]
+        );
         if (result.rows.length === 0) {
             throw new ApiError(404, 'Profil pengguna tidak ditemukan.');
         }
         return result.rows[0];
     }
 
-    async updateUserProfile(userId, updateData) {
-        // Implementasi logika update profil (hati-hati jangan update password di sini)
-        const { full_name, whatsapp_number } = updateData; // Ambil field yang boleh diupdate
+    /**
+     * Mengupdate profil pengguna.
+     * (Refactored V1.9)
+     */
+    async updateUserProfile(user_id, updateData) { 
+        const { full_name, phone_number } = updateData;
         const result = await db.query(
-            `UPDATE phourto.users SET full_name = $1, whatsapp_number = $2, updated_at = CURRENT_TIMESTAMP 
-              WHERE id = $3 RETURNING id, full_name, email, whatsapp_number, role, updated_at`,
-            [full_name, whatsapp_number, userId]
+            `UPDATE users SET full_name = $1, phone_number = $2, updated_at = CURRENT_TIMESTAMP 
+            WHERE user_id = $3 
+            RETURNING user_id, full_name, email, phone_number, "role", updated_at`,
+            [full_name, phone_number, user_id]
         );
         if (result.rows.length === 0) {
             throw new ApiError(404, 'Gagal memperbarui, profil pengguna tidak ditemukan.');
@@ -117,19 +128,22 @@ class AuthService {
         return result.rows[0];
     }
 
-    async changeUserPassword(userId, currentPassword, newPassword) {
-        const userResult = await db.query('SELECT password FROM phourto.users WHERE id = $1', [userId]);
+    /**
+     * Mengganti password pengguna.
+     * (Refactored V1.9)
+     */
+    async changeUserPassword(user_id, currentPassword, newPassword) { 
+        const userResult = await db.query('SELECT password_hash FROM users WHERE user_id = $1', [user_id]);
         if (userResult.rows.length === 0) throw new ApiError(404, 'User tidak ditemukan.');
 
-        const isMatch = await bcrypt.compare(currentPassword, userResult.rows[0].password);
+        const isMatch = await bcrypt.compare(currentPassword, userResult.rows[0].password_hash);
         if (!isMatch) throw new ApiError(400, 'Password saat ini salah.');
 
         const salt = await bcrypt.genSalt(10);
         const hashedNewPassword = await bcrypt.hash(newPassword, salt);
 
-        await db.query('UPDATE phourto.users SET password = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [hashedNewPassword, userId]);
+        await db.query('UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2', [hashedNewPassword, user_id]);
     }
-
 }
 
 module.exports = new AuthService();

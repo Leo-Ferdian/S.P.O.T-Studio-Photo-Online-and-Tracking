@@ -1,8 +1,5 @@
-// src/api/routes/booking.routes.js
 const express = require('express');
 const router = express.Router();
-
-// 1. Impor semua komponen
 const BookingController = require('../controllers/booking.controller');
 const authMiddleware = require('../middlewares/auth.middleware'); // Pastikan path ke folder middleware
 const BookingValidator = require('../validator/booking.validator'); // Impor validator
@@ -32,13 +29,17 @@ router.get(
     '/my-bookings',
     BookingController.getMyBookings // Ini ada di controller Anda
 );
+router.get(
+    '/my-history', // Rute tambahan untuk konsistensi (sesuai log Postman)
+    BookingController.getMyBookings 
+);
 
 /**
  * @route   GET /api/bookings/:id
  * @desc    Mendapatkan detail satu booking
  */
 router.get(
-    '/:id',
+    '/:bookingId',
     BookingController.getBookingById // Ini ada di controller Anda
 );
 
@@ -49,7 +50,7 @@ router.get(
 router.post(
     '/',
     BookingValidator.createBookingValidationRules(), // 3. Terapkan validator
-    BookingController.create // 4. Jalankan controller
+    BookingController.createBooking // 4. Jalankan controller
 );
 
 module.exports = router;
