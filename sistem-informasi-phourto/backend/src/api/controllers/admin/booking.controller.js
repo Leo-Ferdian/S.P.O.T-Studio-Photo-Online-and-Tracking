@@ -1,9 +1,9 @@
-const BookingService = require('../../services/booking.service'); 
+const BookingService = require('../../services/booking.service');
 const asyncHandler = require('../../../utils/asyncHandler');
 const apiResponse = require('../../../utils/apiResponse');
 const { validationResult } = require('express-validator');
 const apiError = require('../../../utils/apiError');
-const { logger } = require('../../../utils/logger'); 
+const { logger } = require('../../../utils/logger');
 
 class AdminBookingController {
 
@@ -20,7 +20,7 @@ class AdminBookingController {
         logger.info(`Admin mengambil semua pesanan: Page ${page}, Limit ${limit}, Filters: ${JSON.stringify(filters)}`);
 
         const result = await BookingService.getAllBookings(page, limit, filters);
-        
+
         new apiResponse(res, 200, result, 'Semua data booking berhasil diambil.');
     });
 
@@ -51,16 +51,16 @@ class AdminBookingController {
         }
 
         const { bookingId } = req.params;
-        const { status } = req.body; 
-        
-        const adminUserId = req.user.user_id; 
+        const { status } = req.body;
+
+        const adminUserId = req.user.user_id;
 
         // Bug 1 Fix: logger.info sekarang berfungsi
         logger.info(`Admin (${adminUserId}) memperbarui status ${bookingId} menjadi ${status}`);
 
         const updatedBooking = await BookingService.updateBookingStatusByAdmin(
-            bookingId, 
-            status, 
+            bookingId,
+            status,
             adminUserId
         );
 
@@ -90,6 +90,21 @@ class AdminBookingController {
         );
 
         new apiResponse(res, 200, rescheduledBooking, 'Booking berhasil dijadwalkan ulang.');
+    });
+    // --- FUNGSI BARU DITAMBAHKAN DI SINI ---
+    /**
+     * @route GET /api/admin/bookings/recent
+     * @desc Mengambil booking terbaru untuk dashboard
+     */
+    getRecentBookings = asyncHandler(async (req, res) => {
+        // Ambil 'limit' dari query string, default-kan ke 5
+        const limit = parseInt(req.query.limit, 10) || 5;
+
+        // Panggil service (yang akan kita buat di langkah selanjutnya)
+        const recentBookings = await BookingService.getRecentBookingsForAdmin(limit);
+
+        // Kirim respons
+        new apiResponse(res, 200, recentBookings, 'Booking terbaru berhasil diambil.');
     });
 }
 

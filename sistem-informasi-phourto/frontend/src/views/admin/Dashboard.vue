@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import feather from 'feather-icons'
-import apiClient from '@/api/api' // Import instance axios
+import apiClient from '../../api/api' // Import instance axios
 
 // State reaktif
 const totalBookings = ref(0)
@@ -13,8 +13,8 @@ const recentBookings = ref([])
 const fetchDashboardData = async () => {
     try {
         // Pastikan endpoint sesuai dengan backend Anda
-        const statsResponse = await apiClient.get('/admin/stats')
-        const bookingsResponse = await apiClient.get('/admin/recent-bookings?limit=5')
+        const statsResponse = await apiClient.get('/admin/dashboard/stats');
+        const bookingsResponse = await apiClient.get('/admin/bookings/recent?limit=5');
 
         // Isi state dengan data dari backend
         totalBookings.value = statsResponse.data.data.totalBookings

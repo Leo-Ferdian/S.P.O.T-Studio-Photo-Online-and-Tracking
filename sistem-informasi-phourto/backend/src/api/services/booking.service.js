@@ -366,6 +366,41 @@ class BookingService {
         return bookingData;
     }
 
+    // --- FUNGSI UNTUK DASHBOARD ---
+    /**
+     * @function getRecentBookingsForAdmin
+     * @desc Mengambil (limit) booking terbaru untuk tabel dashboard admin.
+     * @param {number} limit Jumlah booking yang akan diambil.
+     */
+    async getRecentBookingsForAdmin(limit = 5) {
+        const query = `
+            SELECT 
+                b.booking_id, 
+                u.full_name AS "userName",
+                br.branch_name AS "locationName",
+                b.start_time AS "date",
+                p.package_name AS "packageName",
+                b.payment_status AS "status"
+            FROM bookings b
+            JOIN users u ON b.user_id = u.user_id
+            JOIN packages p ON b.package_id = p.package_id
+            JOIN rooms r ON p.room_id = r.room_id
+            JOIN branches br ON r.branch_id = br.branch_id
+            ORDER BY b.start_time DESC
+            LIMIT $1;
+        `;
+
+        try {
+            const result = await db.query(query, [limit]);
+            // Mengembalikan data yang cocok dengan key di frontend
+            // (userName, locationName, date, packageName, status)
+            return result.rows;
+        } catch (error) {
+            logger.error('Error in getRecentBookingsForAdmin:', error);
+            throw new ApiError('Gagal mengambil data booking terbaru.', 500);
+        }
+    }
+
     /**
  * @function updateBookingStatusByAdmin
  * @description [PERBAIKAN V1.9.9] Memperbarui status sebuah booking. Mengelola akuisisi/pelepasan client untuk transaksi.
