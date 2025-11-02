@@ -8,6 +8,11 @@ const PaymentController = require('../controllers/payment.controller');
 // Endpoint ini TIDAK boleh dilindungi oleh authMiddleware atau isAdmin
 // karena dipanggil oleh server Midtrans secara langsung(eksternal)
 // dan harus bisa diakses tanpa autentikasi
-router.post('/notifications', PaymentController.handleNotification);
+/**
+ * @route   POST /api/payments/notifications
+ * @desc    Endpoint untuk menerima webhook notifikasi dari DOKU
+ * @access  Public (Diakses oleh server DOKU)
+ */
+router.post('/notifications', PaymentController.handleDokuNotification);
 
 module.exports = router;

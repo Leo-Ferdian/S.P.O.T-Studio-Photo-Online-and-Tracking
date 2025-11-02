@@ -1,49 +1,83 @@
 const { body } = require('express-validator');
+const db = require('../../config/database'); // Koneksi DB V1.6
+const ApiError = require('../../utils/apiError');
 
+/**
+ * Aturan validasi untuk registrasi pengguna baru
+ */
 const registerValidationRules = () => {
     return [
+        // Validasi full_name (Sesuai Skema V1.9)
         body('full_name')
-            .notEmpty().withMessage('Nama wajib diisi.')
-            .isLength({ min: 3, max: 20}).withMessage('Nama harus antara 3 hingga 20 karakter.')
-            .matches(/^[A-Za-z\s]+$/).withMessage('Nama hanya boleh mengandung huruf dan spasi.')
-            .trim(),
+            .trim()
+            .notEmpty().withMessage('Nama lengkap tidak boleh kosong.')
+            .isLength({ min: 3 }).withMessage('Nama lengkap minimal 3 karakter.'),
+
+        // Validasi email
         body('email')
-            .notEmpty().withMessage('Email wajib diisi.')
+            .trim()
+            .notEmpty().withMessage('Email tidak boleh kosong.')
             .isEmail().withMessage('Format email tidak valid.')
-            .normalizeEmail(),
+            .normalizeEmail()
+            // Cek kustom: Pastikan email belum terdaftar
+            .custom(async (value) => {
+                const { rows } = await db.query('SELECT 1 FROM users WHERE email = $1', [value]);
+                if (rows.length > 0) {
+                    // Gunakan ApiError agar ditangkap oleh asyncHandler
+                    throw new ApiError(409, 'Email ini sudah terdaftar.');
+                }
+            }),
+
+        // Validasi phone_number (Sesuai Skema V1.9)
+        body('phone_number')
+            .trim()
+            .notEmpty().withMessage('Nomor HP tidak boleh kosong.')
+            .isMobilePhone('id-ID').withMessage('Format nomor HP tidak valid (gunakan format Indonesia, cth: 08123456789).')
+            // Cek kustom: Pastikan nomor HP belum terdaftar
+            .custom(async (value) => {
+                const { rows } = await db.query('SELECT 1 FROM users WHERE phone_number = $1', [value]);
+                if (rows.length > 0) {
+                    throw new ApiError(409, 'Nomor HP ini sudah terdaftar.');
+                }
+            }),
+
+        // Validasi password
         body('password')
-            .notEmpty().withMessage('Password wajib diisi.')
+            .notEmpty().withMessage('Password tidak boleh kosong.')
             .isLength({ min: 8 }).withMessage('Password minimal 8 karakter.')
-            .matches(/[A-Za-z]/).withMessage('Password harus mengandung huruf.')
-            .matches(/[0-9]/).withMessage('Password harus mengandung angka.'),
-        body('confirm_password')
-            .notEmpty().withMessage('Konfirmasi password wajib diisi.')
+            .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/)
+            .withMessage('Password harus mengandung huruf besar, huruf kecil, angka, dan satu simbol.'),
+        
+        // Validasi confirmPassword
+        body('confirmPassword')
+            .notEmpty().withMessage('Konfirmasi password tidak boleh kosong.')
             .custom((value, { req }) => {
-                if (value!== req.body.password) {
+                if (value !== req.body.password) {
                     throw new Error('Konfirmasi password tidak cocok dengan password.');
                 }
                 return true;
-                }),
-        body('whatsapp_number')
-            .notEmpty().withMessage('Nomor WhatsApp wajib diisi.')
-            .isMobilePhone('id-ID').withMessage('Format nomor WhatsApp tidak valid.')
-            .isLength({ min: 10, max: 15 }).withMessage('Nomor WhatsApp harus antara 10 hingga 15 digit.')
+            })
     ];
 };
 
-function loginValidationRules() {
+/**
+ * Aturan validasi untuk login pengguna
+ */
+const loginValidationRules = () => {
     return [
-        // Validasi email: tidak boleh kosong dan format email
         body('email')
-            .notEmpty().withMessage('Email wajib diisi.')
-            .isEmail().withMessage('Format email tidak valid.'),
-
-        // Validasi password: tidak boleh kosong
-        body('password').notEmpty().withMessage('Password wajib diisi.')
+            .trim()
+            .notEmpty().withMessage('Email tidak boleh kosong.')
+            .isEmail().withMessage('Format email tidak valid.')
+            .normalizeEmail(),
+        
+        body('password')
+            .notEmpty().withMessage('Password tidak boleh kosong.')
     ];
-}
+};
+
 
 module.exports = {
     registerValidationRules,
-    loginValidationRules,
+    loginValidationRules
 };

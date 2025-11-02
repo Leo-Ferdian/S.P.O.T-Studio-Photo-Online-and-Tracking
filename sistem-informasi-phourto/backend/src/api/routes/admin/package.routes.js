@@ -1,42 +1,55 @@
 const express = require('express');
 const router = express.Router();
-
-// Impor semua komponen yang dibutuhkan
 const AdminPackageController = require('../../controllers/admin/package.controller');
 const authMiddleware = require('../../middlewares/auth.middleware');
 const isAdmin = require('../../middlewares/admin.middleware');
-const { packageBodyValidationRules, packageIdValidationRules } = require('../../validators/package.validator');
 
-// =================================================================
-// PENGAMANAN RUTE: Terapkan middleware untuk SEMUA rute di file ini
-// =================================================================
-// Setiap permintaan ke /api/admin/packages/... akan melewati dua "penjaga gerbang":
-// 1. authMiddleware: Memastikan pengguna sudah login.
-// 2. isAdmin: Memastikan pengguna yang login memiliki peran 'admin'.
+const { 
+    packageBodyValidationRules, 
+    packageIdValidationRules 
+} = require('../../validator/package.validator');
+
+// 2. Terapkan Middleware Keamanan
+// Semua rute di file ini dilindungi (hanya Admin bisa akses)
 router.use(authMiddleware, isAdmin);
 
-// =================================================================
-// DEFINISI RUTE CRUD (Create, Read, Update, Delete)
-// =================================================================
+// 3. Definisikan Rute CRUD
 
-// Rute untuk mendapatkan semua paket (Read All)
-// GET /api/admin/packages/
+// GET /api/admin/packages
+// (R)ead All - Memanggil getFullCatalog
 router.get('/', AdminPackageController.getAllPackages);
 
-// Rute untuk membuat paket baru (Create)
-// POST /api/admin/packages/
-router.post('/', packageBodyValidationRules(), AdminPackageController.createPackage);
+// POST /api/admin/packages
+// (C)reate - Memanggil createFullPackage
+router.post(
+    '/', 
+    packageBodyValidationRules(), 
+    AdminPackageController.createPackage
+);
 
-// Rute untuk mendapatkan satu paket spesifik berdasarkan ID (Read One)
-// GET /api/admin/packages/:id
-router.get('/:id', packageIdValidationRules(), AdminPackageController.getPackageById);
+// GET /api/admin/packages/:packageId
+// (R)ead One - Memanggil getPackageById
+router.get(
+    '/:packageId', 
+    packageIdValidationRules(), 
+    AdminPackageController.getPackageById
+);
 
-// Rute untuk memperbarui paket yang ada (Update)
-// PUT /api/admin/packages/:id
-router.put('/:id', packageIdValidationRules(), packageBodyValidationRules(), AdminPackageController.updatePackage);
+// PUT /api/admin/packages/:packageId
+// (U)pdate - Memanggil updateFullPackage
+router.put(
+    '/:packageId', 
+    packageIdValidationRules(), 
+    packageBodyValidationRules(), 
+    AdminPackageController.updatePackage
+);
 
-// Rute untuk menghapus paket (Delete)
-// DELETE /api/admin/packages/:id
-router.delete('/:id', packageIdValidationRules(), AdminPackageController.deletePackage);
+// DELETE /api/admin/packages/:packageId
+// (D)elete
+router.delete(
+    '/:packageId', 
+    packageIdValidationRules(), 
+    AdminPackageController.deletePackage
+);
 
 module.exports = router;

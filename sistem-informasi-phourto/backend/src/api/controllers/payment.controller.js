@@ -1,22 +1,24 @@
+// src/api/controllers/payment.controller.js
 const PaymentService = require('../services/payment.service');
 const asyncHandler = require('../../utils/asyncHandler');
-const logger = require('../../utils/logger'); // Impor logger
+const { logger } = require('../../utils/logger');
 
 class PaymentController {
+    
     /**
-     * Menangani notifikasi webhook yang masuk dari DOKU.
+     * Menangani webhook notifikasi yang masuk dari DOKU
      */
-    handleNotification = asyncHandler(async (req, res) => {
-        // Log payload notifikasi yang masuk untuk keperluan debugging.
-        // PENTING: Dalam mode produksi, pertimbangkan untuk tidak me-log seluruh body jika mengandung data sensitif.
-        logger.info('Menerima notifikasi dari DOKU:', { body: req.body, headers: req.headers });
+    handleDokuNotification = asyncHandler(async (req, res) => {
+        const notificationPayload = req.body;
+        const headers = req.headers;
 
-        // Panggil service untuk memvalidasi dan memproses notifikasi
-        await PaymentService.handleDokuNotification(req.body, req.headers);
+        logger.info('Menerima notifikasi webhook DOKU:', notificationPayload);
 
-        // Kirim respons 200 OK yang simpel untuk memberitahu DOKU bahwa notifikasi telah berhasil diterima.
-        // Ini adalah praktik terbaik untuk endpoint webhook.
-        res.status(200).json({ status: 'Notification received' });
+        // Memanggil service Anda yang sudah ada
+        await PaymentService.handleDokuNotification(notificationPayload, headers);
+        
+        // Kirim respons sukses "OK" ke DOKU
+        res.status(200).json({ status: 'OK' });
     });
 }
 

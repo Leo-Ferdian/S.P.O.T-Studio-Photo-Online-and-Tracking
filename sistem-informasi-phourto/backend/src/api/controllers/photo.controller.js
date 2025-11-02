@@ -1,36 +1,83 @@
-const PhotoService = require('../../services/photo.service');
-const S3Service = require('../../services/s3.service');
-const asyncHandler = require('../../../utils/asyncHandler');
-const ApiResponse = require('../../../utils/responseHandler');
+const PhotoService = require('../services/photo.service');
+const asyncHandler = require('../../utils/asyncHandler');
+const ApiResponse = require('../../utils/apiResponse');
+const ApiError = require('../../utils/apiError');
+const { validationResult } = require('express-validator');
+const { logger } = require('../../utils/logger'); // Import logger
 
-class AdminPhotoController {
+class PhotoController {
+    
     /**
-     * Menangani unggahan beberapa file foto untuk sebuah booking.
+     * @route GET /api/photos/:bookingId/gallery
+     * @desc Mengambil galeri foto untuk sebuah booking milik pengguna yang sedang login.
      */
-    uploadPhotos = [
-        // Langkah 1: Gunakan middleware 'upload' dari S3Service.
-        // 'photos' adalah nama field, dan 100 adalah batas maksimal file.
-        S3Service.upload.array('photos', 100),
+    getBookingGallery = asyncHandler(async (req, res) => {
+        // Logika validasi harus diterapkan di rute
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            throw new ApiError(400, 'Validasi bookingId gagal.', errors.array());
+        }
 
-        // Langkah 2: Gunakan asyncHandler untuk menangani logika setelah upload selesai.
-        asyncHandler(async (req, res) => {
-            const { bookingId } = req.params;
-            const files = req.files; // Informasi file yang diunggah tersedia di req.files
+        const { bookingId } = req.params;
+        // userId dari token JWT (V1.9)
+        const userId = req.user.user_id; 
 
-            if (!files || files.length === 0) {
-                new ApiResponse(res, 400, null, 'Tidak ada file yang valid untuk diunggah.');
-                return;
-            }
+        // Panggil service untuk mengambil URL foto yang aman
+        const photoUrls = await PhotoService.getPhotosByBooking(bookingId, userId);
 
-            // Simpan informasi file ke database
-            const savedPhotos = await PhotoService.addPhotosToBooking(bookingId, files);
+        new ApiResponse(res, 200, photoUrls, "Galeri berhasil diambil.");
+    });
 
-            new ApiResponse(res, 201, {
-                message: `${savedPhotos.length} foto berhasil diunggah untuk booking ID ${bookingId}.`,
-                photos: savedPhotos
-            });
-        })
-    ];
+
+    // =================================================================
+    // FUNGSI BARU V1.13: Logika ZIP Asynchronous
+    // =================================================================
+
+    /**
+     * @route POST /api/photos/:bookingId/download
+     * @desc Memicu proses pembuatan file .zip galeri
+     */
+    triggerGalleryDownload = asyncHandler(async (req, res) => {
+        // Logika validasi harus diterapkan di rute
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            throw new ApiError(400, 'Validasi bookingId gagal.', errors.array());
+        }
+        
+        const { bookingId } = req.params;
+        const userId = req.user.user_id;
+
+        logger.info(`Customer ${userId} memicu pembuatan ZIP untuk booking ${bookingId}`);
+
+        // Panggil service untuk memicu Lambda/Worker
+        // Service V1.13 akan menangani logika cek status COMPLETED dan PENDING/READY
+        const result = await PhotoService.triggerZipWorker(bookingId, userId);
+
+        new ApiResponse(res, 200, result, result.message);
+    });
+
+    /**
+     * @route GET /api/photos/:bookingId/download-status
+     * @desc Endpoint polling untuk memeriksa status file .zip dan mendapatkan link
+     */
+    getDownloadStatus = asyncHandler(async (req, res) => {
+        // Logika validasi harus diterapkan di rute
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            throw new ApiError(400, 'Validasi bookingId gagal.', errors.array());
+        }
+
+        const { bookingId } = req.params;
+        const userId = req.user.user_id;
+
+        logger.debug(`Customer ${userId} mengecek status ZIP untuk booking ${bookingId}`);
+
+        // Panggil service untuk memeriksa status
+        // Service V1.13 akan menangani logika generate Pre-signed URL jika status READY
+        const statusResult = await PhotoService.getZipStatus(bookingId, userId);
+        
+        new ApiResponse(res, 200, statusResult, statusResult.message);
+    });
 }
 
-module.exports = new AdminPhotoController();
+module.exports = new PhotoController();
