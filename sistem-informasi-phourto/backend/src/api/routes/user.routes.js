@@ -1,50 +1,38 @@
-// src/api/routes/user.routes.js
 const express = require('express');
 const router = express.Router();
-
-// 1. IMPOR SEMUA BAGIAN
-// ==========================================================
-// Ini adalah baris yang hilang/salah di file Anda:
 const userController = require('../controllers/user.controller'); 
-
-// Impor middleware dan validator yang sudah kita buat
 const authMiddleware = require('../middlewares/auth.middleware');
 const UserValidator = require('../validator/user.validator'); 
-// ==========================================================
+const asyncHandler = require('../../utils/asyncHandler'); 
 
 
-// 2. GUNAKAN MIDDLEWARE AUTENTIKASI
 // Ini akan melindungi SEMUA rute di bawah ini.
-// Tidak ada yang bisa mengakses /profile atau /password tanpa token.
 router.use(authMiddleware);
-
-
-// 3. DEFINISIKAN RUTE
 
 // Rute untuk [R]ead Profil: GET /api/users/profile
 router.get(
-    '/profile', 
-    userController.getMyProfile // <-- Perbaikan dari getUserProfile
+    '/profile', 
+    asyncHandler(userController.getMyProfile) // FIX: Dibungkus dengan asyncHandler
 );
 
 // Rute untuk [U]pdate Profil: PUT /api/users/profile
 router.put(
-    '/profile',
-    UserValidator.updateProfileValidationRules(), // Jalankan validasi
-    userController.updateMyProfile                // Baru jalankan controller
+    '/profile',
+    UserValidator.updateProfileValidationRules(), 
+    asyncHandler(userController.updateMyProfile)                // FIX: Dibungkus dengan asyncHandler
 );
 
 // Rute untuk [C]hange Password: PATCH /api/users/password
 router.patch(
-    '/password',
-    UserValidator.changePasswordValidationRules(), // Jalankan validasi
-    userController.changeMyPassword                // Baru jalankan controller
+    '/password',
+    UserValidator.changePasswordValidationRules(), 
+    asyncHandler(userController.changeMyPassword)                // FIX: Dibungkus dengan asyncHandler
 );
 
 // Rute untuk [D]elete Akun: DELETE /api/users/profile
 router.delete(
-    '/profile', 
-    userController.deleteMyAccount
+    '/profile', 
+    asyncHandler(userController.deleteMyAccount) // FIX: Dibungkus dengan asyncHandler
 );
 
 module.exports = router;

@@ -3,7 +3,7 @@ const morgan = require('morgan');
 
 // Winston logger instance
 const logger = createLogger({
-    level: 'info',
+    level: 'http',
     format: format.combine(
         format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
         format.errors({ stack: true }),

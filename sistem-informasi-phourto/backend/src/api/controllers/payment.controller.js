@@ -1,7 +1,7 @@
 // src/api/controllers/payment.controller.js
 const PaymentService = require('../services/payment.service');
 const asyncHandler = require('../../utils/asyncHandler');
-const logger = require('../../utils/logger');
+const { logger } = require('../../utils/logger');
 
 class PaymentController {
     

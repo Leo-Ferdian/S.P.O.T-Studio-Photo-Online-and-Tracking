@@ -1,33 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const PackageController = require('../controllers/package.controller');
+const { packageIdValidationRules } = require('../validator/package.validator'); // Validator untuk GET detail
 
-// Rute untuk mendapatkan semua paket foto
-// GET /api/packages
+// Rute untuk mendapatkan semua paket sederhana (GET /api/packages/)
 router.get('/', PackageController.getAll);
 
-// Impor komponen
-const AdminPackageController = require('../controllers/admin/package.controller');
-const authMiddleware = require('../middlewares/auth.middleware');
-const isAdmin = require('../middlewares/admin.middleware'); // <-- Impor middleware admin
+// Rute untuk mendapatkan katalog lengkap (JOIN) (GET /api/packages/catalog)
+router.get('/catalog', PackageController.getFullCatalog);
 
-// Terapkan middleware untuk semua rute di file ini
-// Permintaan harus lolos dari authMiddleware DULU, baru kemudian isAdmin
-router.use(authMiddleware, isAdmin);
-
-// Sekarang, semua rute di bawah ini secara otomatis dilindungi
-// dan hanya bisa diakses oleh admin.
-
-// Rute untuk membuat paket baru
-// POST /api/admin/packages
-router.post('/', AdminPackageController.createPackage);
-
-// Rute untuk memperbarui paket
-// PUT /api/admin/packages/:id
-router.put('/:id', AdminPackageController.updatePackage);
-
-// Rute untuk menghapus paket
-// DELETE /api/admin/packages/:id
-router.delete('/:id', AdminPackageController.deletePackage);
+// Rute untuk mendapatkan detail paket + addons (GET /api/packages/:packageId)
+router.get(
+    '/:packageId', 
+    packageIdValidationRules(), 
+    PackageController.getPackageById
+);
 
 module.exports = router;
