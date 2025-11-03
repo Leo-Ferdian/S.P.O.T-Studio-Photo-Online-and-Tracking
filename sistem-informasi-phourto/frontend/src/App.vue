@@ -30,6 +30,7 @@ const showMainHeader = computed(() => {
     'AdminUsers',
     'AdminUserDetail',
     'AdminPackages',
+    'AdminGallery',
     'AdminLogin'];
   return !pagesWithCustomHeader.includes(route.name);
 });
@@ -45,6 +46,7 @@ const showMainFooter = computed(() => {
     'AdminBookings',
     'AdminUsers',
     'AdminPackages',
+    'AdminGallery',
     'AdminLogin'];
   return !fullScreenPages.includes(route.name);
 });

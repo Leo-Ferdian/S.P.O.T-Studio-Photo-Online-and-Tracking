@@ -3,6 +3,7 @@ const S3Service = require('../../services/s3.service'); // Kita impor untuk midd
 const asyncHandler = require('../../../utils/asyncHandler');
 const ApiResponse = require('../../../utils/apiResponse');
 const ApiError = require('../../../utils/apiError');
+const { validationResult } = require('express-validator')
 const { isUUID } = require('validator');
 const { logger } = require('../../../utils/logger');
 
@@ -22,7 +23,6 @@ class AdminPhotoController {
         // 2. Ambil file dari request (sudah di-upload ke S3 oleh middleware)
         // 'req.files' adalah array objek file yang disediakan oleh multer-s3
         const files = req.files;
-
         logger.debug(`[AdminPhotoController] Menerima ${files?.length || 0} file untuk booking: ${bookingId}`);
 
         // 3. Validasi
@@ -57,6 +57,28 @@ class AdminPhotoController {
     });
 
     /**
+     * [ADMIN] Mengambil galeri untuk satu booking.
+     * @route GET /api/admin/photos/:bookingId
+     */
+    getBookingGallery = asyncHandler(async (req, res) => {
+        // 1. Validasi (dari validator di rute)
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            throw new ApiError(400, 'Validasi gagal.', errors.array());
+        }
+
+        // 2. Ambil bookingId
+        const { bookingId } = req.params;
+
+        // 3. Panggil Service (yang akan kita buat)
+        // Service ini akan mengembalikan { booking, photos }
+        const galleryData = await PhotoService.getGalleryByBookingId(bookingId);
+
+        // 4. Kirim respons
+        new ApiResponse(res, 200, galleryData, 'Galeri berhasil diambil.');
+    });
+
+    /**
      * [ADMIN] Middleware untuk menangani upload S3.
      * Kita mengeksposnya dari sini agar rute admin bisa menggunakannya.
      * Ini akan menangani 10 file sekaligus dengan nama field 'photos'
@@ -64,9 +86,8 @@ class AdminPhotoController {
     handleUploadMiddleware() {
         // 'photos' adalah nama field di form-data
         // 10 adalah jumlah file maksimum per request
-        return S3Service.upload.array('photos', 10); 
+        return S3Service.upload.array('photos', 10);
     }
 }
 
 module.exports = new AdminPhotoController();
-

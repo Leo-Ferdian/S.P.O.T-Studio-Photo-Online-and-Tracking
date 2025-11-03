@@ -155,6 +155,70 @@ class PhotoService {
         }
     }
 
+    // --- FUNGSI BARU UNTUK ADMIN GALLERY MANAGEMENT ---
+    /**
+     * @function getGalleryByBookingId
+     * @desc Mengambil detail booking dan semua foto terkait (untuk admin)
+     * @param {string} bookingId - UUID booking
+     * @returns {Promise<object>} Objek berisi { booking, photos }
+     */
+    async getGalleryByBookingId(bookingId) {
+        // --- Kueri SQL ---
+        const bookingQuery = `
+        SELECT 
+            b.booking_id,
+            b.payment_status,
+            u.full_name AS customer_name,
+            p.package_name
+        FROM bookings b
+        JOIN users u ON b.user_id = u.user_id
+        JOIN packages p ON b.package_id = p.package_id
+        WHERE b.booking_id = $1;
+    `;
+
+        const photosQuery = `
+        SELECT 
+            photo_id,
+            file_url,
+            file_name_original
+        FROM photos
+        WHERE booking_id = $1
+        ORDER BY created_at ASC;
+    `;
+
+        try {
+            // Jalankan kedua kueri secara paralel
+            const [bookingResult, photosResult] = await Promise.all([
+                db.query(bookingQuery, [bookingId]),
+                db.query(photosQuery, [bookingId])
+            ]);
+
+            // Validasi: pastikan booking ditemukan
+            if (bookingResult.rows.length === 0) {
+                throw new ApiError(404, 'Booking dengan ID ini tidak ditemukan.');
+            }
+
+            const bookingData = bookingResult.rows[0];
+
+            // Format hasil foto agar sesuai kebutuhan frontend
+            const photosData = photosResult.rows.map(photo => ({
+                photo_id: photo.photo_id,
+                url: photo.file_url,                // ubah 'file_url' -> 'url'
+                name: photo.file_name_original
+            }));
+
+            // Kembalikan hasil akhir
+            return {
+                booking: bookingData,
+                photos: photosData
+            };
+        } catch (error) {
+            logger.error('Error in getGalleryByBookingId (Admin):', error);
+            if (error instanceof ApiError) throw error;
+            throw new ApiError(500, 'Gagal mengambil data galeri dari database.');
+        }
+    }
+
     // =================================================================
     // FUNGSI BARU V1.13: Logika ZIP Asynchronous
     // =================================================================

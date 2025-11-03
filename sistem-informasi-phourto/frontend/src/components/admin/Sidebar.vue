@@ -7,7 +7,8 @@
             <div>
                 <span class="text-xs text-gray-500">MAIN</span>
                 <!-- Menggunakan `router-link-exact-active` untuk styling -->
-                <router-link to="/admin/dashboard" class="flex items-center p-3 hover:bg-yellow-300 rounded-lg mt-1 transition-colors"
+                <router-link to="/admin/dashboard"
+                    class="flex items-center font-bold p-3 hover:bg-yellow-300 rounded-lg mt-1 transition-colors"
                     active-class="active-link">Dashboard</router-link>
             </div>
             <div>
@@ -23,21 +24,21 @@
                         active-class="active-link">Gallery</router-link>
                 </div>
             </div>
-            <div>
+            <!-- <div>
                 <span class="text-xs text-gray-500">SETTINGS</span>
                 <div class="space-y-1 mt-1 font-sans font-bold">
                     <router-link to="/admin/settings" class="block p-3 hover:bg-yellow-300 rounded-lg transition-colors"
                         active-class="active-link">Settings</router-link>
                     <button class="w-full text-left p-3 hover:bg-yellow-300 rounded-lg">Logout</button>
                 </div>
-            </div>
+            </div> -->
         </nav>
     </aside>
 </template>
 
 <style scoped>
-    /* Menambahkan gaya untuk link yang aktif */
-    .active-link {
-        @apply bg-primary text-white border-2 border-outline shadow-solid;
-    }
+/* Menambahkan gaya untuk link yang aktif */
+.active-link {
+    @apply bg-primary text-white border-2 border-outline shadow-solid;
+}
 </style>
