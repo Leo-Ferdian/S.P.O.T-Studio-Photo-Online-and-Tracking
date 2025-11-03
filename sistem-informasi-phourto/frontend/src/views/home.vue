@@ -17,7 +17,7 @@ const rooms = [
 
 const locations = [
     { name: "STUDIO SAIL", address: "Jl. Soekarno Hatta, Pekanbaru", slug: "studio-sail" },
-    { name: "STUDIO PANAM", address: "Jl. Durian, Pekanbaru", slug: "studio-panam" },
+    { name: "STUDIO PANAM", address: "Jl. Bangau Sakti, Pekanbaru", slug: "studio-panam" },
     { name: "STUDIO MARPOYAN", address: "Jl. Kaharudin Nst, Pekanbaru", slug: "studio-marpoyan" }
 ];
 
