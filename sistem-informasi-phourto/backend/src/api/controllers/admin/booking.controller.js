@@ -13,8 +13,8 @@ class AdminBookingController {
     getAllBookings = asyncHandler(async (req, res) => {
         const page = parseInt(req.query.page, 10) || 1;
         const limit = parseInt(req.query.limit, 10) || 10;
-        const { status, branch_id } = req.query;
-        const filters = { status, branch_id };
+        const { status, branch_id, date } = req.query;
+        const filters = { status, branch_id, date };
 
         // Bug 1 Fix: logger.info sekarang berfungsi
         logger.info(`Admin mengambil semua pesanan: Page ${page}, Limit ${limit}, Filters: ${JSON.stringify(filters)}`);

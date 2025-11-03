@@ -3,7 +3,7 @@ const axios = require('axios');
 const db = require('../../config/database'); // Koneksi V1.6
 const ApiError = require('../../utils/apiError');
 const { logger } = require('../../utils/logger');
-const BookingService = require('./booking.service'); 
+const BookingService = require('./booking.service');
 
 // Ambil kredensial DOKU dari environment variables
 const DOKU_CLIENT_ID = process.env.DOKU_CLIENT_ID;
@@ -35,7 +35,7 @@ class PaymentService {
     async createQrisCharge(booking, user) {
         const endpoint = '/qris-mpm-payment/v1/generate-qris';
         const timestamp = new Date().toISOString();
-        
+
         // REFAKTOR: Gunakan 'booking_id' sebagai referensi utama
         // Ini membuat pemetaan webhook 100% andal.
         const partnerReferenceNo = booking.booking_id; // WAJIB: Gunakan booking_id
@@ -50,17 +50,17 @@ class PaymentService {
                 currency: 'IDR',
             },
             // (Opsional) Tambahkan info pelanggan
-            // customer: {
-            //     name: user.full_name,
-            //     email: user.email,
-            //     phone: user.phone_number
-            // }
+            customer: {
+                name: user.full_name,
+                email: user.email,
+                phone: user.phone_number
+            }
         };
 
         const bodyString = JSON.stringify(body);
         const digest = crypto.createHash('sha256').update(bodyString).digest('base64');
         const stringToSign = `Client-Id:${DOKU_CLIENT_ID}\nRequest-Id:${requestId}\nRequest-Timestamp:${timestamp}\nRequest-Target:${endpoint}\nDigest:${digest}`;
-        
+
         const signature = this._createSignature(stringToSign);
 
         const headers = {
@@ -72,13 +72,13 @@ class PaymentService {
 
         try {
             const response = await axios.post(`${DOKU_API_URL}${endpoint}`, body, { headers });
-            
+
             const dokuResponse = response.data;
 
             // --- REFAKTOR (V1.7) ---
             // Hapus 'savePaymentDetails()'
             // Ganti dengan UPDATE ke tabel 'bookings'
-            
+
             const updateQuery = `
                 UPDATE bookings
                 SET 
@@ -87,7 +87,7 @@ class PaymentService {
                     payment_qr_expires_at = $3 -- Menyimpan 'expiresAt'
                 WHERE booking_id = $4;
             `;
-            
+
             await db.query(updateQuery, [
                 dokuResponse.partnerReferenceNo, // partnerReferenceNo (harus = booking_id kita)
                 dokuResponse.qrisUrl,
@@ -132,11 +132,11 @@ class PaymentService {
 
         const bodyString = JSON.stringify(notificationPayload);
         const digest = crypto.createHash('sha256').update(bodyString).digest('base64');
-        
+
         // PENTING: Pastikan ini adalah target endpoint webhook Anda
-        const requestTarget = DOKU_WEBHOOK_TARGET; 
+        const requestTarget = DOKU_WEBHOOK_TARGET;
         const stringToSign = `Client-Id:${clientId}\nRequest-Id:${requestId}\nRequest-Timestamp:${timestamp}\nRequest-Target:${requestTarget}\nDigest:${digest}`;
-        
+
         // 1. Verifikasi Signature
         const generatedSignature = this._createSignature(stringToSign);
         if (`HMACSHA256=${generatedSignature}` !== signatureFromDoku) {
@@ -148,15 +148,15 @@ class PaymentService {
         // Ambil data penting dari payload
         const { partnerReferenceNo, transactionStatus } = notificationPayload.transaction;
         const amount = notificationPayload.transaction.amount.value; // Jumlah yang dibayar
-        
+
         // 'partnerReferenceNo' adalah 'booking_id' kita
-        const bookingId = partnerReferenceNo; 
+        const bookingId = partnerReferenceNo;
 
         // 3. Update database dalam transaksi
         const client = await db.getClient(); // Gunakan getClient (V1.6)
         try {
             await client.query('BEGIN');
-            
+
             // --- REFAKTOR (V1.7) ---
             // Hapus logika 'phourto.payments'.
             // Langsung panggil BookingService.
@@ -165,9 +165,9 @@ class PaymentService {
                 // Panggil fungsi V1.7 dari BookingService (yang sudah di-refactor)
                 // Kita harus meneruskan 'client' agar berjalan dalam transaksi yang sama
                 await BookingService.handleSuccessfulPayment(
-                    bookingId, 
-                    amount, 
-                    'DOKU_QRIS', 
+                    bookingId,
+                    amount,
+                    'DOKU_QRIS',
                     client // <--- Meneruskan klien transaksi
                 );
 
@@ -176,19 +176,19 @@ class PaymentService {
                 // Kita perlu menambahkan 'FAILED' ke ENUM status kita
                 // null untuk adminUserId karena ini adalah aksi sistem
                 await BookingService.updateBookingStatusByAdmin(
-                    bookingId, 
-                    'FAILED', 
+                    bookingId,
+                    'FAILED',
                     null, // adminUserId (null = sistem)
                     client // <--- Meneruskan klien transaksi
                 );
-            
+
             } else {
                 logger.info(`Ignoring DOKU notification with status: ${transactionStatus}`);
                 // Kita tidak COMMIT atau ROLLBACK, biarkan saja
                 await client.query('COMMIT'); // Atau ROLLBACK? Sebaiknya COMMIT agar tidak menggantung.
                 return;
             }
-            
+
             await client.query('COMMIT');
             logger.info(`Webhook DOKU berhasil diproses untuk booking_id: ${bookingId}.`);
 
@@ -196,7 +196,7 @@ class PaymentService {
             await client.query('ROLLBACK');
             logger.error(`Gagal memproses webhook DOKU untuk booking_id: ${bookingId}`, error);
             // Kirim 500 ke DOKU agar mereka mencoba lagi
-            throw error; 
+            throw error;
         } finally {
             client.release();
         }

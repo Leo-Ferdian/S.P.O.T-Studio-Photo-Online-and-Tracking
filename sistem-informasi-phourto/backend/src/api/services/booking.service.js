@@ -254,13 +254,11 @@ class BookingService {
     }
 
     // =================================================================
-    // FUNGSI UNTUK ADMIN (Refactored V1.8)
+    // FUNGSI UNTUK ADMIN
     // =================================================================
 
-    // ... (Fungsi 'getAllBookings' tidak berubah) ...
-
     /**
-     * (Refactored V1.8) Mengambil semua data booking dari semua pengguna.
+     * Mengambil semua data booking dari semua pengguna.
      */
     async getAllBookings(page = 1, limit = 10, filters = {}) {
         const offset = (page - 1) * limit;
@@ -281,6 +279,9 @@ class BookingService {
         const countParams = [];
         let whereClauses = [];
 
+        // --- PENYESUAIAN 1: Tambahkan 'JOIN' di luar 'if' untuk countQuery ---
+        let countJoin = '';
+
         if (filters.status) {
             queryParams.push(filters.status);
             countParams.push(filters.status);
@@ -289,11 +290,20 @@ class BookingService {
         if (filters.branch_id) {
             queryParams.push(filters.branch_id);
             countParams.push(filters.branch_id);
-            // Perlu JOIN di count
-            countQuery += ` JOIN packages p ON b.package_id = p.package_id JOIN rooms r ON p.room_id = r.room_id`;
+            // Simpan join untuk countQuery
+            countJoin = ` JOIN packages p ON b.package_id = p.package_id JOIN rooms r ON p.room_id = r.room_id`;
             whereClauses.push(`r.branch_id = $${queryParams.length}`);
         }
 
+        if (filters.date) {
+            queryParams.push(filters.date); // format 'YYYY-MM-DD'
+            countParams.push(filters.date);
+            // CAST timestamp 'start_time' menjadi 'date' untuk perbandingan
+            whereClauses.push(`CAST(b.start_time AS DATE) = $${queryParams.length}`);
+        }
+
+        // Gabungkan JOIN dan WHERE untuk countQuery
+        countQuery += countJoin;
         if (whereClauses.length > 0) {
             dataQuery += ` WHERE ${whereClauses.join(' AND ')}`;
             countQuery += ` WHERE ${whereClauses.join(' AND ')}`;

@@ -10,7 +10,7 @@ const apiResponse = require('../../../utils/apiResponse');
 const { validationResult } = require('express-validator');
 const apiError = require('../../../utils/apiError');
 const PackageService = require('../../services/package.service.js');
-const { logger } = require('../../../utils/logger'); 
+const { logger } = require('../../../utils/logger');
 
 class AdminPackageController {
 
@@ -20,10 +20,20 @@ class AdminPackageController {
      * @access Admin
      */
     getAllPackages = asyncHandler(async (req, res) => {
-        // PERBAIKAN V1.11: Memanggil fungsi 'getFullCatalog' yang benar dari service V1.10
-        logger.info('Admin mengambil katalog lengkap...');
-        const catalog = await PackageService.getFullCatalog();
-        new apiResponse(res, 200, catalog, 'Katalog lengkap berhasil diambil.');
+        // 1. Ambil query pagination/filter
+        const { page = 1, limit = 10, search } = req.query;
+        const options = {
+            page: parseInt(page, 10),
+            limit: parseInt(limit, 10),
+            search: search
+        };
+
+        logger.info(`Admin mengambil katalog paket: ${JSON.stringify(options)}`);
+
+        // 2. Ganti nama fungsi service (jika nama file Anda package.service.js)
+        const catalog = await PackageService.getAllPackages(options); // Memanggil fungsi baru
+
+        new apiResponse(res, 200, catalog, 'Katalog paket berhasil diambil.');
     });
 
     /**
@@ -42,7 +52,7 @@ class AdminPackageController {
                 errors: errors.array()
             });
         }
-        
+
         // 2. PERBAIKAN KRITIS (V1.11): Pisahkan 'req.body'
         // 'req.body' Anda (V1.10) adalah: { packageData: {...}, addons: [...] }
         const { packageData, addons } = req.body;
@@ -52,7 +62,7 @@ class AdminPackageController {
             packageData, // Argumen 1
             addons         // Argumen 2
         );
-        
+
         new apiResponse(res, 201, newPackage, 'Paket baru (dan addons-nya) berhasil dibuat.');
     });
 
@@ -73,10 +83,10 @@ class AdminPackageController {
         }
 
         const { packageId } = req.params;
-        
+
         // PERBAIKAN V1.11: Memanggil 'getPackageDetails' (yang mengambil addons)
-        const packageDetail = await PackageService.getPackageDetails(packageId);
-        
+        const packageDetail = await PackageService.getPackageById(packageId);
+
         new apiResponse(res, 200, packageDetail, 'Detail paket berhasil diambil.');
     });
 
@@ -97,17 +107,17 @@ class AdminPackageController {
         }
 
         const { packageId } = req.params;
-        
+
         // 2. PERBAIKAN KRITIS (V1.11): Pisahkan 'req.body'
         const { packageData, addons } = req.body;
-        
+
         // 3. Panggil service V1.10 dengan TIGA argumen
         const updatedPackage = await PackageService.updateFullPackage(
             packageId,   // Argumen 1
             packageData, // Argumen 2
             addons       // Argumen 3
         );
-        
+
         new apiResponse(res, 200, updatedPackage, 'Paket berhasil diperbarui.');
     });
 
@@ -131,7 +141,7 @@ class AdminPackageController {
 
         // Panggil service V1.10
         await PackageService.deletePackage(packageId);
-        
+
         new apiResponse(res, 200, null, 'Paket berhasil dihapus.');
     });
 }

@@ -113,6 +113,12 @@ const routes = [
                 name: 'AdminUsers',
                 component: () => import('../views/admin/UserList.vue'),
             },
+            // {
+            //     path: 'users/:id', // Rute untuk detail
+            //     name: 'AdminUserDetail',
+            //     component: () => import('../views/admin/UserDetail.vue'), // Kita perlu membuat file ini
+            //     props: true // Mengirimkan :id sebagai prop
+            // },
             {
                 path: 'packages',
                 name: 'AdminPackages',
