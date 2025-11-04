@@ -1,120 +1,116 @@
 const BookingService = require('../services/booking.service');
-const paymentService = require('../services/payment.service');
+const PackageService = require('../services/package.service'); // <-- IMPOR BARU
 const asyncHandler = require('../../utils/asyncHandler');
-const apiError = require('../../utils/apiError');
-const { validationResult } = require('express-validator');
 const apiResponse = require('../../utils/apiResponse');
-const logger = require('../../config/logger');
+const { validationResult } = require('express-validator');
+const ApiError = require('../../utils/apiError'); 
+const { logger } = require('../../utils/logger'); // (V1.9.5)
 
 class BookingController {
+
     /**
-     * Menggunakan asyncHandler untuk menangani error secara otomatis
-     * 
-     * Mengecek ketersediaan slot pada cabang dan tanggal tertentu
-     * Endpoint: GET /api/bookings/availability?branch_id=1&date=2023-09-01
-     */ 
+     * @route GET /api/bookings/availability
+     * @desc (REFACTORED V1.9.6) Mengecek slot waktu yang tersedia
+     * @access Terproteksi (Customer)
+     */
     checkAvailability = asyncHandler(async (req, res) => {
-        const { branch_id, date } = req.query;
+        // PERBAIKAN KRITIS: Data 'GET' dibaca dari 'req.query', BUKAN 'req.body'
+        const { packageId, startTime } = req.query; 
 
-        if (!branch_id || !date) {
-            throw new apiError('branch_id dan date adalah parameter yang wajib.', 400);
+        if (!packageId || !startTime) {
+            throw new ApiError(400, 'packageId dan startTime (format ISO) wajib ada di query parameter.');
+        }
+        
+        // 1. Dapatkan detail paket (terutama room_id dan durasi)
+        let pkg;
+        try {
+            // Kita panggil service V1.10 yang sudah kita buat
+            pkg = await PackageService.getPackageById(packageId); 
+        } catch (error) {
+            if (error.statusCode === 404) {
+                throw new ApiError(404, 'PackageID tidak ditemukan.');
+            }
+            throw error;
         }
 
-        // Parse input string ke integer
-        const branch_Id = parseInt(branch_id, 10);
-        if (isNaN(branch_Id)) {
-            throw new apiError('branch_id harus berupa angka.', 400);
+        const { room_id, duration_in_minutes } = pkg;
+
+        // 2. Hitung waktu selesai (end time)
+        const startTimeObj = new Date(startTime);
+        const endTimeObj = new Date(startTimeObj.getTime() + duration_in_minutes * 60000);
+
+        // 3. Panggil service V1.8 (internal) untuk mengecek ketersediaan
+        const isAvailable = await BookingService._checkSlotAvailability(
+            room_id, 
+            startTimeObj, 
+            endTimeObj
+        );
+
+        if (!isAvailable) {
+            // 409 Conflict (Bentrok)
+            new apiResponse(res, 409, { isAvailable: false }, 'Slot waktu tidak tersedia (bentrok).');
+        } else {
+            // 200 OK (Tersedia)
+            new apiResponse(res, 200, { isAvailable: true }, 'Slot waktu tersedia.');
         }
-
-        const availableSlots = await BookingService.checkAvailability(branch_Id, date);
-
-        new apiResponse(res, 200, availableSlots, 'Ketersediaan slot berhasil diambil.');
     });
-    
-    // Membuat booking baru
-    create = asyncHandler(async (req, res) => {
-        // 1. Validasi input request
+
+    /**
+     * @route POST /api/bookings
+     * @desc Membuat booking baru
+     * @access Terproteksi (Customer)
+     */
+    createBooking = asyncHandler(async (req, res) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            throw new apiError(400, 'Validasi gagal.', errors.array());
-        }
-
-        const userId = req.user?.id;
-        if (!userId) {
-            throw new apiError (401, 'User tidak ditemukan. Silakan login kembali.');
-        }
-
-        // 2. Validasi tipe pembayaran
-        const paymentType = req.body.payment_type;
-        const allowedPaymentTypes = ['qris', 'bank_transfer', 'credit_card', 'gopay', 'shopeepay', 'dana']; // boleh ditambah sesuai Midtrans
-        if (!allowedPaymentTypes.includes(paymentType)) {
-            throw new apiError (400, `Jenis pembayaran tidak valid. Gunakan salah satu dari: ${allowedPaymentTypes.join(', ')}`);
-        }
-
-        // 3. Siapkan opsi tambahan (jika ada)
-        const options = req.body.options || {};
-
-        // 4. Buat booking + pembayaran
-        let booking;
-        let paymentResponse;
-        try {
-            // a. Buat booking di DB dengan status "pending_payment"
-            booking = await BookingService.createBooking(userId, {
-                ...req.body,
-                status: 'pending_payment',
+            // (Perbaikan V1.9.4 - Mengembalikan 400 langsung)
+            return res.status(400).json({
+                success: false,
+                message: 'Validasi gagal.',
+                errors: errors.array()
             });
-
-            // b. Panggil Midtrans untuk membuat transaksi
-            paymentResponse = await paymentService.createTransaction(booking, req.user, paymentType, options);
-
-            // c. Simpan informasi pembayaran ke DB
-            await BookingService.savePaymentInfo(booking.id, {
-                transaction_id: paymentResponse.transaction_id,
-                order_id: paymentResponse.order_id,
-                gross_amount: paymentResponse.gross_amount,
-                payment_type: paymentType,
-                payment_url: paymentResponse.payment_url || null,
-                qr_code_url: paymentResponse.qr_code_url || null,
-                expires_at: paymentResponse.expires_at,
-                status: 'waiting_payment'
-            });
-
-            // d. Update booking status jadi "waiting_payment"
-            await BookingService.updateBookingStatus(booking.id, 'waiting_payment');
-
-        } catch (error) {
-            // Jika error terjadi, rollback booking agar data tidak nyangkut
-            if (booking?.id) {
-                await BookingService.updateBookingStatus(booking.id, 'failed_payment');
-            }
-            logger.error('Gagal membuat booking + payment:', error);
-            throw new apiError (502, 'Gagal memproses booking atau pembayaran.');
         }
 
-        // 5. Response final (booking + payment info dipisah rapi)
-        const result = {
-            booking,
-            payment: paymentResponse
-        };
-
-        new apiResponse(res, 201, result, 'Booking berhasil dibuat dan menunggu pembayaran.');
+        const userId = req.user.user_id; // Dari authMiddleware V1.6
+        const newBooking = await BookingService.createBooking(userId, req.body);
+        
+        new apiResponse(res, 201, newBooking, 'Booking berhasil dibuat (status PENDING).');
     });
-        // Mendapatkan detail booking user berdasarkan ID
+
+    /**
+     * @route GET /api/bookings/my-bookings
+     * @desc Mendapatkan riwayat booking pengguna
+     * @access Terproteksi (Customer)
+     */
+    getMyBookings = asyncHandler(async (req, res) => {
+        const userId = req.user.user_id;
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = parseInt(req.query.limit, 10) || 10;
+        
+        const result = await BookingService.getMyBookings(userId, page, limit);
+        new apiResponse(res, 200, result, 'Riwayat booking berhasil diambil.');
+    });
+
+    /**
+     * @route GET /api/bookings/:bookingId
+     * @desc Mendapatkan detail satu booking
+     * @access Terproteksi (Customer)
+     */
     getBookingById = asyncHandler(async (req, res) => {
-        const userId = req.user.id;
-        const { id } = req.params;
-        const bookingId = parseInt(id, 10);
-
-        if (!userId) {
-            throw new apiError ('User tidak ditemukan. Silakan login kembali.', 401);
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Validasi bookingId gagal.',
+                errors: errors.array()
+            });
         }
-
-        if (isNaN(bookingId)) {
-            throw new apiError('ID booking harus berupa angka.', 400);
-        }
-
-        const booking = await BookingService.getBookingById(bookingId, userId);
-        new apiResponse(res, 200, booking, 'Detail booking berhasil diambil.');
+        
+        const userId = req.user.user_id;
+        const { bookingId } = req.params;
+        
+        const result = await BookingService.getBookingById(bookingId, userId);
+        new apiResponse(res, 200, result, 'Detail booking berhasil diambil.');
     });
 }
 

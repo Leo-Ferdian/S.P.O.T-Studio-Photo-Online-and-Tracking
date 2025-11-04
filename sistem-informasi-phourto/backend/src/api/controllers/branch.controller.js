@@ -1,38 +1,45 @@
 const BranchService = require('../services/branch.service');
-const apiError = require('../../utils/apiError');
 const asyncHandler = require('../../utils/asyncHandler');
-const apiResponse = require('../../utils/apiResponse');
+const ApiResponse = require('../../utils/apiResponse');
+const ApiError = require('../../utils/apiError');
+const { validationResult } = require('express-validator');
 
-// class BranchController {
-//     async getAll(req, res) {
-//         try {
-//             const branches = await BranchService.getAllBranches();
-//             res.status(200).json(branches);
-//         } catch (error) {
-//             console.error(error);
-//             res.status(500).json({ message: 'Terjadi kesalahan pada server saat mengambil data cabang.' });
-//         }
-//     }
-// }
 class BranchController {
-    getAll = asyncHandler(async (req, res, next) => {
-        const branches = await BranchService.getAllBranches();
 
+    /**
+     * @route GET /api/branches/
+     * @desc Mengambil semua daftar cabang
+     * @access Publik
+     */
+    getAll = asyncHandler(async (req, res) => {
+        // Panggil service untuk mengambil semua cabang
+        const branches = await BranchService.getAllBranches(); 
+        
         if (!branches || branches.length === 0) {
-            // kalau tidak ada data, lempar error dengan apiError
-            throw new apiError('Tidak ada data cabang tersedia.', 404); // Not Found
+            throw new ApiError(404, 'Tidak ada data cabang tersedia.');
         }
-
-        new apiResponse(res, 200, branches, 'Data cabang berhasil diambil.');
+        
+        new ApiResponse(res, 200, branches, 'Data cabang berhasil diambil.');
     });
-    getById = asyncHandler(async (req, res, next) => {
-        const branchId = parseInt(req.params.id, 10);
-        if (isNaN(branchId)) {
-            throw new apiError('ID cabang tidak valid.', 400); // Bad Request jika bukan angka
-        }
-        const branch = await BranchService.getBranchById(branchId);
 
-        new apiResponse(res, 200, branch, 'Detail cabang berhasil diambil.');
+    /**
+     * @route GET /api/branches/:id
+     * @desc Mengambil detail satu cabang berdasarkan ID
+     * @access Publik
+     */
+    getById = asyncHandler(async (req, res) => {
+        // Validasi sudah berjalan di route, kita hanya perlu menangkap error
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            throw new ApiError(400, 'Validasi ID gagal.', errors.array()); 
+        }
+
+        const { id } = req.params; 
+
+        // Panggil service untuk mengambil detail cabang (error 404 ditangani di service)
+        const branchDetail = await BranchService.getBranchById(id);
+        
+        new ApiResponse(res, 200, branchDetail, `Detail cabang ${id} berhasil diambil.`);
     });
 }
 
