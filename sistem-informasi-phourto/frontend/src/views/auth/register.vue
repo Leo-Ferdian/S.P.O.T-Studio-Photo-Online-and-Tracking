@@ -26,7 +26,7 @@ const handleRegister = async () => {
         await authStore.register({
             full_name: name.value,
             email: email.value,
-            whatsapp_number: phoneNumber.value, // pastikan sesuai dengan backend
+            phone_number: phoneNumber.value, // pastikan sesuai dengan backend
             password: password.value,
         })
     } catch (error) {
