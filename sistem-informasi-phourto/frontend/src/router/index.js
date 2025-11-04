@@ -69,6 +69,12 @@ const routes = [
         component: () => import('../views/claimphotos.vue'),
     },
     {
+    path: '/booking/ClaimResult',
+    name: 'ClaimResult',
+    component: () => import('../views/booking/ClaimResult.vue'),
+    meta: { requiresAuth: true },
+    },
+    {
         path: '/booking/confirm',
         name: 'BookingConfirmation',
         component: () => import('../views/booking/Confirmation.vue'),
