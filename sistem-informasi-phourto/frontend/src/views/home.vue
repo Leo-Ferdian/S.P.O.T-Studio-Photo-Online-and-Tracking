@@ -55,7 +55,9 @@ onMounted(() => {
                     <RoomCard v-for="room in rooms" :key="room.name" :room="room" />
                 </div>
                 <div class="text-center mt-8">
-                    <ActionButton text="⭐ BOOK YOUR PHOTO SESSION NOW! ⭐" />
+                    <ActionButton to="/location" size="large">
+                        ⭐ BOOK YOUR PHOTO SESSION NOW! ⭐
+                    </ActionButton>
                 </div>
             </section>
 
