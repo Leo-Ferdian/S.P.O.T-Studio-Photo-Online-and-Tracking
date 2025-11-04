@@ -121,8 +121,7 @@ const allBranchesData = {
             {
                 id: 6,
                 room: 'ROOM 2: BLUE PURPLE ROOM',
-                image: 'https://placehold.co/600x400/C5CAE9/000000?text=Neon+Panam', // Belum ada asset, pakai placeholder dulu
-                // image: new URL('@/assets/neonpanam.jpg', import.meta.url).href, // Ganti ini jika sudah ada asset
+                image: new URL('@/assets/bluepurplee.jpg', import.meta.url).href,
                 duration: 30,
                 plans: [
                     { planId: 'neon-std', planName: 'Fisheye Concept', price: 110000, capacity: '1-2 Person', inclusions: ['All Soft File', '2 Photo Print/Paket'] }
