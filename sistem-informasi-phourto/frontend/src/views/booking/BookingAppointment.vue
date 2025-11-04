@@ -1,137 +1,137 @@
 <script setup>
-  import { ref, onMounted, computed, watch } from 'vue';
-  import apiClient from '../../api/api';
-  import feather from 'feather-icons';
-  import { useRouter } from 'vue-router'; // Impor useRouter
-  import { useBookingStore } from '../../stores/booking.stores.js';
+import { ref, onMounted, computed } from 'vue'
+import feather from 'feather-icons'
+import { useRouter } from 'vue-router'
+import { useBookingStore } from '../../stores/booking.stores.js'
+import { storeToRefs } from 'pinia'
 
-  const props = defineProps({
-    branchSlug: String,
-    packageId: String // ID paket bisa berupa string dari URL
-  });
+const router = useRouter()
+const bookingStore = useBookingStore()
 
-  const router = useRouter(); // Gunakan useRouter
-  const bookingStore = useBookingStore();
+// --- State dari Store ---
+const {
+  selectedBranch,
+  selectedPackage,
+  availability,
+  isLoading
+} = storeToRefs(bookingStore)
 
-  // --- State Kalender ---
-  const currentDate = ref(new Date()); // Tanggal acuan untuk bulan yang ditampilkan
-  const selectedDate = ref(null); // Tanggal yang dipilih pengguna
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // Set ke awal hari untuk perbandingan
+// --- State Kalender Lokal ---
+const currentDate = ref(new Date())
+const selectedDate = ref(null)
+const today = new Date()
+today.setHours(0, 0, 0, 0)
 
-  const currentMonthName = computed(() => currentDate.value.toLocaleString('id-ID', { month: 'long' }));
-  const currentYear = computed(() => currentDate.value.getFullYear());
+const currentMonthName = computed(() =>
+  currentDate.value.toLocaleString('id-ID', { month: 'long' })
+)
+const currentYear = computed(() => currentDate.value.getFullYear())
 
-  // Mendapatkan hari pertama dan jumlah hari dalam bulan
-  const startOfMonth = computed(() => new Date(currentDate.value.getFullYear(), currentDate.value.getMonth(), 1));
-  const endOfMonth = computed(() => new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 0));
-  const daysInMonth = computed(() => endOfMonth.value.getDate());
-  const firstDayIndex = computed(() => startOfMonth.value.getDay()); // 0=Minggu, 1=Senin, dst.
+const startOfMonth = computed(
+  () => new Date(currentDate.value.getFullYear(), currentDate.value.getMonth(), 1)
+)
+const endOfMonth = computed(
+  () => new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 0)
+)
+const daysInMonth = computed(() => endOfMonth.value.getDate())
+const firstDayIndex = computed(() => startOfMonth.value.getDay())
 
-  // Membuat array tanggal untuk ditampilkan di kalender
-  const calendarDays = computed(() => {
-    const days = [];
-    // Tambahkan padding kosong di awal (sesuaikan 0=Minggu, 1=Senin)
-    let startDayIndex = firstDayIndex.value === 0 ? 6 : firstDayIndex.value - 1; // Konversi agar Senin = 0
-    for (let i = 0; i < startDayIndex; i++) {
-      days.push(null);
-    }
-    // Tambahkan tanggal aktual
-    for (let day = 1; day <= daysInMonth.value; day++) {
-      days.push(new Date(currentYear.value, currentDate.value.getMonth(), day));
-    }
-    return days;
-  });
+const calendarDays = computed(() => {
+  const days = []
+  let startDayIndex = firstDayIndex.value === 0 ? 6 : firstDayIndex.value - 1
+  for (let i = 0; i < startDayIndex; i++) {
+    days.push(null)
+  }
+  for (let day = 1; day <= daysInMonth.value; day++) {
+    days.push(new Date(currentYear.value, currentDate.value.getMonth(), day))
+  }
+  return days
+})
 
-  const prevMonth = () => {
-    currentDate.value = new Date(currentDate.value.setMonth(currentDate.value.getMonth() - 1));
-    selectedDate.value = null; // Reset tanggal terpilih saat ganti bulan
-    availableTimes.value = []; // Reset waktu tersedia
-  };
+const prevMonth = () => {
+  currentDate.value = new Date(currentDate.value.setMonth(currentDate.value.getMonth() - 1))
+  selectedDate.value = null
+  bookingStore.availability.slots = []
+}
 
-  const nextMonth = () => {
-    currentDate.value = new Date(currentDate.value.setMonth(currentDate.value.getMonth() + 1));
-    selectedDate.value = null; // Reset tanggal terpilih saat ganti bulan
-    availableTimes.value = []; // Reset waktu tersedia
-  };
+const nextMonth = () => {
+  currentDate.value = new Date(currentDate.value.setMonth(currentDate.value.getMonth() + 1))
+  selectedDate.value = null
+  bookingStore.availability.slots = []
+}
 
-  const goToToday = () => {
-    currentDate.value = new Date(); // Set kalender ke bulan hari ini
-    handleDateSelect(today); // Pilih tanggal hari ini
-  };
+const goToToday = () => {
+  currentDate.value = new Date()
+  handleDateSelect(today)
+}
 
-  const isToday = (day) => {
-    if (!day) return false;
-    return day.toDateString() === today.toDateString();
-  };
+const isToday = (day) => day && day.toDateString() === today.toDateString()
+const isSelected = (day) =>
+  day && selectedDate.value && day.toDateString() === selectedDate.value.toDateString()
+const isPast = (day) => day && day < today
 
-  const isSelected = (day) => {
-    if (!day || !selectedDate.value) return false;
-    return day.toDateString() === selectedDate.value.toDateString();
+// --- State Slot Waktu ---
+const selectedTime = ref(null)
+
+// --- Pilih Tanggal ---
+const handleDateSelect = async (day) => {
+  if (!day || isPast(day)) return;
+  selectedDate.value = day;
+  selectedTime.value = null;
+
+  const packageId = selectedPackage.value?.package_id;
+
+  if (!packageId) {
+    console.error("Gagal memilih tanggal: packageId tidak ditemukan.");
+    return;
   }
 
-  const isPast = (day) => {
-    if (!day) return false;
-    return day < today;
-  }
+  // --- PERBAIKAN TIMEZONE ---
+  // 'day' adalah tanggal lokal (misal: 4 Nov, 00:00 WIB)
+  // Kita harus membuat objek Date baru menggunakan nilai UTC
+  // agar .toISOString() tidak menggesernya ke hari sebelumnya.
+  const startOfDayUTC = new Date(Date.UTC(
+    day.getFullYear(),
+    day.getMonth(),
+    day.getDate(),
+    0, 0, 0
+  ));
+  // 'startOfDayUTC.toISOString()' sekarang akan menjadi: "2025-11-04T00:00:00.000Z"
+  // (Bukan "2025-11-03T17:00:00.000Z" lagi)
+  // -------------------------
 
-  // --- State Slot Waktu ---
-  const availableTimes = ref([]);
-  const selectedTime = ref(null);
-  const isLoadingTimes = ref(false);
+  // Panggil action dari store dengan tanggal UTC yang sudah benar
+  await bookingStore.checkAvailability(packageId, startOfDayUTC);
 
-  const handleDateSelect = async (day) => {
-    if (!day || isPast(day)) return; // Jangan pilih tanggal kosong atau masa lalu
-    selectedDate.value = day;
-    selectedTime.value = null; // Reset waktu terpilih
-    await fetchAvailableTimes();
-  };
-
-  // Fungsi untuk mengambil slot waktu dari API
-  const fetchAvailableTimes = async () => {
-    if (!selectedDate.value) return;
-    isLoadingTimes.value = true;
-    availableTimes.value = [];
-    try {
-      const dateString = selectedDate.value.toISOString().split('T')[0]; // Format YYYY-MM-DD
-      // TODO: Ganti '1' dengan ID cabang yang sebenarnya (perlu diambil berdasarkan branchSlug)
-      const response = await apiClient.get(`/bookings/availability?branchId=1&date=${dateString}`);
-      availableTimes.value = response.data.data; // Asumsi API mengembalikan array string ["10:00", "11:00"]
-    } catch (error) {
-      console.error("Failed to fetch available times:", error);
-      availableTimes.value = [
-        "09.00", "09.30", "10.00", "10.30", "11.00", "11.30",
-        "12.00", "12.30", "13.00", "13.30", "14.00", "14.30",
-        "15.00", "15.30", "16.00", "16.30", "17.00", "17.30",
-        "18.00", "18.30", "19.00", "19.30", "20.00", "20.30",
-        "21.00", "21.30", "22.00", "22.30"
-      ];
-    } finally {
-      isLoadingTimes.value = false;
-      setTimeout(() => feather.replace(), 0); // Re-render ikon
-    }
-  };
-
-  const handleTimeSelect = (time) => {
-    selectedTime.value = time;
-  };
-
-  // Fungsi tombol Next
-  const goToNextStep = () => {
-    if (selectedDate.value && selectedTime.value) {
-        // Simpan pilihan ke Pinia Store
-        bookingStore.setDateAndTime(selectedDate.value, selectedTime.value);
-        
-        // Arahkan ke halaman konfirmasi (BUKAN summary lagi)
-        router.push('/booking/confirm'); 
-    } else {
-        alert('Silakan pilih tanggal dan waktu terlebih dahulu.');
-    }
+  setTimeout(() => feather.replace(), 0);
 };
 
-  onMounted(() => {
-    feather.replace();
-  });
+const handleTimeSelect = (time) => {
+  selectedTime.value = time
+}
+
+const goToNextStep = () => {
+  if (selectedDate.value && selectedTime.value) {
+    const [hours, minutes] = selectedTime.value.split('.')
+    const finalDateTime = new Date(selectedDate.value)
+    finalDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+
+    bookingStore.setDateAndTime(finalDateTime)
+    router.push('/booking/confirm')
+  } else {
+    alert('Silakan pilih tanggal dan waktu terlebih dahulu.')
+  }
+}
+
+onMounted(() => {
+  if (!selectedBranch.value || !selectedPackage.value) {
+    console.warn('Data booking tidak ditemukan. Redirecting...')
+    router.push('/')
+  } else {
+    console.log('Data booking dimuat:', selectedBranch.value, selectedPackage.value)
+    setTimeout(() => feather.replace(), 50)
+  }
+})
 </script>
 
 <template>
@@ -157,73 +157,119 @@
         <div class="flex-1"></div>
       </div>
 
-      <!-- Konten Utama: Kalender dan Waktu -->
-      <div class="grid md:grid-cols-3 gap-8">
-        <!-- Kolom Kalender (2/3 lebar) -->
-        <div class="md:col-span-2 bg-white text-black p-6 border-4 border-outline">
-          <div class="flex justify-between items-center mb-6">
-            <button @click="goToToday"
-              class="bg-primary text-white px-3 py-1 border-2 border-black shadow-solid text-sm font-display hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5">Hari
-              ini</button>
-            <div class="flex items-center space-x-4">
-              <button @click="prevMonth" class="hover:text-primary">&lt;</button>
-              <span class="font-bold text-lg font-display">{{ currentMonthName }} {{ currentYear }}</span>
-              <button @click="nextMonth" class="hover:text-primary">&gt;</button>
-            </div>
-          </div>
-          <div class="grid grid-cols-7 text-center font-sans font-bold mb-2 text-sm">
-            <div v-for="day in ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min']" :key="day">{{ day }}</div>
-          </div>
-          <div class="grid grid-cols-7 gap-1">
-            <!-- Sel kosong sebelum tanggal 1 -->
-            <div v-for="i in (firstDayIndex === 0 ? 6 : firstDayIndex - 1)" :key="'empty-' + i" class="h-12"></div>
-            <!-- Sel tanggal -->
-            <div v-for="day in calendarDays.filter(d => d !== null)" :key="day.getDate()"
-              class="h-12 flex items-center justify-center">
-              <button @click="handleDateSelect(day)" :disabled="isPast(day)" :class="[
-                            'w-10 h-10 flex items-center justify-center rounded-full border-2 border-transparent transition-colors font-sans',
-                            isPast(day) ? 'text-gray-400 cursor-not-allowed' : 'hover:border-primary',
-                            isToday(day) && !isSelected(day) ? 'bg-primary text-white' : '',
-                            isSelected(day) ? 'bg-black text-white border-black ring-2 ring-offset-2 ring-primary' : ''
-                        ]">
-                {{ day.getDate() }}
+      <!-- Konten Booking -->
+      <div v-if="selectedBranch && selectedPackage">
+        <div class="grid md:grid-cols-3 gap-8">
+          <!-- Kalender -->
+          <div class="md:col-span-2 bg-white text-black p-6 border-4 border-outline">
+            <div class="flex justify-between items-center mb-6">
+              <button @click="goToToday"
+                class="bg-primary text-white px-3 py-1 border-2 border-black shadow-solid text-sm font-display hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5">
+                Hari ini
               </button>
+              <div class="flex items-center space-x-4">
+                <button @click="prevMonth" class="hover:text-primary">&lt;</button>
+                <span class="font-bold text-lg font-display">{{ currentMonthName }} {{ currentYear }}</span>
+                <button @click="nextMonth" class="hover:text-primary">&gt;</button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-7 text-center font-sans font-bold mb-2 text-sm">
+              <div v-for="day in ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min']" :key="day">{{ day }}</div>
+            </div>
+
+            <div class="grid grid-cols-7 gap-1">
+              <div v-for="i in (firstDayIndex === 0 ? 6 : firstDayIndex - 1)" :key="'empty-' + i" class="h-12"></div>
+              <div v-for="day in calendarDays.filter(d => d !== null)" :key="day.getDate()"
+                class="h-12 flex items-center justify-center">
+                <button @click="handleDateSelect(day)" :disabled="isPast(day)" :class="[
+                  'w-10 h-10 flex items-center justify-center rounded-full border-2 border-transparent transition-colors font-sans',
+                  isPast(day) ? 'text-gray-400 cursor-not-allowed' : 'hover:border-primary',
+                  isToday(day) && !isSelected(day) ? 'bg-primary text-white' : '',
+                  isSelected(day) ? 'bg-black text-white border-black ring-2 ring-offset-2 ring-primary' : ''
+                ]">
+                  {{ day.getDate() }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ringkasan & Slot Waktu -->
+          <div class="font-sans space-y-6">
+            <!-- Ringkasan Pesanan -->
+            <div class="bg-white text-black p-4 border-4 border-outline">
+              <h3 class="font-display font-bold text-lg border-b-2 border-outline pb-2 mb-3">Ringkasan Pesanan</h3>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Studio</span>
+                  <span class="font-bold text-right">{{ selectedBranch.name }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Room</span>
+                  <span class="font-bold text-right">{{ selectedPackage.room_name_display }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Paket</span>
+                  <span class="font-bold text-right">{{ selectedPackage.package_name }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Harga</span>
+                  <span class="font-bold text-right">Rp {{ parseFloat(selectedPackage.price).toLocaleString('id-ID')
+                  }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Slot Waktu -->
+            <div>
+              <div
+                class="bg-primary text-white text-center p-2 border-2 border-outline shadow-solid mb-4 text-sm font-display">
+                {{ selectedDate ? selectedDate.toLocaleDateString('id-ID', {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric'
+                }) : 'Pilih Tanggal Dahulu' }}
+              </div>
+
+              <div v-if="isLoading" class="text-center p-4">Loading waktu...</div>
+              <div v-else-if="selectedDate && availability.slots.length === 0"
+                class="text-center p-4 text-sm text-gray-500">
+                {{ availability.message || 'Tidak ada jadwal tersedia.' }}
+              </div>
+              <div v-else-if="selectedDate && availability.slots.length > 0" class="grid grid-cols-4 gap-2">
+                <button v-for="time in availability.slots" :key="time" @click="handleTimeSelect(time)" :class="[
+                  'p-2 border-3 border-outline shadow-solid font-bold transition-all duration-100 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 font-display',
+                  selectedTime === time ? 'bg-black text-white' : 'bg-primary text-white hover:bg-red-600'
+                ]">
+                  {{ time }}
+                </button>
+              </div>
+              <div v-else class="text-center p-4 text-sm text-gray-500">
+                Pilih tanggal di kalender untuk melihat waktu tersedia.
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Kolom Waktu (1/3 lebar) -->
-        <div class="font-sans">
-          <div
-            class="bg-primary text-white text-center p-2 border-2 border-outline shadow-solid mb-4 text-sm font-display">
-            {{ selectedDate ? selectedDate.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long',
-            year: 'numeric' }) : 'Pilih Tanggal Dahulu' }}
-          </div>
-
-          <div v-if="isLoadingTimes" class="text-center p-4">Loading waktu...</div>
-          <div v-else-if="selectedDate && availableTimes.length === 0" class="text-center p-4 text-sm text-gray-500">
-            Tidak ada jadwal tersedia pada tanggal ini.</div>
-          <div v-else-if="selectedDate && availableTimes.length > 0" class="grid grid-cols-4 gap-2">
-                        <button v-for="time in availableTimes" :key="time" @click="handleTimeSelect(time)" :class="[
-                    'p-2 border-3 border-outline shadow-solid font-bold transition-all duration-100 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 font-display',
-                    selectedTime === time ? 'bg-black text-white' : 'bg-primary text-white hover:bg-red-600'
-                ]">
-              {{ time }}
-            </button>
-          </div>
-          <div v-else class="text-center p-4 text-sm text-gray-500">Pilih tanggal di kalender untuk melihat waktu
-            tersedia.</div>
+        <!-- Tombol Next -->
+        <div class="text-center mt-12">
+          <button @click="goToNextStep" :disabled="!selectedTime"
+            class="bg-primary text-text-default font-bold text-lg py-3 px-12 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-1 active:translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-display">
+            Next
+          </button>
         </div>
       </div>
 
-      <!-- Tombol Next -->
-      <div class="text-center mt-12">
-        <button @click="goToNextStep" :disabled="!selectedTime"
-          class="bg-primary text-text-default font-bold text-lg py-3 px-12 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-1 active:translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-display">
-          Next
-        </button>
+      <!-- Jika Data Booking Tidak Ditemukan -->
+      <div v-else class="text-center py-16">
+        <h2 class="text-2xl font-bold">Sesi Booking Anda Tidak Ditemukan</h2>
+        <p class="mb-6">Silakan mulai lagi dari halaman lokasi.</p>
+        <router-link to="/"
+          class="bg-primary text-white px-6 py-3 block w-max mx-auto mt-6 border-3 border-outline shadow-solid">
+          Kembali ke Beranda
+        </router-link>
       </div>
-
     </main>
   </div>
 </template>

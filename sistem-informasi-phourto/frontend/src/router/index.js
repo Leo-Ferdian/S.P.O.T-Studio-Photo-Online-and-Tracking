@@ -43,7 +43,7 @@ const routes = [
     {
         path: '/location',
         name: 'Location',
-        component: () => import('../views/Location.vue'),
+        component: () => import('../views/location.vue'),
     },
     {
         path: '/service/:planName',
@@ -52,7 +52,7 @@ const routes = [
         props: true,
     },
     {
-        path: '/location/:branchName',
+        path: '/location/:branchName', //branchName
         name: 'BranchDetail',
         component: () => import('../views/BranchDetail.vue'),
         props: true,
@@ -69,10 +69,10 @@ const routes = [
         component: () => import('../views/claimphotos.vue'),
     },
     {
-    path: '/booking/ClaimResult',
-    name: 'ClaimResult',
-    component: () => import('../views/booking/ClaimResult.vue'),
-    meta: { requiresAuth: true },
+        path: '/booking/ClaimResult',
+        name: 'ClaimResult',
+        component: () => import('../views/booking/ClaimResult.vue'),
+        meta: { requiresAuth: true },
     },
     {
         path: '/booking/confirm',
@@ -86,7 +86,7 @@ const routes = [
         component: () => import('../views/framecatalog.vue'),
     },
     {
-        path: '/booking/:branchSlug/:packageId',
+        path: '/booking/:branchId/:packageId', // Ganti ':branchSlug' menjadi ':branchId'
         name: 'BookingAppointment',
         component: () => import('../views/booking/BookingAppointment.vue'),
         props: true,
@@ -102,7 +102,7 @@ const routes = [
     {
         path: '/admin',
         component: AdminLayout,
-        // meta: { requiresAuth: true, requiresAdmin: true },
+        meta: { requiresAuth: true, requiresAdmin: true },
         children: [
             {
                 path: 'dashboard',

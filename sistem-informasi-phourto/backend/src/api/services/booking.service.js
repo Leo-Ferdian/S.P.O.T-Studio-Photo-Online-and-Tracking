@@ -1,6 +1,7 @@
 const db = require('../../config/database');
 const ApiError = require('../../utils/apiError');
 const { logger } = require('../../utils/logger');
+const PackageService = require('./package.service')
 const { BOOKING_STATUS, BOOKING_ACTIONS } = require('../../config/constants');
 const PAYMENT_DEADLINE_MINUTES = 60;
 
@@ -57,6 +58,121 @@ class BookingService {
     // =================================================================
     // FUNGSI UNTUK PELANGGAN (CUSTOMER-FACING)
     // =================================================================
+
+    /**
+     * @function getAvailableSlots
+     * @desc Menghitung dan mengembalikan semua slot waktu yang tersedia
+     * @param {string} packageId - UUID Paket
+     * @param {string} dateString - Tanggal (YYYY-MM-DD)
+     */
+    async getAvailableSlots(packageId, dateString) {
+        const client = await db.getClient();
+        try {
+            logger.info(`Mengecek ketersediaan untuk packageId: ${packageId} pada tanggal: ${dateString}`);
+
+            // 1. Ambil detail Paket, Ruangan, dan Cabang (Jam Buka)
+            //    Kita butuh 'duration_in_minutes' dari paket dan 'open_hours' dari cabang
+            const packageQuery = `
+                SELECT 
+                    p.duration_in_minutes,
+                    r.room_id,
+                    b.open_hours 
+                FROM packages p
+                JOIN rooms r ON p.room_id = r.room_id
+                JOIN branches b ON r.branch_id = b.branch_id
+                WHERE p.package_id = $1;
+            `;
+            const packageResult = await client.query(packageQuery, [packageId]);
+            if (packageResult.rows.length === 0) {
+                throw new ApiError(404, 'Paket tidak ditemukan.');
+            }
+
+            const { duration_in_minutes, room_id, open_hours } = packageResult.rows[0];
+            const duration = duration_in_minutes; // cth: 30
+
+            // 2. Ambil SEMUA booking & blok yang ada untuk ruangan ini pada tanggal ini
+            //    Kita ambil satu kali saja untuk efisiensi
+            const conflictsQuery = `
+                (
+                    SELECT start_time, end_time
+                    FROM bookings
+                    WHERE room_id = $1
+                    AND payment_status IN ('PENDING', 'PAID-DP', 'PAID-FULL')
+                    AND CAST(start_time AS DATE) = $2
+                )
+                UNION
+                (
+                    SELECT start_time, end_time
+                    FROM room_blocks
+                    WHERE room_id = $1
+                    AND CAST(start_time AS DATE) = $2
+                );
+            `;
+            const conflictsResult = await client.query(conflictsQuery, [room_id, dateString]);
+            const existingBookings = conflictsResult.rows; // cth: [{ start_time: '...', end_time: '...' }]
+
+            // 3. Generate semua slot yang mungkin berdasarkan jam buka
+            // cth: open_hours = "09:00-22:00"
+            const [openStr, closeStr] = open_hours.split('-'); // ["09:00", "22:00"]
+            const [openHour, openMin] = openStr.split(':').map(Number);
+            const [closeHour, closeMin] = closeStr.split(':').map(Number);
+
+            const targetDate = new Date(dateString); // cth: 2025-11-05T00:00:00
+            const openingTime = new Date(targetDate.setHours(openHour, openMin, 0, 0));
+            const closingTime = new Date(targetDate.setHours(closeHour, closeMin, 0, 0));
+
+            const allPossibleSlots = [];
+            let currentSlotTime = new Date(openingTime);
+
+            while (true) {
+                const slotEndTime = new Date(currentSlotTime.getTime() + duration * 60000);
+
+                // Jika akhir slot sudah melewati jam tutup, hentikan loop
+                if (slotEndTime > closingTime) {
+                    break;
+                }
+
+                allPossibleSlots.push(new Date(currentSlotTime));
+
+                // Maju ke slot berikutnya (berdasarkan durasi)
+                currentSlotTime.setMinutes(currentSlotTime.getMinutes() + duration);
+            }
+
+            // 4. Filter slot yang bentrok
+            const availableSlots = allPossibleSlots.filter(slotStartTime => {
+                const slotEndTime = new Date(slotStartTime.getTime() + duration * 60000);
+
+                // Cek apakah slot ini bentrok dengan booking yang ada
+                const isConflicting = existingBookings.some(booking => {
+                    // Konversi DB timestamp ke objek Date
+                    const bookingStartTime = new Date(booking.start_time);
+                    const bookingEndTime = new Date(booking.end_time);
+
+                    // Logika Overlap: (MulaiA < SelesaiB) dan (SelesaiA > MulaiB)
+                    return (slotStartTime < bookingEndTime && slotEndTime > bookingStartTime);
+                });
+
+                return !isConflicting; // Kembalikan true jika TIDAK bentrok
+            });
+
+            // 5. Format hasil menjadi string "HH:MM"
+            const formattedSlots = availableSlots.map(date => {
+                return date.toLocaleTimeString('id-ID', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }).replace('.', ':'); // Mengubah "09.00" -> "09:00"
+            });
+
+            return formattedSlots;
+
+        } catch (error) {
+            logger.error('Error in getAvailableSlots:', error);
+            if (error instanceof ApiError) throw error;
+            throw new ApiError('Gagal menghitung slot ketersediaan.', 500);
+        } finally {
+            client.release();
+        }
+    }
 
     /**
      * (FIXED V1.11) Membuat booking baru (status awal: PENDING).
