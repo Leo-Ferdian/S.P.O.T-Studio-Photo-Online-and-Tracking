@@ -1,7 +1,5 @@
 // File: stores/booking.stores.js
-// (DIPERBARUI - V1.13)
-// Tujuan: Mengelola state (status) katalog, ketersediaan, dan pesanan
-//         serta mengimplementasikan logika Unduh ZIP Asynchronous.
+// (Versi Rapi — Mengelola alur Booking & Pembayaran global)
 
 import { defineStore } from 'pinia'
 import apiClient from '../api/api'
@@ -9,58 +7,86 @@ import { useAuthStore } from './auth.stores'
 import router from '../router'
 
 export const useBookingStore = defineStore('booking', {
-    // === 1. STATE (DATA) ===
+    // ==========================================================
+    // === 1. STATE (DATA) ======================================
+    // ==========================================================
     state: () => ({
         catalog: [],
         branches: [],
 
-        // --- PENYESUAIAN: State baru untuk Pilihan User ---
-        selectedBranch: null, // Info cabang yang dipilih
-        selectedPackage: null, // Info paket yang dipilih
-        selectedDateTime: null, // Objek Date lengkap
-        // ---------------------------------------------------
+        // Pilihan user
+        selectedBranch: null,
+        selectedPackage: null,
+        selectedDateTime: null,
 
-        // Untuk alur booking
-        availability: {
-            isAvailable: null,
-            message: '',
-            slots: [], // Slot waktu yang tersedia
-        },
+        // Detail tambahan
+        customerDetails: { name: '', email: '', whatsapp: '', instagram: '' },
+        selectedBackground: '',
+        additionalPeople: 0,
+
+        // Opsi pembayaran
+        paymentOption: 'FULL', // 'FULL' atau 'DP'
+        addOnPricePerPerson: 25000, // Harga add-on per orang
+
+        // Data status & proses
+        availability: { isAvailable: null, message: '', slots: [] },
         currentBooking: null,
         myBookings: [],
-
-        // Status UI
         isLoading: false,
         error: null,
 
-        // --- State ZIP ---
-        zipStatus: {
-            status: null,
-            message: '',
-            downloadUrl: null,
-        },
+        // ZIP Download status
+        zipStatus: { status: null, message: '', downloadUrl: null },
     }),
 
-    // === 2. GETTERS ===
+    // ==========================================================
+    // === 2. GETTERS ===========================================
+    // ==========================================================
     getters: {
         isCatalogLoaded: (state) => state.catalog.length > 0,
         isLoadingCatalog: (state) => state.isLoading && state.catalog.length === 0,
+
         isZipReady: (state) =>
             state.zipStatus.status === 'READY' && state.zipStatus.downloadUrl,
         isZipProcessing: (state) => state.zipStatus.status === 'PROCESSING',
 
-        // --- Getter tambahan ---
         hasSelectedPackage: (state) =>
             !!state.selectedBranch && !!state.selectedPackage,
 
+        // ---- Perhitungan Harga ----
+        packageBasePrice: (state) =>
+            parseFloat(state.selectedPackage?.price) || 0,
+
+        packageDpPrice: (state) =>
+            (parseFloat(state.selectedPackage?.price) || 0) * 0.5,
+
+        addonsTotalPrice: (state) =>
+            state.additionalPeople * state.addOnPricePerPerson,
+
+        /**
+         * Hitung total harga akhir yang harus dibayar sekarang
+         * berdasarkan opsi pembayaran (DP / FULL)
+         */
+        grandTotal: (state) => {
+            const packagePrice = parseFloat(state.selectedPackage?.price) || 0
+            const addons = state.additionalPeople * state.addOnPricePerPerson
+
+            if (state.paymentOption === 'DP') {
+                const dp = packagePrice * 0.5
+                return dp + addons
+            }
+            return packagePrice + addons
+        },
+
+        // Ringkasan data booking untuk tampilan konfirmasi
         getBookingSummary: (state) => {
             if (
                 !state.selectedBranch ||
                 !state.selectedPackage ||
                 !state.selectedDateTime
-            ) {
+            )
                 return null
-            }
+
             return {
                 branch: state.selectedBranch,
                 package: state.selectedPackage,
@@ -69,26 +95,37 @@ export const useBookingStore = defineStore('booking', {
         },
     },
 
-    // === 3. ACTIONS ===
+    // ==========================================================
+    // === 3. ACTIONS ===========================================
+    // ==========================================================
     actions: {
-        /**
-         * Menyimpan pilihan cabang dan paket (dipanggil dari BranchDetail.vue)
-         */
+        // ---- Setters ----
         setBranchAndPackage(branch, pkg) {
             this.selectedBranch = branch
             this.selectedPackage = pkg
         },
 
-        /**
-         * Menyimpan waktu booking (dipanggil dari BookingAppointment.vue)
-         */
         setDateAndTime(dateTime) {
             this.selectedDateTime = dateTime
         },
 
-        /**
-         * Mengambil katalog paket
-         */
+        setCustomerDetails(details) {
+            this.customerDetails = details
+        },
+
+        setSelectedBackground(bg) {
+            this.selectedBackground = bg
+        },
+
+        setAdditionalPeople(count) {
+            this.additionalPeople = Number(count) || 0
+        },
+
+        setPaymentOption(option) {
+            this.paymentOption = option // 'DP' atau 'FULL'
+        },
+
+        // ---- Fetch Data ----
         async fetchCatalog() {
             this.isLoading = true
             this.error = null
@@ -98,15 +135,11 @@ export const useBookingStore = defineStore('booking', {
             } catch (error) {
                 const message = error.response?.data?.message || error.message
                 this.error = `Gagal memuat katalog: ${message}`
-                console.error('Error fetchCatalog:', message)
             } finally {
                 this.isLoading = false
             }
         },
 
-        /**
-         * Mengambil daftar cabang
-         */
         async fetchBranches() {
             this.error = null
             try {
@@ -115,86 +148,67 @@ export const useBookingStore = defineStore('booking', {
             } catch (error) {
                 const message = error.response?.data?.message || error.message
                 this.error = `Gagal memuat cabang: ${message}`
-                console.error('Error fetchBranches:', message)
             }
         },
 
-        /**
-        * Mengecek ketersediaan jadwal
-        */
         async checkAvailability(packageId, startTime) {
             this.isLoading = true
             this.error = null
-            this.availability = { isAvailable: null, message: '', slots: [] } // Reset ke array kosong
+            this.availability = { isAvailable: null, message: '', slots: [] }
 
             try {
                 const response = await apiClient.get('/bookings/availability', {
-                    params: {
-                        packageId,
-                        startTime: startTime.toISOString(),
-                    },
+                    params: { packageId, startTime: startTime.toISOString() },
                 })
 
-                // --- TAMBAHAN DEBUGGING ---
-                // Ini akan memberi tahu kita struktur data yang sebenarnya di konsol
-                console.log("Respons API Ketersediaan:", response.data);
-                // ---------------------------
-
-                // Kembalikan ke logika asli Anda (atau yang mendekati)
-                // Kita asumsikan array slot ada di 'response.data.data' ATAU 'response.data.data.availableSlots'
-                const slotsData = response.data.data.availableSlots || response.data.data || [];
-
-                // Pastikan 'slotsData' adalah array
-                if (!Array.isArray(slotsData)) {
-                    console.warn("Data slot yang diterima BUKAN array, mengosongkan slot.");
-                    this.availability.slots = [];
+                const slots = response.data.data.availableSlots
+                if (Array.isArray(slots) && slots.length > 0) {
+                    this.availability.slots = slots
+                    this.availability.isAvailable = true
                 } else {
-                    this.availability.slots = slotsData;
+                    this.availability.slots = []
+                    this.availability.isAvailable = false
                 }
-
-                this.availability.isAvailable = true;
-                this.availability.message = response.data.message;
-
+                this.availability.message = response.data.message
             } catch (error) {
-                const status = error.response?.status
                 const message = error.response?.data?.message || error.message
-                console.error("Error checkAvailability:", error.response || error);
-
-                if (status === 409) {
-                    this.availability = {
-                        isAvailable: false,
-                        message,
-                        slots: [], // Pastikan tetap array
-                    }
-                } else {
-                    this.error = `Gagal cek ketersediaan: ${message}`
-                    // Pastikan 'slots' tetap array kosong jika ada error lain
-                    this.availability.slots = [];
-                }
+                this.availability = { isAvailable: false, message, slots: [] }
             } finally {
                 this.isLoading = false
             }
         },
 
-        /**
-         * Membuat pesanan baru
-         */
+        // ---- Create Booking ----
         async createBooking() {
-            const bookingData = {
-                package_id: this.selectedPackage?.package_id,
-                start_time: this.selectedDateTime?.toISOString(),
-                addons: [], // Tambahkan addons di sini bila perlu
+            // Validasi waktu
+            if (
+                !this.selectedDateTime ||
+                !(this.selectedDateTime instanceof Date) ||
+                isNaN(this.selectedDateTime.getTime())
+            ) {
+                this.error = 'Waktu booking tidak valid.'
+                throw new Error('Invalid booking time.')
             }
 
-            // Validasi
-            if (!bookingData.package_id || !bookingData.start_time) {
-                this.error = 'Data paket atau waktu tidak lengkap.'
-                console.error(
-                    'CreateBooking Error: Data tidak lengkap',
-                    this.selectedPackage,
-                    this.selectedDateTime
-                )
-                throw new Error('Data paket atau waktu tidak lengkap.')
+            // Ambil data lengkap dari state
+            const bookingData = {
+                package_id: this.selectedPackage?.package_id,
+                start_time: this.selectedDateTime.toISOString(),
+                customer_name: this.customerDetails.name,
+                customer_email: this.customerDetails.email,
+                customer_whatsapp: this.customerDetails.whatsapp,
+                customer_instagram: this.customerDetails.instagram,
+                addons: [
+                    { type: 'background', value: this.selectedBackground },
+                    { type: 'additional_people', value: this.additionalPeople },
+                ],
+                payment_type: this.paymentOption,
+                total_price_paid: this.grandTotal,
+            }
+
+            if (!bookingData.package_id) {
+                this.error = 'Data paket tidak lengkap.'
+                throw new Error('Data paket tidak lengkap.')
             }
 
             this.isLoading = true
@@ -210,7 +224,6 @@ export const useBookingStore = defineStore('booking', {
                 return false
             }
 
-            // Panggil API
             try {
                 const response = await apiClient.post('/bookings', bookingData)
                 this.currentBooking = response.data.data
@@ -219,16 +232,13 @@ export const useBookingStore = defineStore('booking', {
             } catch (error) {
                 const message = error.response?.data?.message || error.message
                 this.error = `Gagal membuat pesanan: ${message}`
-                console.error('Error createBooking:', message)
                 throw new Error(`Gagal membuat pesanan: ${message}`)
             } finally {
                 this.isLoading = false
             }
         },
 
-        /**
-         * Mengambil riwayat pesanan
-         */
+        // ---- Riwayat Booking ----
         async fetchMyBookings() {
             this.isLoading = true
             this.error = null
@@ -238,73 +248,49 @@ export const useBookingStore = defineStore('booking', {
             } catch (error) {
                 const message = error.response?.data?.message || error.message
                 this.error = `Gagal memuat riwayat pesanan: ${message}`
-                console.error('Error fetchMyBookings:', message)
             } finally {
                 this.isLoading = false
             }
         },
 
-        // =================================================================
-        // IMPLEMENTASI TODO V1.13: Actions (Aksi) ZIP Download
-        // =================================================================
-
-        /**
-         * @action triggerZipDownload
-         * @desc Memanggil 'POST /api/photos/:bookingId/download' untuk memulai proses ZIP.
-         */
+        // ---- ZIP Download ----
         async triggerZipDownload(bookingId) {
-            this.isLoading = true;
-            this.error = null;
-            // Set status ke PROCESSING segera untuk feedback UI
-            this.zipStatus = { status: 'PROCESSING', message: 'Memicu pembuatan file ZIP...', downloadUrl: null };
+            this.isLoading = true
+            this.error = null
+            this.zipStatus = {
+                status: 'PROCESSING',
+                message: 'Memicu pembuatan file ZIP...',
+                downloadUrl: null,
+            }
 
             try {
-                // Panggil API (V1.13)
-                const response = await apiClient.post(`/photos/${bookingId}/download`);
-                const data = response.data.data;
-
-                // Update state (status) dengan respons dari server (seharusnya 'PROCESSING')
-                this.zipStatus = { ...this.zipStatus, ...data };
-
-                return data; // Kembalikan status (cth: { status: 'PROCESSING', ... })
-
+                const response = await apiClient.post(`/photos/${bookingId}/download`)
+                const data = response.data.data
+                this.zipStatus = { ...this.zipStatus, ...data }
+                return data
             } catch (error) {
-                const errorMessage = error.response?.data?.message || error.message;
-                this.error = `Gagal memicu ZIP: ${errorMessage}`;
-                this.zipStatus = { status: 'FAILED', message: errorMessage, downloadUrl: null };
-                console.error("Error triggerZipDownload:", errorMessage);
-                throw new Error(`Gagal memicu ZIP: ${errorMessage}`);
+                const message = error.response?.data?.message || error.message
+                this.error = `Gagal memicu ZIP: ${message}`
+                this.zipStatus = { status: 'FAILED', message, downloadUrl: null }
+                throw new Error(`Gagal memicu ZIP: ${message}`)
             } finally {
-                this.isLoading = false;
+                this.isLoading = false
             }
         },
 
-        /**
-         * @action checkZipStatus
-         * @desc Memanggil 'GET /api/photos/:bookingId/download-status' untuk polling.
-         */
         async checkZipStatus(bookingId) {
-            // Kita tidak set isLoading=true di sini, agar polling bisa berjalan di latar belakang
-            // tanpa memblokir UI.
-            this.error = null;
-
+            this.error = null
             try {
-                // Panggil API (V1.13)
-                const response = await apiClient.get(`/photos/${bookingId}/download-status`);
-                const data = response.data.data;
-
-                // Update state (status) dengan status terbaru dari server
-                this.zipStatus = data;
-
-                return data; // Kembalikan status (cth: { status: 'READY', downloadUrl: '...' })
-
+                const response = await apiClient.get(
+                    `/photos/${bookingId}/download-status`
+                )
+                this.zipStatus = response.data.data
+                return response.data.data
             } catch (error) {
-                const errorMessage = error.response?.data?.message || error.message;
-                // Jangan set error utama, cukup di zipStatus
-                this.zipStatus = { status: 'FAILED', message: errorMessage, downloadUrl: null };
-                console.error("Error checkZipStatus:", errorMessage);
-                throw new Error(`Gagal mengecek status ZIP: ${errorMessage}`);
+                const message = error.response?.data?.message || error.message
+                this.zipStatus = { status: 'FAILED', message, downloadUrl: null }
+                throw new Error(`Gagal mengecek status ZIP: ${message}`)
             }
-        }
-    }
-});
+        },
+    },
+})

@@ -1,185 +1,254 @@
 <script setup>
-    import { onMounted, computed, ref } from 'vue'; // Tambahkan ref
-    import { useBookingStore } from '../../stores/booking.stores'; // Perbaiki path
-    import feather from 'feather-icons';
-    import { useRouter } from 'vue-router';
-    import apiClient from '../../api/api'; // Impor apiClient
+import { onMounted, computed, ref, nextTick, onUnmounted } from 'vue'
+import { useBookingStore } from '../../stores/booking.stores'
+import { useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import feather from 'feather-icons'
 
-    const bookingStore = useBookingStore();
-    const router = useRouter();
-    const isLoading = ref(false); // Tambahkan state loading
+// === STORE & ROUTER ===
+const bookingStore = useBookingStore()
+const router = useRouter()
 
-    // Format tanggal dari store
-    const formattedDate = computed(() => {
-        if (!bookingStore.selectedDate) return 'N/A';
-        // Pastikan selectedDate adalah objek Date
-        const dateObj = bookingStore.selectedDate instanceof Date ? bookingStore.selectedDate : new Date(bookingStore.selectedDate);
-        return dateObj.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-    });
+// === DATA DARI STORE ===
+const {
+    currentBooking,
+    selectedBranch,
+    selectedPackage
+} = storeToRefs(bookingStore)
 
-    // Fungsi untuk melanjutkan ke pembayaran
-    const proceedToPayment = async () => {
-        isLoading.value = true; // Mulai loading
-        try {
-            // --- INI ADALAH LOGIKA UTAMA ---
-            // 1. Ambil semua data booking dari store
-            const bookingPayload = {
-                // user_id diambil dari authStore di backend (tidak perlu dikirim dari frontend)
-                branch_id: bookingStore.selectedBranch?.id, // Pastikan ID ada
-                package_id: bookingStore.selectedPackage?.id, // Pastikan ID ada
-                booking_time: `${new Date(bookingStore.selectedDate).toISOString().split('T')[0]} ${bookingStore.selectedTime}:00`, // Format YYYY-MM-DD HH:MM:SS
-                // Kirim detail customer & add-ons jika backend memerlukannya
-                customer_name: bookingStore.customerDetails.name,
-                customer_email: bookingStore.customerDetails.email,
-                customer_whatsapp: bookingStore.customerDetails.whatsapp,
-                customer_instagram: bookingStore.customerDetails.instagram,
-                selected_background: bookingStore.selectedBackground,
-                additional_people: bookingStore.additionalPeople,
-                total_amount: bookingStore.grandTotal // Kirim total akhir
-            };
+// === STATE LOKAL UNTUK COUNTDOWN ===
+const countdown = ref('01:00:00')
+const showCountdown = ref(false) // <-- PERBAIKAN: State untuk menampilkan/menyembunyikan timer
+let countdownTimer = null
 
-            // Validasi data sebelum kirim
-            if (!bookingPayload.branch_id || !bookingPayload.package_id || !bookingPayload.booking_time || !bookingPayload.customer_name) {
-                throw new Error("Data booking tidak lengkap.");
-            }
+// === PENTING: GUARD CLAUSE & SETUP COUNTDOWN ===
+onMounted(() => {
+    if (!currentBooking.value) {
+        console.warn("Tidak ada data booking saat ini. Mengarahkan ke beranda.");
+        router.push('/');
+        return;
+    }
 
-            // 2. Panggil API backend untuk MEMBUAT booking
-            console.log("Mengirim data booking ke backend:", bookingPayload);
-            const bookingResponse = await apiClient.post('/bookings', bookingPayload);
-            const newBooking = bookingResponse.data.data;
-            console.log("Booking berhasil dibuat:", newBooking);
+    // 2. Setup Countdown Timer
+    const expiryTimestamp = currentBooking.value.expires_at
+    if (expiryTimestamp) {
+        startCountdown(expiryTimestamp)
+        showCountdown.value = true // <-- Tampilkan timer
+    } else {
+        // BUG 1 DITANGANI: 'expires_at' tidak ada
+        console.warn("Booking tidak memiliki 'expires_at'. Countdown tidak akan dimulai.");
+        showCountdown.value = false // <-- Sembunyikan timer
+        countdown.value = "N/A";
+    }
 
-            // 3. Panggil API backend untuk MEMBUAT TRANSAKSI DOKU
-            // Diasumsikan endpointnya /bookings/:id/pay
-            console.log(`Memulai pembayaran untuk booking ID: ${newBooking.id}`);
-            // const paymentResponse = await apiClient.post(`/bookings/${newBooking.id}/pay`, { paymentType: 'QRIS_DOKU' });
-            // const paymentInfo = paymentResponse.data.data;
-            // console.log("Info pembayaran DOKU:", paymentInfo);
+    // 3. Tampilkan ikon
+    nextTick(() => feather.replace())
+})
 
-            // --- AKHIR LOGIKA UTAMA ---
+onUnmounted(() => {
+    if (countdownTimer) {
+        clearInterval(countdownTimer)
+    }
+})
 
-
-            // --- SIMULASI PEMBAYARAN SUKSES (Hapus ini jika API sudah jalan) ---
-            console.log("Simulasi: Pembayaran dianggap berhasil.");
-            await new Promise(resolve => setTimeout(resolve, 1500)); // Delay simulasi
-            // --- AKHIR SIMULASI ---
-
-            // 4. Jika semua berhasil, arahkan ke halaman Success
-            router.push('/booking/success');
-
-            // 5. Reset state booking di Pinia setelah berhasil
-            bookingStore.resetBooking();
-
-        } catch (error) {
-            console.error("Failed to proceed to payment:", error);
-            alert(`Gagal memproses pesanan: ${error.response?.data?.message || error.message || 'Silakan coba lagi.'}`);
-            // Jangan reset store jika gagal, agar pengguna bisa mencoba lagi
-        } finally {
-            isLoading.value = false; // Selesai loading
+// === FUNGSI COUNTDOWN ===
+const startCountdown = (expiryTimestamp) => {
+    // ... (Fungsi ini tidak berubah, sudah benar)
+    const expiryDate = new Date(expiryTimestamp).getTime();
+    countdownTimer = setInterval(() => {
+        const now = new Date().getTime();
+        const distance = expiryDate - now;
+        if (distance < 0) {
+            clearInterval(countdownTimer);
+            countdown.value = "WAKTU HABIS";
+        } else {
+            const hours = Math.floor(distance / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+            countdown.value =
+                String(hours).padStart(2, '0') + ':' +
+                String(minutes).padStart(2, '0') + ':' +
+                String(seconds).padStart(2, '0');
         }
-    };
+    }, 1000);
+}
 
-    onMounted(() => {
-        feather.replace();
-        // Validasi data booking saat halaman dimuat
-        if (!bookingStore.selectedPackage || !bookingStore.selectedDate || !bookingStore.selectedTime) {
-            console.warn("Data booking tidak lengkap, mengarahkan kembali ke home...");
-            router.push('/'); // Arahkan ke home jika data penting hilang
-        }
-    });
+
+// =================================================================
+// === PERBAIKAN BUG NaN DI SINI ===
+// =================================================================
+const formatCurrency = (value) => {
+    // Coba parse 'value' menjadi angka
+    let numValue = parseFloat(value);
+
+    // Jika hasilnya NaN (misal: parseFloat("Belum Lunas") atau parseFloat(null)),
+    // set nilainya ke 0
+    if (isNaN(numValue)) {
+        numValue = 0;
+    }
+
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+    }).format(numValue) // Gunakan numValue yang sudah aman
+}
+// =================================================================
+// === AKHIR PERBAIKAN ===
+// =================================================================
+
+
+// === UTIL: Format Waktu ===
+const formattedDateTime = computed(() => {
+    // (Fungsi ini tidak berubah, sudah benar)
+    const timeData = currentBooking.value?.start_time
+    if (!timeData) return 'Waktu tidak valid'
+    const date = new Date(timeData)
+    if (isNaN(date.getTime())) return 'Format Waktu Salah';
+    return date.toLocaleString('id-ID', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    })
+})
+
+// === Navigasi ===
+const goToHome = () => {
+    router.push('/');
+}
+const goToMyBookings = () => {
+    router.push('/my-bookings');
+}
+
+// Helper untuk mengambil data dengan aman
+const getBookingData = (key, fallback) => {
+    // (Fungsi ini tidak berubah, sudah benar)
+    return currentBooking.value?.[key] || fallback || 'N/A';
+}
+
 </script>
 
 <template>
-    <div class="bg-background min-h-screen font-display text-text-default pt-24 pb-12">
-        <main class="container mx-auto px-4">
-            <!-- Header Halaman -->
+    <div class="bg-background min-h-screen text-text-default pt-24 pb-12">
+        <main class="container mx-auto px-4 max-w-2xl">
+            <!-- HEADER (Tidak berubah) -->
             <div class="flex items-center justify-between mb-12">
                 <div class="flex-1">
                     <div class="flex items-center space-x-2">
-                        <!-- Tombol kembali sekarang mengarah ke halaman konfirmasi -->
-                        <button @click="$router.push('/booking/confirm')"
-                            class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5">
-                            <i data-feather="arrow-left" class="w-6 h-6"></i>
-                        </button>
-                        <button @click="$router.push('/')"
+                        <button @click="goToHome"
                             class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5">
                             <i data-feather="home" class="w-6 h-6"></i>
                         </button>
                     </div>
                 </div>
                 <div class="flex-1 text-center">
-                    <h1 class="text-3xl font-bold">SUMMARY</h1>
+                    <h1 class="text-3xl font-bold">Instruksi Pembayaran</h1>
                 </div>
                 <div class="flex-1"></div>
             </div>
 
-            <!-- Konten Utama: Ringkasan Read-Only -->
-            <div class="grid md:grid-cols-2 gap-8 items-start">
-                <!-- Kolom Kiri: Detail Booking -->
+            <!-- KONTEN UTAMA: Instruksi Pembayaran -->
+            <div v-if="currentBooking" class="bg-white text-black p-6 md:p-8 border-4 border-outline space-y-6">
+
+                <!-- Peringatan Waktu -->
+                <div class="text-center space-y-2">
+                    <i data-feather="clock" class="w-16 h-16 text-red-500 mx-auto"></i>
+                    <h2 class="text-2xl font-bold">Menunggu Pembayaran</h2>
+                    <p class="text-gray-600">Selesaikan pembayaran Anda untuk mengamankan slot.</p>
+
+                    <!-- ====================================================== -->
+                    <!-- === PERBAIKAN COUNTDOWN TIMER DI SINI === -->
+                    <!-- ====================================================== -->
+                    <!-- Tampilkan countdown HANYA JIKA 'showCountdown' (dari expires_at) true -->
+                    <div v-if="showCountdown" class="bg-red-100 border-2 border-red-500 p-4">
+                        <p class="text-sm font-semibold text-red-700">Batas Waktu Pembayaran:</p>
+                        <p class="text-4xl font-mono font-bold text-red-700">{{ countdown }}</p>
+                    </div>
+
+                    <!-- Tampilkan pesan alternatif jika 'expires_at' tidak ada -->
+                    <div v-else class="bg-yellow-100 border-2 border-yellow-500 p-4">
+                        <p class="text-sm font-semibold text-yellow-700">Harap selesaikan pembayaran Anda sesuai
+                            instruksi.</p>
+                    </div>
+                    <!-- ====================================================== -->
+                    <!-- === AKHIR PERBAIKAN === -->
+                    <!-- ====================================================== -->
+
+                    <p class="text-sm pt-2">
+                        Kode Booking: <span class="font-mono bg-gray-100 p-1">{{ getBookingData('booking_id', 'N/A')
+                            }}</span>
+                    </p>
+                </div>
+
+                <hr class="border-b-2 border-outline border-dashed" />
+
+                <!-- Instruksi Pembayaran (Tidak berubah) -->
                 <div class="space-y-4">
-                    <h2 class="text-2xl font-bold">{{ bookingStore.selectedBranch?.name || 'N/A' }}<br>{{
-                        bookingStore.selectedPackage?.room || 'N/A' }}</h2>
+                    <h3 class="text-xl font-bold">Transfer ke Rekening:</h3>
 
-                    <!-- Card Jadwal (Read-Only) -->
-                    <div class="bg-white border-3 border-outline p-4">
-                        <div class="font-sans">
-                            <p class="font-bold text-lg">{{ formattedDate }}</p>
-                            <p class="font-bold text-lg">{{ bookingStore.selectedTime || '--:--' }}</p>
-                            <p class="text-sm text-gray-600">Asia/Jakarta</p>
-                        </div>
+                    <div class="bg-gray-100 border-3 border-outline p-4 text-center">
+                        <p class="font-bold text-2xl">Bank BNI</p>
+                        <p class="font-mono text-xl">1234567890</p>
+                        <p class="text-sm">a/n PT Phourto Studio Indonesia</p>
                     </div>
 
-                    <!-- Card Paket (Read-Only) -->
-                    <div class="bg-white border-3 border-outline p-4">
-                        <div class="font-sans">
-                            <p class="font-bold text-lg">{{ bookingStore.selectedPackage?.duration || 0 }} Menit</p>
-                            <p class="text-sm text-gray-600">{{ bookingStore.selectedBranch?.name }} {{
-                                bookingStore.selectedPackage?.room }}</p>
-                            <p class="font-bold text-lg mt-2">Rp {{ (bookingStore.selectedPackage?.price ||
-                                0).toLocaleString('id-ID') }}</p>
-                        </div>
-                    </div>
-
-                    <!-- Detail Pelanggan (Read-Only) -->
-                    <div class="bg-white border-3 border-outline p-4 font-sans text-sm space-y-1">
-                        <p><span class="font-bold">Nama:</span> {{ bookingStore.customerDetails.name || 'N/A' }}</p>
-                        <p><span class="font-bold">Email:</span> {{ bookingStore.customerDetails.email || 'N/A' }}</p>
-                        <p><span class="font-bold">Whatsapp:</span> {{ bookingStore.customerDetails.whatsapp || 'N/A' }}
+                    <div class="text-center">
+                        <p class="text-gray-600">Jumlah yang harus dibayar:</p>
+                        <!-- (Ini sekarang aman dari NaN karena formatCurrency() sudah diperbaiki) -->
+                        <p class="text-3xl font-bold text-primary">{{ formatCurrency(getBookingData('total_price_paid',
+                            0)) }}</p>
+                        <p class="text-xs text-gray-500">
+                            (Status Pembayaran: {{ getBookingData('payment_status', 'PENDING') }})
                         </p>
-                        <p><span class="font-bold">Instagram:</span> {{ bookingStore.customerDetails.instagram || 'N/A'
-                            }}</p>
-                        <p><span class="font-bold">Background:</span> {{ bookingStore.selectedBackground || 'N/A' }}</p>
+                    </div>
+
+                    <div class="text-xs text-gray-600 bg-yellow-100 p-3 border border-yellow-300">
+                        <span class="font-bold">PENTING:</span>
+                        Harap transfer dengan jumlah yang sama persis. Pesanan akan otomatis dibatalkan jika pembayaran
+                        tidak diterima dalam batas waktu yang ditentukan.
                     </div>
                 </div>
 
-                <!-- Kolom Kanan: Ringkasan Add-ons & Total -->
+                <hr class="border-b-2 border-outline border-dashed" />
+
+                <!-- Detail Pesanan (Ringkasan) (Tidak berubah) -->
                 <div class="space-y-4">
-                    <!-- Card Tambahan Orang (Read-Only) -->
-                    <div v-if="bookingStore.additionalPeople > 0"
-                        class="bg-primary text-white p-4 border-3 border-outline shadow-solid font-sans">
-                        <h3 class="font-display font-bold text-lg">-TAMBAHAN ORANG</h3>
-                        <div class="flex justify-between items-center mt-2">
-                            <span>{{ bookingStore.additionalPeople }} orang x Rp {{
-                                bookingStore.addOnPricePerPerson.toLocaleString('id-ID') }}</span>
-                            <span class="font-bold">Rp {{ bookingStore.totalAddOnPrice.toLocaleString('id-ID') }}</span>
+                    <h3 class="text-xl font-bold">Detail Pesanan Anda</h3>
+
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div class="font-semibold">Studio:</div>
+                        <div>{{ getBookingData('branch_name', selectedBranch?.name) }}</div>
+
+                        <div class="font-semibold">Paket:</div>
+                        <div>{{ getBookingData('package_name', selectedPackage?.package_name) }}</div>
+
+                        <div class="font-semibold">Jadwal:</div>
+                        <div>{{ formattedDateTime }}</div>
+
+                        <div class="font-semibold">Pelanggan:</div>
+                        <div>{{ getBookingData('customer_name', bookingStore.customerDetails.name) }}</div>
+
+                        <div class="font-semibold">Add-ons:</div>
+                        <div>
+                            <p>Background: {{getBookingData('addons', []).find(a => a.type === 'background')?.value ||
+                                'Tidak ada' }}</p>
+                            <p>Tambahan Orang: {{getBookingData('addons', []).find(a => a.type ===
+                                'additional_people')?.value || 0 }}</p>
                         </div>
                     </div>
-
-                    <!-- Total Keseluruhan -->
-                    <div class="bg-white border-3 border-outline p-4 text-center">
-                        <p class="font-sans text-sm mb-1">Total Pembayaran</p>
-                        <p class="font-display font-bold text-3xl">Rp {{ bookingStore.grandTotal.toLocaleString('id-ID')
-                            }}</p>
-                    </div>
                 </div>
-            </div>
 
-            <!-- Tombol Lanjut ke Pembayaran -->
-            <div class="text-center mt-12">
-                <button @click="proceedToPayment" :disabled="isLoading"
-                    class="bg-primary text-text-default font-bold text-lg py-4 px-16 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-1 active:translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                    {{ isLoading ? 'MEMPROSES...' : 'Lanjut ke Pembayaran' }}
-                </button>
+                <!-- Tombol Aksi (Tidak berubah) -->
+                <div class="pt-4 space-y-3">
+                    <button @click="goToMyBookings"
+                        class="w-full bg-primary text-text-default font-bold text-lg py-3 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-1 active:translate-y-1 transition-all">
+                        Lihat Riwayat Pesanan
+                    </button>
+                </div>
+
             </div>
 
         </main>

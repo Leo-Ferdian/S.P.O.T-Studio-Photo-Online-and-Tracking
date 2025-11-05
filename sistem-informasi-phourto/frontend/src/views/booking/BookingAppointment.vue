@@ -112,12 +112,12 @@ const handleTimeSelect = (time) => {
 
 const goToNextStep = () => {
   if (selectedDate.value && selectedTime.value) {
-    const [hours, minutes] = selectedTime.value.split('.')
+    const [hours, minutes] = selectedTime.value.split(':')
     const finalDateTime = new Date(selectedDate.value)
     finalDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0)
 
     bookingStore.setDateAndTime(finalDateTime)
-    router.push('/booking/confirm')
+    router.push('/booking/Confirmation')
   } else {
     alert('Silakan pilih tanggal dan waktu terlebih dahulu.')
   }

@@ -58,7 +58,7 @@ const routes = [
         props: true,
     },
     {
-        path: '/booking/summary',
+        path: '/booking/Summary',
         name: 'BookingSummary',
         component: () => import('../views/booking/Summary.vue'),
         meta: { requiresAuth: true },
@@ -75,7 +75,7 @@ const routes = [
         meta: { requiresAuth: true },
     },
     {
-        path: '/booking/confirm',
+        path: '/booking/Confirmation',
         name: 'BookingConfirmation',
         component: () => import('../views/booking/Confirmation.vue'),
         meta: { requiresAuth: true },

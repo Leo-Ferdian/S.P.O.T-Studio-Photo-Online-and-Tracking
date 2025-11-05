@@ -63,12 +63,15 @@ class BookingService {
      * @function getAvailableSlots
      * @desc Menghitung dan mengembalikan semua slot waktu yang tersedia
      * @param {string} packageId - UUID Paket
-     * @param {string} dateString - Tanggal (YYYY-MM-DD)
+     * @param {string} startTimeString - Tanggal (YYYY-MM-DD)
      */
-    async getAvailableSlots(packageId, dateString) {
+    async getAvailableSlots(packageId, startTimeString) {
         const client = await db.getClient();
         try {
-            logger.info(`Mengecek ketersediaan untuk packageId: ${packageId} pada tanggal: ${dateString}`);
+            // Ambil HANYA tanggalnya (YYYY-MM-DD) dari string ISO
+            const dateOnlyString = new Date(startTimeString).toISOString().split('T')[0];
+
+            logger.info(`Mengecek ketersediaan untuk packageId: ${packageId} pada tanggal: ${dateOnlyString}`);
 
             // 1. Ambil detail Paket, Ruangan, dan Cabang (Jam Buka)
             //    Kita butuh 'duration_in_minutes' dari paket dan 'open_hours' dari cabang
@@ -108,7 +111,7 @@ class BookingService {
                     AND CAST(start_time AS DATE) = $2
                 );
             `;
-            const conflictsResult = await client.query(conflictsQuery, [room_id, dateString]);
+            const conflictsResult = await client.query(conflictsQuery, [room_id, dateOnlyString]);
             const existingBookings = conflictsResult.rows; // cth: [{ start_time: '...', end_time: '...' }]
 
             // 3. Generate semua slot yang mungkin berdasarkan jam buka
@@ -117,7 +120,7 @@ class BookingService {
             const [openHour, openMin] = openStr.split(':').map(Number);
             const [closeHour, closeMin] = closeStr.split(':').map(Number);
 
-            const targetDate = new Date(dateString); // cth: 2025-11-05T00:00:00
+            const targetDate = new Date(dateOnlyString + 'T00:00:00'); // cth: 2025-11-05T00:00:00
             const openingTime = new Date(targetDate.setHours(openHour, openMin, 0, 0));
             const closingTime = new Date(targetDate.setHours(closeHour, closeMin, 0, 0));
 
