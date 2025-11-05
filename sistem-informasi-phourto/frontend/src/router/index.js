@@ -61,7 +61,7 @@ const routes = [
         path: '/booking/Summary',
         name: 'BookingSummary',
         component: () => import('../views/booking/Summary.vue'),
-        meta: { requiresAuth: true },
+        // meta: { requiresAuth: true },
     },
     {
         path: '/claimphotos',
@@ -96,6 +96,12 @@ const routes = [
         path: '/booking/success',
         name: 'BookingSuccess',
         component: () => import('../views/booking/Success.vue'),
+        meta: { requiresAuth: true },
+    },
+    {
+        path: '/booking/Payment',
+        name: 'Payment',
+        component: () => import('../views/booking/Payment.vue'),
         meta: { requiresAuth: true },
     },
     // --- Grup rute untuk admin ---

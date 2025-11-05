@@ -24,6 +24,7 @@ const showMainHeader = computed(() => {
     'BookingSummary',
     'framecatalog',
     'BookingSuccess',
+    'Payment',
     // Halaman Admin
     'AdminDashboard',
     'AdminBookings',
