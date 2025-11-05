@@ -28,6 +28,7 @@ const handleRegister = async () => {
             email: email.value,
             phone_number: phoneNumber.value, // pastikan sesuai dengan backend
             password: password.value,
+            confirmPassword: confirmPassword.value
         })
     } catch (error) {
         errorMessage.value = error.message || 'Gagal mendaftar. Pastikan email belum terdaftar.'

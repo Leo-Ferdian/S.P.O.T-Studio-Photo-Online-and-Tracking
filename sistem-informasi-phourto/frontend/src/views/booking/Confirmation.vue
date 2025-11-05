@@ -59,7 +59,7 @@ const confirmBooking = async () => {
 
   try {
     await bookingStore.createBooking()
-    router.push('/booking/payment')
+    router.push('/booking/summary')
   } catch (error) {
     console.error('Gagal membuat booking:', error)
     errorMessage.value = error.message || 'Gagal mengkonfirmasi pesanan.'

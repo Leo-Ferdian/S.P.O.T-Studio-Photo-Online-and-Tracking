@@ -50,10 +50,10 @@ const userProfileLink = computed(() => {
                     class="bg-primary text-text-default px-4 py-1 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all duration-100">
                     Claim Photos
                 </router-link>
-                <router-link to="/framecatalog"
+                <!-- <router-link to="/framecatalog"
                     class="bg-primary text-text-default px-4 py-1 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all duration-100">
                     Frame Catalog
-                </router-link>
+                </router-link> -->
             </div>
 
             <!-- Area Auth -->

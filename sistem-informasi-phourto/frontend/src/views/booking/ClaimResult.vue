@@ -4,8 +4,6 @@ import feather from "feather-icons";
 import TitleBadge from "../../components/common/TittleBadge.vue";
 import ActionButton from "../../components/common/ActionButton.vue";
 
-
-
 // Nanti data ini bisa diambil dari API hasil claim
 const claimedPhotos = [
   new URL("@/assets/recap-pose-room1ch2.jpg", import.meta.url).href,
@@ -38,28 +36,21 @@ onMounted(() => {
       <!-- Photo Grid -->
       <section>
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          <div
-            v-for="(photo, index) in claimedPhotos"
-            :key="index"
-            class="border-3 border-outline rounded-lg overflow-hidden hover:opacity-90 transition"
-          >
-            <img
-              :src="photo"
-              alt="Claimed Photo"
-              class="w-full h-[250px] object-cover"
-            />
+          <div v-for="(photo, index) in claimedPhotos" :key="index"
+            class="border-3 border-outline rounded-lg overflow-hidden hover:opacity-90 transition">
+            <img :src="photo" alt="Claimed Photo" class="w-full h-[250px] object-cover" />
           </div>
         </div>
       </section>
 
-              <section class="text-center mt-10 space-y-4">
-            <ActionButton>⬇ DOWNLOAD ALL PHOTOS</ActionButton>
-            <div>
-              <router-link to="/" class="text-accent underline hover:opacity-80">
-                ← Back to Home
-              </router-link>
-            </div>
-          </section>
+      <section class="text-center mt-10 space-y-4">
+        <ActionButton>⬇ DOWNLOAD ALL PHOTOS</ActionButton>
+        <div>
+          <router-link to="/" class="text-accent underline hover:opacity-80">
+            ← Back to Home
+          </router-link>
+        </div>
+      </section>
 
     </main>
   </div>
