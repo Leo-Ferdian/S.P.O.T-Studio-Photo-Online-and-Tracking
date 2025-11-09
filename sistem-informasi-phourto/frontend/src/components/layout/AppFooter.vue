@@ -31,16 +31,16 @@
                 <div>
                     <h4 class="font-bold mb-3 text-base">Our Service</h4>
                     <ul class="space-y-1.5 text-gray-700">
-                        <li><router-link to="/packages/basic" class="hover:text-primary">Basic Plan</router-link></li>
-                        <li><router-link to="/packages/ramean" class="hover:text-primary">Ramean Plan</router-link></li>
-                        <li><router-link to="/services/pasfoto" class="hover:text-primary">Pas Foto</router-link></li>
+                        <li><router-link to="/service/basic-ramean" class="hover:text-primary">Basic Plan</router-link></li>
+                        <li><router-link to="/service/basic-ramean" class="hover:text-primary">Ramean Plan</router-link></li>
+                        <li><router-link to="/service/pas-foto" class="hover:text-primary">Pas Foto</router-link></li>
                     </ul>
                 </div>
                 <div>
                     <h4 class="font-bold mb-3 text-base">Claim Photos</h4>
                     <ul class="space-y-1.5 text-gray-700">
-                        <li><router-link to="/claim" class="hover:text-primary">Download Photos</router-link></li>
-                        <li><router-link to="/print" class="hover:text-primary">Print Photos</router-link></li>
+                        <li><router-link to="/claimphotos" class="hover:text-primary">Download Photos</router-link></li>
+                        <li><router-link to="/claimphotos" class="hover:text-primary">Print Photos</router-link></li>
                     </ul>
                 </div>
             </div>
