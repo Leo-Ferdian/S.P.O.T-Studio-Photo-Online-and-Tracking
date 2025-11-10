@@ -23,10 +23,12 @@ class DashboardService {
 
             // Kueri 2: Hitung total pendapatan dari booking yang sudah dibayar
             const revenueQuery = db.query(
-                `SELECT SUM(amount_paid) AS totalRevenue FROM bookings 
-                WHERE payment_status NOT IN ($1, $2, $3)`,
-                [BOOKING_STATUS.PENDING, BOOKING_STATUS.EXPIRED, BOOKING_STATUS.CANCELLED]
+                `SELECT COALESCE(SUM(amount_paid), 0) AS totalRevenue 
+                FROM bookings 
+                WHERE payment_status IN ($1, $2, $3)`,
+                [BOOKING_STATUS.PAID_DP, BOOKING_STATUS.PAID_FULL, BOOKING_STATUS.COMPLETED]
             );
+
 
             // Kueri 3: Hitung pengguna baru (customer) dalam 30 hari terakhir
             const usersQuery = db.query(

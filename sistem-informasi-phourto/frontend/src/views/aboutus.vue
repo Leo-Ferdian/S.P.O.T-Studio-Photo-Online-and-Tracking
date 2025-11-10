@@ -1,10 +1,10 @@
 <script setup>
-  import { onMounted } from 'vue';
-  import feather from 'feather-icons';
+import { onMounted } from 'vue';
+import feather from 'feather-icons';
 
-  onMounted(() => {
-    feather.replace();
-  });
+onMounted(() => {
+  feather.replace();
+});
 </script>
 
 <template>
@@ -19,7 +19,7 @@
               class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5">
               <i data-feather="arrow-left" class="w-6 h-6"></i>
             </button>
-            <button @click="$router.push('/')"
+            <button @click="$router.push('/Home')"
               class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5">
               <i data-feather="home" class="w-6 h-6"></i>
             </button>
@@ -35,12 +35,10 @@
 
         <div class="space-y-6 md:justify-self-start w-full max-w-md">
           <div class="border-4 border-outline">
-            <img src="@/assets/recap-pose-room1ch1-2.jpg" alt="Recap Pose"
-            class="w-full h-auto object-cover">
+            <img src="@/assets/recap-pose-room1ch1-2.jpg" alt="Recap Pose" class="w-full h-auto object-cover">
           </div>
           <div class="border-4 border-outline">
-            <img src="@/assets/recap-pose-room1ch3-3.jpg" alt="Fisheye Blur"
-              class="w-full h-auto object-cover">
+            <img src="@/assets/recap-pose-room1ch3-3.jpg" alt="Fisheye Blur" class="w-full h-auto object-cover">
           </div>
         </div>
 

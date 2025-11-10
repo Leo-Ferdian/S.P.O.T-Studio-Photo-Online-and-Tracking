@@ -26,6 +26,7 @@ const showMainHeader = computed(() => {
     'BookingSuccess',
     'Payment',
     'ClaimResult',
+    'ResetPassword',
     // Halaman Admin
     'AdminDashboard',
     'AdminBookings',
@@ -45,6 +46,7 @@ const showMainFooter = computed(() => {
     'BookingSuccess',
     'ClaimPhotos',
     'ClaimResult',
+    'ResetPassword',
     // Halaman Admin
     'AdminDashboard',
     'AdminBookings',

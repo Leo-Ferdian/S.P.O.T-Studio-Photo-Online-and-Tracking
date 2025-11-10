@@ -1,6 +1,6 @@
 <script setup>
-    import Sidebar from '../admin/Sidebar.vue';
-    import Topbar from '../admin/Topbar.vue';
+import Sidebar from '../admin/Sidebar.vue';
+// import Topbar from '../admin/Topbar.vue';
 </script>
 
 <template>

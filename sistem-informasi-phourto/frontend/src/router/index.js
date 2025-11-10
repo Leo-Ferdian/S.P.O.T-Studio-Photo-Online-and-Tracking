@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Home from '../views/home.vue'
+import Home from '../views/Home.vue'
 import Login from '../views/auth/login.vue'
 import Register from '../views/auth/register.vue'
 import AdminLayout from '../components/layout/AdminLayout.vue'
@@ -8,17 +8,21 @@ import { useAuthStore } from '../stores/auth.stores' // gunakan alias '@' jika s
 const routes = [
     {
         path: '/',
+        redirect: '/Home'
+    },
+    {
+        path: '/Home',
         name: 'Home',
         component: Home,
     },
     {
-        path: '/login',
+        path: '/Login',
         name: 'Login',
         component: Login,
         meta: { requiresGuest: true },
     },
     {
-        path: '/register',
+        path: '/Register',
         name: 'Register',
         component: Register,
         meta: { requiresGuest: true },
@@ -36,14 +40,20 @@ const routes = [
         meta: { requiresGuest: true },
     },
     {
-        path: '/about',
-        name: 'AboutUs',
-        component: () => import('../views/aboutus.vue'),
+        path: '/reset-password', // Path dari link email
+        name: 'ResetPassword',
+        component: () => import('../views/auth/ResetPassword.vue'),
+        meta: { requiresGuest: true },
     },
     {
-        path: '/location',
+        path: '/about',
+        name: 'AboutUs',
+        component: () => import('../views/AboutUs.vue'),
+    },
+    {
+        path: '/Location',
         name: 'Location',
-        component: () => import('../views/location.vue'),
+        component: () => import('../views/Location.vue'),
     },
     {
         path: '/service/:planName',
@@ -61,12 +71,12 @@ const routes = [
         path: '/booking/Summary',
         name: 'BookingSummary',
         component: () => import('../views/booking/Summary.vue'),
-        // meta: { requiresAuth: true },
+        meta: { requiresAuth: true },
     },
     {
         path: '/claimphotos',
         name: 'ClaimPhotos',
-        component: () => import('../views/claimphotos.vue'),
+        component: () => import('../views/ClaimPhotos.vue'),
     },
     {
         path: '/booking/ClaimResult',
@@ -80,11 +90,11 @@ const routes = [
         component: () => import('../views/booking/Confirmation.vue'),
         meta: { requiresAuth: true },
     },
-    {
-        path: '/framecatalog',
-        name: 'FrameCatalog',
-        component: () => import('../views/framecatalog.vue'),
-    },
+    // {
+    //     path: '/framecatalog',
+    //     name: 'FrameCatalog',
+    //     component: () => import('../views/framecatalog.vue'),
+    // },
     {
         path: '/booking/:branchId/:packageId', // Ganti ':branchSlug' menjadi ':branchId'
         name: 'BookingAppointment',
@@ -147,7 +157,7 @@ const router = createRouter({
 // --- NAVIGATION GUARD ---
 router.beforeEach((to, from, next) => {
     // Pastikan auth store diambil setiap kali navigasi
-    const authStore = useAuthStore()
+    const authStore = useAuthStore();
 
     const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
     const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin)
@@ -164,11 +174,11 @@ router.beforeEach((to, from, next) => {
     }
     // Butuh admin tapi user bukan admin
     else if (requiresAdmin && !authStore.isAdmin) {
-        next('/')
+        next('/Home')
     }
     // Sudah login tapi masuk halaman tamu (login/register)
     else if (authStore.isLoggedIn && requiresGuest) {
-        next(authStore.isAdmin ? '/admin/dashboard' : '/')
+        next(authStore.isAdmin ? '/admin/dashboard' : '/Home')
     }
     // Aman
     else {

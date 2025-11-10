@@ -1,84 +1,84 @@
 <script setup>
-    import { ref, onMounted, computed } from 'vue';
-    import feather from 'feather-icons';
+import { ref, onMounted, computed } from 'vue';
+import feather from 'feather-icons';
 
-    // ============================================================
-    import bgungu from '../assets/bgungu.jpg';
-    import bglightgrey from '../assets/bglightgrey.jpg';
-    import bgcreamm from '../assets/bgcreamm.jpg';
-    import bgmintgreen from '../assets/bgmintgreen.jpg';
-    import bgbluenavy from '../assets/bgbluenavy.jpg';
-    import bgmaroon from '../assets/bgmaroon.jpg';
-    import bgwhite from '../assets/bgwhite.jpg';
-    import bgorange from '../assets/bgorange.jpg';
+// ============================================================
+import bgungu from '../assets/bgungu.jpg';
+import bglightgrey from '../assets/bglightgrey.jpg';
+import bgcreamm from '../assets/bgcreamm.jpg';
+import bgmintgreen from '../assets/bgmintgreen.jpg';
+import bgbluenavy from '../assets/bgbluenavy.jpg';
+import bgmaroon from '../assets/bgmaroon.jpg';
+import bgwhite from '../assets/bgwhite.jpg';
+import bgorange from '../assets/bgorange.jpg';
 
-    // Menerima `planName` dari URL sebagai prop
-    const props = defineProps({
+// Menerima `planName` dari URL sebagai prop
+const props = defineProps({
     planName: String
-    });
+});
 
-    const isLoading = ref(true);
+const isLoading = ref(true);
 
-    // ============================================================
-    //  Data galeri statis
-    // ============================================================
-        const galleryData = {
-        'basic-ramean': {
+// ============================================================
+//  Data galeri statis
+// ============================================================
+const galleryData = {
+    'basic-ramean': {
         title: 'BASIC PLAN & RAMEAN PLAN',
         images: [
-        { url: bgungu, label: 'PURPLE' },
-        { url: bglightgrey, label: 'LIGHT GREY' },
-        { url: bgcreamm, label: 'LIGHT CREAM' },
-        { url: bgmintgreen, label: 'MINT GREEN' },
-        { url: bgbluenavy, label: 'BLUE NAVY' },
-        { url: bgmaroon, label: 'MAROON' },
-        { url: bgwhite, label: 'WHITE' },
-        { url: bgorange, label: 'ORANGE' },
+            { url: bgungu, label: 'PURPLE' },
+            { url: bglightgrey, label: 'LIGHT GREY' },
+            { url: bgcreamm, label: 'LIGHT CREAM' },
+            { url: bgmintgreen, label: 'MINT GREEN' },
+            { url: bgbluenavy, label: 'BLUE NAVY' },
+            { url: bgmaroon, label: 'MAROON' },
+            { url: bgwhite, label: 'WHITE' },
+            { url: bgorange, label: 'ORANGE' },
         ]
     },
 
-        
-        // =============================================
-        //  MODIFIKASI DI SINI: Data 'pas-foto' dilengkapi
-        // =============================================
-        'pas-foto': {
-            title: 'PAS FOTO MENU', 
-            
-            images: [ 
-                { url: 'https://placehold.co/300x400/D32F2F/white?text=Pas+Foto+1', label: 'PAS FOTO MERAH' },
-                // ...
-            ],
-            
-            // DATA BARU: Ini data untuk kartu detail dari gambar
-            details: {
-              duration: 30,
-              price: 125000,
-              capacity: '1-2 Person',
-              capacityPrice: 'Rp 125.000 /Person',
-              backgrounds: [
+
+    // =============================================
+    //  MODIFIKASI DI SINI: Data 'pas-foto' dilengkapi
+    // =============================================
+    'pas-foto': {
+        title: 'PAS FOTO MENU',
+
+        images: [
+            { url: 'https://placehold.co/300x400/D32F2F/white?text=Pas+Foto+1', label: 'PAS FOTO MERAH' },
+            // ...
+        ],
+
+        // DATA BARU: Ini data untuk kartu detail dari gambar
+        details: {
+            duration: 30,
+            price: 125000,
+            capacity: '1-2 Person',
+            capacityPrice: 'Rp 125.000 /Person',
+            backgrounds: [
                 'Pas Foto: Merah dan Biru',
                 'Bebas: Pink dan Abu'
-              ],
-              addOn: {
+            ],
+            addOn: {
                 title: 'Add On Pas Foto:',
                 price: 'Rp 25.000,00'
-              },
-              whatYouGet: [
+            },
+            whatYouGet: [
                 '1 Photo with Printed A4 Size',
                 'Photo 2x3 (8 pcs)',
                 'Photo 3x4 (2 pcs)',
                 'Photo 4x6 (2 pcs)'
-              ]
-            }
+            ]
         }
-    };
+    }
+};
 
-    const currentGallery = computed(() => galleryData[props.planName]);
+const currentGallery = computed(() => galleryData[props.planName]);
 
-    onMounted(() => {
-        isLoading.value = false;
-        setTimeout(() => feather.replace(), 0);
-    });
+onMounted(() => {
+    isLoading.value = false;
+    setTimeout(() => feather.replace(), 0);
+});
 </script>
 
 <template>
@@ -91,7 +91,7 @@
                             class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5">
                             <i data-feather="arrow-left" class="w-6 h-6"></i>
                         </button>
-                        <button @click="$router.push('/')"
+                        <button @click="$router.push('/Home')"
                             class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5">
                             <i data-feather="home" class="w-6 h-6"></i>
                         </button>
@@ -111,7 +111,7 @@
             </div>
 
             <div v-else-if="currentGallery && props.planName === 'pas-foto'" class="space-y-8">
-                
+
                 <div class="grid grid-cols-2  gap-6">
                     <div class="bg-primary text-white">
                         <div class="grid grid-cols-2">
@@ -137,10 +137,12 @@
                     <h2 class="font-bold text-2xl text-center mb-4 uppercase">Pas Foto Menu</h2>
                     <div class="flex justify-between items-center border-2 border-black/50 px-4 py-3 mb-6">
                         <span class="flex items-center text-lg">
-                            <i data-feather="clock" class="w-5 h-5 mr-2"></i> {{ currentGallery.details.duration }} Minutes
+                            <i data-feather="clock" class="w-5 h-5 mr-2"></i> {{ currentGallery.details.duration }}
+                            Minutes
                         </span>
                         <span class="flex items-center text-lg font-bold">
-                            <i data-feather="tag" class="w-5 h-5 mr-2"></i> Rp. {{ currentGallery.details.price.toLocaleString('id-ID') }},00
+                            <i data-feather="tag" class="w-5 h-5 mr-2"></i> Rp. {{
+                                currentGallery.details.price.toLocaleString('id-ID') }},00
                         </span>
                     </div>
                     <div class="grid md:grid-cols-2 gap-6 font-sans text-sm md:text-base">
@@ -152,7 +154,8 @@
                             <div>
                                 <p class="font-bold">Pilihan Background:</p>
                                 <ul class="list-disc list-inside">
-                                    <li v-for="(bg, index) in currentGallery.details.backgrounds" :key="index">{{ bg }}</li>
+                                    <li v-for="(bg, index) in currentGallery.details.backgrounds" :key="index">{{ bg }}
+                                    </li>
                                 </ul>
                             </div>
                         </div>
@@ -164,7 +167,8 @@
                             <div>
                                 <p class="font-bold">What Do You Get:</p>
                                 <ul class="list-disc list-inside">
-                                    <li v-for="(item, index) in currentGallery.details.whatYouGet" :key="index">{{ item }}</li>
+                                    <li v-for="(item, index) in currentGallery.details.whatYouGet" :key="index">{{ item
+                                        }}</li>
                                 </ul>
                             </div>
                         </div>

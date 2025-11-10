@@ -1,8 +1,9 @@
 const { validationResult } = require('express-validator');
 const AuthService = require('../services/auth.service');
-const ApiError = require('../../utils/apiError'); // Pastikan 'A' besar jika nama kelasnya ApiError
-const ApiResponse = require('../../utils/apiResponse'); // Pastikan 'A' besar
+const ApiError = require('../../utils/apiError');
+const ApiResponse = require('../../utils/apiResponse');
 const asyncHandler = require('../../utils/asyncHandler');
+const { logger } = require('../../utils/logger');
 
 class AuthController {
 
@@ -11,7 +12,7 @@ class AuthController {
         const { username, email } = req.query;
         if (!username && !email) {
             // Urutan benar: statusCode, message
-            throw new ApiError(400, 'username atau email adalah parameter yang wajib.'); 
+            throw new ApiError(400, 'username atau email adalah parameter yang wajib.');
         }
         const isAvailable = await AuthService.checkAvailability(username, email);
         new ApiResponse(res, 200, { isAvailable }, 'Pemeriksaan ketersediaan berhasil.');
@@ -33,7 +34,7 @@ class AuthController {
 
         // Hapus detail sensitif sebelum respons
         delete newUser.role;
-        
+
         new ApiResponse(res, 201, newUser, 'Registrasi berhasil.');
     });
 
@@ -41,7 +42,7 @@ class AuthController {
         // 1. Tangani error validasi (untuk email/password kosong)
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-             // FIX: Mengembalikan respons error secara langsung (Status 400).
+            // FIX: Mengembalikan respons error secara langsung (Status 400).
             return res.status(400).json({
                 success: false,
                 message: 'Validasi gagal.',
@@ -50,13 +51,60 @@ class AuthController {
         }
 
         const { email, password } = req.body;
-        
+
         const { token, user } = await AuthService.loginUser(email, password);
 
         // Pasang token di header dan kirim respons
         res.setHeader('Authorization', `Bearer ${token}`);
-        
+
         new ApiResponse(res, 200, { token, user }, 'Login berhasil.');
+    });
+
+    /**
+     * @route POST /api/auth/forgot-password
+     * @desc Memulai alur lupa password.
+     * @access Publik
+     */
+    forgotPassword = asyncHandler(async (req, res) => {
+        // 1. Validasi
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            throw new ApiError(400, 'Validasi gagal.', errors.array());
+        }
+
+        // --- PERBAIKAN LOGIKA DI SINI ---
+        // Kita tidak perlu lagi 'if (req.userFound)'
+        // Jika kode sampai di sini, validator PASTI menemukan email.
+        const { email } = req.body;
+
+        logger.info(`Memulai reset password untuk ${email} (User ID: ${req.foundUserId})`);
+        await AuthService.handleForgotPasswordRequest(req.foundUserId, email);
+
+        // Kirim respons sukses
+        new ApiResponse(res, 200, null, 'Tautan reset password telah dikirim ke email Anda.');
+    });
+
+    /**
+    * @route POST /api/auth/reset-password
+    * @desc Menyelesaikan alur lupa password.
+    * @access Publik
+    */
+    resetPassword = asyncHandler(async (req, res) => {
+        // 1. Validasi
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            throw new ApiError(400, 'Validasi gagal.', errors.array());
+        }
+
+        // 2. Ambil data dari body
+        const { token, newPassword } = req.body;
+
+        // 3. Panggil service (yang akan kita buat di langkah terakhir)
+        // Service ini akan memvalidasi token, mencari user, dan mengganti hash password
+        await AuthService.resetPassword(token, newPassword);
+
+        // 4. Kirim respons sukses
+        new ApiResponse(res, 200, null, 'Password Anda telah berhasil direset.');
     });
 
     getProfile = asyncHandler(async (req, res) => {

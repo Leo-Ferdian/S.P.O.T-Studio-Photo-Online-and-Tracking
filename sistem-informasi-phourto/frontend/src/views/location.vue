@@ -144,7 +144,7 @@ onMounted(async () => {
               class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5">
               <i data-feather="arrow-left" class="w-6 h-6"></i>
             </button>
-            <button @click="$router.push('/')"
+            <button @click="$router.push('/Home')"
               class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5">
               <i data-feather="home" class="w-6 h-6"></i>
             </button>

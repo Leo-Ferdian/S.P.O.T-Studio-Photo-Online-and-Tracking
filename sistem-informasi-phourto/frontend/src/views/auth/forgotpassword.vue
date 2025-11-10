@@ -1,40 +1,40 @@
 <script setup>
-  import { ref, onMounted } from 'vue';
-  import { useAuthStore } from '../../stores/auth.stores';
-  import feather from 'feather-icons';
+import { ref, onMounted } from 'vue';
+import { useAuthStore } from '../../stores/auth.stores';
+import feather from 'feather-icons';
 
-  const authStore = useAuthStore();
-  const email = ref('');
-  const isLoading = ref(false);
-  const errorMessage = ref(null);
+const authStore = useAuthStore();
+const email = ref('');
+const isLoading = ref(false);
+const errorMessage = ref(null);
 
-  // Mengontrol tampilan mana yang aktif: 'input', 'check_email', 'success', 'fail'
-  const currentStep = ref('input');
+// Mengontrol tampilan mana yang aktif: 'input', 'check_email', 'success', 'fail'
+const currentStep = ref('input');
 
-  const handleRequestReset = async () => {
-    errorMessage.value = null;
-    isLoading.value = true;
-    try {
-      await authStore.requestPasswordReset(email.value);
-      // Jika berhasil, pindah ke tahap "Check Your Email"
-      currentStep.value = 'check_email';
-    } catch (error) {
-      errorMessage.value = 'Email tidak ditemukan atau terjadi kesalahan.';
-    } finally {
-      isLoading.value = false;
-    }
-  };
+const handleRequestReset = async () => {
+  errorMessage.value = null;
+  isLoading.value = true;
+  try {
+    await authStore.requestPasswordReset(email.value);
+    // Jika berhasil, pindah ke tahap "Check Your Email"
+    currentStep.value = 'check_email';
+  } catch (error) {
+    errorMessage.value = 'Email tidak ditemukan atau terjadi kesalahan.';
+  } finally {
+    isLoading.value = false;
+  }
+};
 
-  onMounted(() => {
-    feather.replace();
-  });
+onMounted(() => {
+  feather.replace();
+});
 </script>
 
 <template>
   <div class="bg-background min-h-screen flex items-center justify-center font-display text-text-default">
     <div class="max-w-lg w-full p-8 space-y-6">
       <!-- Logo -->
-      <router-link to="/" class="font-display text-5xl font-bold relative inline-block mx-auto mb-8">
+      <router-link to="/Home" class="font-display text-5xl font-bold relative inline-block mx-auto mb-8">
         Phour<span class="text-primary text-6xl absolute -bottom-2 -right-8 transform -rotate-12">to</span>
         <span class="absolute top-0 right-0 text-[10px] leading-none font-sans font-bold w-20 text-right">we'll
           partner<br>with our<br>best</span>
@@ -80,7 +80,7 @@
         <p class="font-sans text-sm">
           Kamu telah berhasil masuk menggunakan akun Google kamu.
         </p>
-        <router-link to="/"
+        <router-link to="/Home"
           class="inline-block bg-primary text-text-default font-bold mt-4 py-3 px-6 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-1 active:translate-y-1">
           BACK TO HOME PAGE
         </router-link>

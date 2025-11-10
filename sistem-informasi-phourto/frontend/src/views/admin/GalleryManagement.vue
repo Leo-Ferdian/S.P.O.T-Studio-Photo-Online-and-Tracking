@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue';
-import apiClient from '@/api/api';
+import apiClient from '../../api/api';
 import feather from 'feather-icons';
 
 // --- State ---
