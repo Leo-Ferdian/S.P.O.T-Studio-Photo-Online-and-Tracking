@@ -91,7 +91,32 @@ class AdminBookingController {
 
         new apiResponse(res, 200, rescheduledBooking, 'Booking berhasil dijadwalkan ulang.');
     });
-    // --- FUNGSI BARU DITAMBAHKAN DI SINI ---
+
+    /**
+     * @route DELETE /api/admin/bookings/:bookingId
+     * @desc Menghapus booking (oleh Admin)
+     */
+    deleteBooking = asyncHandler(async (req, res) => {
+        // 1. Validasi (dari bookingIdValidationRules)
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            throw new apiError(400, 'Validasi ID booking gagal.', errors.array());
+        }
+
+        // 2. Ambil data
+        const { bookingId } = req.params;
+        const adminUserId = req.user.user_id; // Untuk logging
+
+        logger.info(`Admin (${adminUserId}) menghapus booking: ${bookingId}`);
+
+        // 3. Panggil service (yang akan kita buat di langkah berikutnya)
+        // Service ini akan berisi logika SQL DELETE
+        await BookingService.deleteBooking(bookingId, adminUserId);
+
+        // 4. Kirim respons sukses
+        new apiResponse(res, 200, null, 'Booking berhasil dihapus.');
+    });
+
     /**
      * @route GET /api/admin/bookings/recent
      * @desc Mengambil booking terbaru untuk dashboard

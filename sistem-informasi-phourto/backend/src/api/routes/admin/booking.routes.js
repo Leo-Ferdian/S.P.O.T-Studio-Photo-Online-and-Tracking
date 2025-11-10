@@ -51,4 +51,12 @@ router.put(
     AdminBookingController.rescheduleBooking
 );
 
+// DELETE /api/admin/bookings/:id
+router.delete(
+    '/:bookingId',
+    bookingIdValidationRules(), // Kita gunakan validator yang sama untuk memastikan ID valid
+    AdminBookingController.deleteBooking // Panggil fungsi controller baru
+);
+// ----------------------------------------------------
+
 module.exports = router;

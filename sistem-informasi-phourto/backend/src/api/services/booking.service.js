@@ -531,73 +531,116 @@ class BookingService {
     }
 
     /**
- * @function updateBookingStatusByAdmin
- * @description [PERBAIKAN V1.9.9] Memperbarui status sebuah booking. Mengelola akuisisi/pelepasan client untuk transaksi.
- */
+     * @function updateBookingStatusByAdmin
+     * @desc (DIPERBARUI) Memperbarui status DAN amount_paid jika lunas.
+     */
     async updateBookingStatusByAdmin(bookingId, status, adminUserId, externalClient = null) {
-
-        // 1. Tentukan apakah klien disediakan dari luar (e.g., dari PhotoService)
-        const isExternalTransaction = (externalClient !== null);
-
-        // 2. Akuisisi klien: Gunakan klien eksternal atau ambil klien baru dari pool.
-        // PERBAIKAN KRITIS V1.9.9: Klien harus diakuisisi jika ini adalah transaksi mandiri.
+        const isExternalTransaction = externalClient !== null;
         const dbClient = isExternalTransaction ? externalClient : await db.getClient();
 
         try {
-            // 3. Mulai transaksi hanya jika klien diakuisisi di fungsi ini
+            // Mulai transaksi jika bukan external
             if (!isExternalTransaction) {
                 await dbClient.query('BEGIN');
             }
 
-            // 1. Ambil data lama untuk history (Lock row)
-            const oldDataResult = await dbClient.query('SELECT payment_status FROM bookings WHERE booking_id = $1 FOR UPDATE', [bookingId]);
+            // 1. Ambil data lama (total_price dan dp_amount)
+            const oldDataResult = await dbClient.query(
+                `SELECT payment_status, total_price, dp_amount 
+                FROM bookings 
+                WHERE booking_id = $1 
+                FOR UPDATE`,
+                [bookingId]
+            );
+
             if (oldDataResult.rows.length === 0) {
                 throw new ApiError(404, `Booking dengan ID ${bookingId} tidak ditemukan.`);
             }
-            const oldStatus = oldDataResult.rows[0].payment_status;
 
-            // 2. Update status
+            const { payment_status: oldStatus, total_price, dp_amount } = oldDataResult.rows[0];
+
+            // 2. Siapkan kueri SQL dinamis
+            const setClauses = [
+                'payment_status = $1',
+                'updated_at = CURRENT_TIMESTAMP'
+            ];
+            const queryParams = [status];
+
+            // Kondisi untuk update amount_paid
+            const paidFullStatuses = [
+                BOOKING_STATUS.PAID_FULL,
+                BOOKING_STATUS.COMPLETED,
+                // BOOKING_STATUS.DELIVERED
+            ];
+
+            if (paidFullStatuses.includes(status)) {
+                setClauses.push(`amount_paid = $${queryParams.length + 1}`);
+                queryParams.push(total_price);
+
+            } else if (status === BOOKING_STATUS.PAID_DP) {
+                setClauses.push(`amount_paid = $${queryParams.length + 1}`);
+                queryParams.push(dp_amount);
+
+            } else if (
+                status === BOOKING_STATUS.PENDING ||
+                status === BOOKING_STATUS.EXPIRED ||
+                status === BOOKING_STATUS.CANCELLED
+            ) {
+                setClauses.push(`amount_paid = $${queryParams.length + 1}`);
+                queryParams.push(0);
+            }
+
+            // 3. Susun query final
+            const bookingIdParamIndex = queryParams.length + 1;
+
             const query = `
-                UPDATE bookings 
-                SET payment_status = $1, updated_at = CURRENT_TIMESTAMP 
-                WHERE booking_id = $2 
-                RETURNING *
+            UPDATE bookings
+            SET ${setClauses.join(', ')}
+            WHERE booking_id = $${bookingIdParamIndex}
+            RETURNING *
             `;
-            const result = await dbClient.query(query, [status, bookingId]);
 
-            // 3. Catat ke history (Jejak Audit V1.8)
+            queryParams.push(bookingId);
+
+            const result = await dbClient.query(query, queryParams);
+
+            // 4. Catat log ke booking_history
             await dbClient.query(
-                `INSERT INTO booking_history (booking_id, user_id_actor, action_type, details_before, details_after)
+                `INSERT INTO booking_history 
+                (booking_id, user_id_actor, action_type, details_before, details_after)
                 VALUES ($1, $2, $3, $4, $5)`,
-                [bookingId, adminUserId,
+                [
+                    bookingId,
+                    adminUserId,
                     BOOKING_ACTIONS.STATUS_CHANGED,
                     JSON.stringify({ status: oldStatus }),
-                    JSON.stringify({ status: status })]
+                    JSON.stringify({ status: status })
+                ]
             );
 
-            // 4. Selesaikan transaksi jika mandiri
+            // 5. Commit jika bukan external transaction
             if (!isExternalTransaction) {
                 await dbClient.query('COMMIT');
             }
+
             return result.rows[0];
 
         } catch (err) {
-            // 5. Batalkan transaksi jika mandiri dan terjadi error
             if (!isExternalTransaction) {
                 await dbClient.query('ROLLBACK');
             }
+
             logger.error('Error in updateBookingStatusByAdmin transaction:', err);
-            if (err instanceof ApiError) throw err;
-            throw new ApiError('Gagal memperbarui status booking.', 500);
+            if (err instanceof ApiError) {
+                throw err;
+            }
+            throw new ApiError(500, 'Gagal memperbarui status booking.');
         } finally {
-            // 6. WAJIB: Rilis klien HANYA jika diakuisisi di fungsi ini
             if (!isExternalTransaction) {
                 dbClient.release();
             }
         }
     }
-
-    // ... (Fungsi 'rescheduleBooking' tidak berubah) ...
 
     /**
      * (FUNGSI BARU V1.8 - Untuk Fitur Reschedule)
@@ -657,6 +700,57 @@ class BookingService {
             logger.error('Error in rescheduleBooking transaction:', err);
             if (err instanceof ApiError) throw err;
             throw new ApiError('Gagal melakukan reschedule.', 500);
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * @function deleteBooking
+     * @desc Menghapus booking (oleh Admin) menggunakan transaksi.
+     * @param {string} bookingId - UUID booking yang akan dihapus
+     * @param {string} adminUserId - UUID admin (untuk logging)
+     */
+    async deleteBooking(bookingId, adminUserId) {
+        const client = await db.getClient();
+        try {
+            await client.query('BEGIN');
+
+            // 1. Hapus dari tabel 'booking_addons' (tabel anak)
+            await client.query('DELETE FROM booking_addons WHERE booking_id = $1', [bookingId]);
+
+            // 2. Hapus dari tabel 'booking_history' (tabel anak)
+            await client.query('DELETE FROM booking_history WHERE booking_id = $1', [bookingId]);
+
+            // 3. Hapus dari tabel 'photos' (tabel anak)
+            // TODO: Ini juga harus memicu penghapusan file dari S3, 
+            // tapi saat ini kita hanya fokus pada database.
+            await client.query('DELETE FROM photos WHERE booking_id = $1', [bookingId]);
+
+            // 4. Hapus dari tabel 'payments' (jika ada relasi)
+            // await client.query('DELETE FROM payments WHERE booking_id = $1', [bookingId]);
+
+            // 5. Akhirnya, hapus dari tabel induk 'bookings'
+            const result = await client.query('DELETE FROM bookings WHERE booking_id = $1', [bookingId]);
+
+            if (result.rowCount === 0) {
+                // Ini berarti bookingId tidak ada
+                throw new ApiError(404, 'Gagal menghapus. Booking tidak ditemukan.');
+            }
+
+            // 6. Jika semua berhasil, commit transaksi
+            await client.query('COMMIT');
+
+            logger.warn(`Admin (${adminUserId}) berhasil menghapus booking: ${bookingId} dan data terkaitnya.`);
+            return { message: 'Booking dan semua data terkait berhasil dihapus.' };
+
+        } catch (error) {
+            // 7. Jika terjadi error, rollback semua perubahan
+            await client.query('ROLLBACK');
+
+            logger.error(`Error in deleteBooking transaction:`, error);
+            if (error instanceof ApiError) throw error;
+            throw new ApiError('Gagal menghapus booking dari database.', 500);
         } finally {
             client.release();
         }
