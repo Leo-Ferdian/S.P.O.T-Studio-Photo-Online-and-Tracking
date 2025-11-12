@@ -5,32 +5,39 @@ const authMiddleware = require('../../middlewares/auth.middleware');
 const isAdmin = require('../../middlewares/admin.middleware');
 const S3Service = require('../../services/s3.service');
 
-// 2. Impor Validator V1.10 (dari file di Canvas Anda, diperbaiki)
+// 2. Impor Validator V1.10
 const {
     uploadPhotoValidationRules,
-    bookingIdParamValidationRules // 1. KITA ASUMSIKAN KITA AKAN BUAT INI
+    bookingIdParamValidationRules
 } = require('../../validator/admin/photo.validator');
 
 // 3. Terapkan middleware keamanan untuk semua rute
 router.use(authMiddleware, isAdmin);
 
-// 4. Definisikan Rute Upload Foto
-// Rute ini sekarang memiliki rantai 4-langkah:
+// --- RUTE BARU DITAMBAHKAN DI SINI ---
+/**
+ * @route   GET /api/admin/photos/:bookingId
+ * @desc    Mengambil galeri untuk satu booking (Admin)
+ */
+router.get(
+    '/:bookingId',
+    bookingIdParamValidationRules(), // Gunakan validator
+    AdminPhotoController.getBookingGallery // Panggil controller baru
+);
+// ------------------------------------
+
+// 4. Definisikan Rute Upload Foto (Kode Anda yang sudah ada)
 // POST /api/admin/photos/upload/:bookingId
 router.post(
     '/upload/:bookingId',
 
-    // Langkah 1: VALIDASI DULU (V1.10)
-    // Cek UUID, cek status pesanan (PAID-DP/PAID-FULL)
-    // (Fungsi 'uploadPhotoValidationRules' diekspor dari file Canvas)
+    // Langkah 1: VALIDASI
     uploadPhotoValidationRules(),
 
-    // Langkah 2: JIKA VALID, UPLOAD KE S3
-    // (Middleware 'upload' dari s3.service.js V1.10 di Canvas)
-    S3Service.upload.array('photos', 100), // Batas 100 file
+    // Langkah 2: UPLOAD KE S3
+    S3Service.upload.array('photos', 100),
 
-    // Langkah 3: JIKA S3 BERHASIL, SIMPAN KE DB
-    // (Memanggil fungsi 'uploadPhotos' dari controller V1.10)
+    // Langkah 3: SIMPAN KE DB
     AdminPhotoController.uploadBookingPhotos
 );
 

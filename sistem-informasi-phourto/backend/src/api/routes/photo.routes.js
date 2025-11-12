@@ -6,21 +6,21 @@ const {
     claimPhotoValidationRules // <-- 2. IMPOR VALIDATOR BARU
 } = require('../validator/photo.validator');
 
-// 3. Hapus Middleware Keamanan Global
-// router.use(authMiddleware); // <-- HAPUS INI
+// 3. HAPUS Middleware Keamanan Global
+// router.use(authMiddleware); 
 
 /**
- * @route GET /api/photos/gallery
- * @desc Mendapatkan URL Pre-signed (Publik, divalidasi oleh 'code' & 'email')
+ * @route GET /api/photos/gallery?code=...&email=...
+ * @desc Mendapatkan URL Pre-signed (Publik, divalidasi)
  */
 router.get(
-    '/gallery', // 4. Ubah path (tidak lagi memerlukan :bookingId)
+    '/gallery', // 4. Ubah path
     claimPhotoValidationRules(), // 5. Gunakan validator baru
     PhotoController.getBookingGallery
 );
 
 /**
- * @route POST /api/photos/download
+ * @route POST /api/photos/download?code=...&email=...
  * @desc Memicu proses ZIP (Publik, divalidasi)
  */
 router.post(
@@ -30,7 +30,7 @@ router.post(
 );
 
 /**
- * @route GET /api/photos/download-status
+ * @route GET /api/photos/download-status?code=...&email=...
  * @desc Polling status ZIP (Publik, divalidasi)
  */
 router.get(

@@ -185,7 +185,7 @@ const showEditForm = async (pkg) => {
             description: data.description || '',
             duration: data.duration,
             duration_in_minutes: data.duration_in_minutes,
-            capacity: data.capacity,
+            capacity: parseInt(data.capacity) || 1,
             inclusions: data.inclusions,
             price_type: data.price_type
         };
@@ -208,6 +208,25 @@ const handleDelete = async (pkg) => {
     }
 };
 
+// Format Mata Uang (Rp)
+const formatCurrency = (value) => {
+    // 1. Ubah string "125000.00" menjadi angka
+    const numberValue = parseFloat(value);
+
+    // 2. Jika gagal (null atau data buruk), kembalikan default
+    if (isNaN(numberValue)) {
+        return 'Rp 0,00';
+    }
+
+    // 3. Format sebagai mata uang Rupiah (IDR)
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 2, // Memastikan ",00"
+        maximumFractionDigits: 2
+    }).format(numberValue);
+};
+
 // Initial fetch
 onMounted(() => {
     fetchBranches();
@@ -218,6 +237,7 @@ onMounted(() => {
 
 <template>
     <div>
+
         <!-- Form Add / Edit -->
         <div v-if="currentView === 'add' || currentView === 'edit'">
             <button @click="backToList"
@@ -232,75 +252,91 @@ onMounted(() => {
                 </h2>
 
                 <form @submit.prevent="handleSubmit" class="space-y-4">
+
+                    <!-- Messages -->
                     <div v-if="successMessage"
                         class="bg-green-500/20 text-green-300 text-sm p-3 border-2 border-green-500">
                         {{ successMessage }}
                     </div>
+
                     <div v-if="errorMessage" class="bg-red-800/50 text-white text-sm p-3 border-2 border-primary">
                         {{ errorMessage }}
                     </div>
 
+                    <!-- Form Fields -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
                         <div>
-                            <label for="package-name" class="text-sm font-bold block mb-1">Package Name</label>
-                            <input v-model="form.name" type="text" id="package-name" required class="form-input">
+                            <label class="text-sm font-bold block mb-1">Package Name</label>
+                            <input v-model="form.name" type="text" required class="form-input">
                         </div>
+
                         <div>
-                            <label for="price" class="text-sm font-bold block mb-1">Price (Rp)</label>
-                            <input v-model="form.price" type="number" id="price" required min="0" step="1000"
-                                class="form-input">
+                            <label class="text-sm font-bold block mb-1">Price (Rp)</label>
+                            <input v-model="form.price" type="number" required min="0" step="1000" class="form-input">
                         </div>
+
                         <div>
-                            <label for="branch" class="text-sm font-bold block mb-1">Branch (Location)</label>
-                            <select v-model="form.branch_id" id="branch" required class="form-input">
+                            <label class="text-sm font-bold block mb-1">Branch (Location)</label>
+                            <select v-model="form.branch_id" required class="form-input">
                                 <option disabled value="">Select Branch</option>
-                                <option v-for="loc in branches" :key="loc.id" :value="loc.id">{{ loc.name }}</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="room" class="text-sm font-bold block mb-1">Room</label>
-                            <select v-model="form.room_id" id="room" required :disabled="!form.branch_id"
-                                class="form-input disabled:opacity-50">
-                                <option disabled value="">{{ form.branch_id ? 'Select Room' : 'Select Branch First' }}
+                                <option v-for="loc in branches" :key="loc.id" :value="loc.id">
+                                    {{ loc.name }}
                                 </option>
-                                <option v-for="room in availableRooms" :key="room.room_id" :value="room.room_id">{{
-                                    room.room_name_display }}</option>
                             </select>
                         </div>
+
                         <div>
-                            <label for="duration_in_minutes" class="text-sm font-bold block mb-1">Duration (in
-                                Minutes)</label>
-                            <input v-model="form.duration_in_minutes" type="number" id="duration_in_minutes" required
-                                min="5" class="form-input">
+                            <label class="text-sm font-bold block mb-1">Room</label>
+                            <select v-model="form.room_id" :disabled="!form.branch_id" required
+                                class="form-input disabled:opacity-50">
+                                <option disabled value="">
+                                    {{ form.branch_id ? 'Select Room' : 'Select Branch First' }}
+                                </option>
+                                <option v-for="room in availableRooms" :key="room.room_id" :value="room.room_id">
+                                    {{ room.room_name_display }}
+                                </option>
+                            </select>
                         </div>
+
                         <div>
-                            <label for="capacity" class="text-sm font-bold block mb-1">Capacity (Max Pax)</label>
-                            <input v-model="form.capacity" type="number" id="capacity" required min="1"
+                            <label class="text-sm font-bold block mb-1">Duration (Minutes)</label>
+                            <input v-model="form.duration_in_minutes" type="number" required min="5" class="form-input">
+                        </div>
+
+                        <div>
+                            <label class="text-sm font-bold block mb-1">Capacity (Max Pax)</label>
+                            <input v-model="form.capacity" type="number" required min="1" class="form-input">
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="text-sm font-bold block mb-1">Duration (Display Text)</label>
+                            <input v-model="form.duration" type="text" placeholder="e.g. '20 Menit'" required
                                 class="form-input">
                         </div>
+
                         <div class="md:col-span-2">
-                            <label for="duration" class="text-sm font-bold block mb-1">Duration (Display Text)</label>
-                            <input v-model="form.duration" type="text" id="duration" placeholder="e.g. '20 Menit'"
-                                required class="form-input">
-                        </div>
-                        <div class="md:col-span-2">
-                            <label for="inclusions" class="text-sm font-bold block mb-1">Inclusions</label>
-                            <textarea v-model="form.inclusions" id="inclusions" rows="3" class="form-input"
+                            <label class="text-sm font-bold block mb-1">Inclusions</label>
+                            <textarea v-model="form.inclusions" rows="3" class="form-input"
                                 placeholder="e.g. All soft copy files..."></textarea>
                         </div>
+
                     </div>
 
+                    <!-- Action Buttons -->
                     <div class="flex justify-end pt-4 gap-4">
                         <button type="button" @click="backToList"
-                            class="w-full md:w-auto bg-gray-700 text-white font-bold py-2 px-8 border-3 border-outline shadow-solid hover:bg-gray-800 active:shadow-none transition-all">
+                            class="w-full md:w-auto bg-gray-700 text-white font-bold py-2 px-8 border-3 border-outline shadow-solid hover:bg-gray-800 transition-all">
                             Cancel
                         </button>
+
                         <button type="submit" :disabled="isSaving"
-                            class="w-full md:w-auto bg-background text-text-default font-bold py-2 px-8 border-3 border-outline shadow-solid hover:bg-yellow-300 active:shadow-none transition-all disabled:opacity-50">
+                            class="w-full md:w-auto bg-background text-text-default font-bold py-2 px-8 border-3 border-outline shadow-solid hover:bg-yellow-300 transition-all disabled:opacity-50">
                             <span v-if="isSaving">SAVING...</span>
                             <span v-else>Save Package</span>
                         </button>
                     </div>
+
                 </form>
             </div>
         </div>
@@ -309,17 +345,22 @@ onMounted(() => {
         <div v-else>
             <h1 class="text-3xl font-bold mb-6">Package Management</h1>
 
+            <!-- Filters -->
             <div class="bg-primary text-white p-4 border-3 border-outline shadow-solid mb-6 rounded-lg">
+
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label for="branch-filter" class="text-sm font-bold block mb-1">Filter by Branch</label>
-                        <select v-model="filterBranchName" id="branch-filter" class="form-input">
+                        <label class="text-sm font-bold block mb-1">Filter by Branch</label>
+                        <select v-model="filterBranchName" class="form-input">
                             <option value="">Show All Branches</option>
-                            <option v-for="branch in branches" :key="branch.id" :value="branch.name">{{ branch.name }}
+                            <option v-for="branch in branches" :key="branch.id" :value="branch.name">
+                                {{ branch.name }}
                             </option>
                         </select>
                     </div>
+
                     <div></div>
+
                     <div class="flex items-end">
                         <button @click="currentView = 'add'"
                             class="w-full bg-background text-text-default font-bold py-2 border-3 border-outline shadow-solid hover:bg-yellow-300 transition-all">
@@ -327,8 +368,10 @@ onMounted(() => {
                         </button>
                     </div>
                 </div>
+
             </div>
 
+            <!-- Package List Table -->
             <div>
                 <h2 class="font-bold mb-4 text-xl">Existing Packages</h2>
 
@@ -336,12 +379,14 @@ onMounted(() => {
                     class="bg-primary text-white p-4 border-3 border-outline shadow-solid text-center">
                     Loading package list...
                 </div>
+
                 <div v-else-if="errorMessage && packages.length === 0"
                     class="bg-red-800/50 text-white p-4 border-3 border-outline shadow-solid text-center">
                     {{ errorMessage }}
                 </div>
 
                 <div v-else class="space-y-6">
+
                     <div v-if="Object.keys(filteredPackagesByBranch).length === 0"
                         class="bg-primary text-white p-4 border-3 border-outline shadow-solid text-center">
                         Belum ada paket yang dibuat (atau tidak ada yang cocok dengan filter).
@@ -349,6 +394,7 @@ onMounted(() => {
 
                     <div v-for="(packageList, branchName) in filteredPackagesByBranch" :key="branchName">
                         <h3 class="text-2xl font-bold mb-2">{{ branchName }}</h3>
+
                         <div
                             class="bg-primary text-white p-4 border-3 border-outline shadow-solid overflow-x-auto rounded-lg">
                             <table class="w-full text-left text-sm">
@@ -361,19 +407,23 @@ onMounted(() => {
                                         <th class="p-3">Actions</th>
                                     </tr>
                                 </thead>
+
                                 <tbody>
                                     <tr v-for="pkg in packageList" :key="pkg.package_id"
                                         class="border-b border-red-800 hover:bg-red-700/50">
+
                                         <td class="p-3">{{ pkg.package_name }}</td>
-                                        <td class="p-3">{{ pkg.price }}</td>
+                                        <td class="p-3">{{ formatCurrency(pkg.price) }}</td>
                                         <td class="p-3">{{ pkg.duration }}</td>
-                                        <td class="p-3">{{ pkg.capacity }}</td>
+                                        <td class="p-3">{{ pkg.capacity }} Orang</td>
+
                                         <td class="p-3">
                                             <div class="flex space-x-2">
                                                 <button @click="showEditForm(pkg)" class="hover:text-yellow-400"
                                                     title="Edit">
                                                     <i data-feather="edit" class="w-4 h-4"></i>
                                                 </button>
+
                                                 <button @click="handleDelete(pkg)" class="hover:text-red-400"
                                                     title="Delete">
                                                     <i data-feather="trash-2" class="w-4 h-4"></i>
@@ -390,6 +440,7 @@ onMounted(() => {
         </div>
     </div>
 </template>
+
 
 <style lang="postcss" scoped>
 .form-input {

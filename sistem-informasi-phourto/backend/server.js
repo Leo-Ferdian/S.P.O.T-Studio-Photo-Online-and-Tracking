@@ -25,6 +25,7 @@ const adminBookingRoutes = require('./src/api/routes/admin/booking.routes');
 const adminPhotoRoutes = require('./src/api/routes/admin/photo.routes');
 const adminUserRoutes = require('./src/api/routes/admin/user.routes.js');
 const adminDashboardRoutes = require('./src/api/routes/admin/dashboard.routes.js');
+const adminRoomRoutes = require('./src/api/routes/admin/room.routes.js')
 
 // Rate Limiting
 const limiter = rateLimit({
@@ -62,7 +63,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/packages', packageRoutes);
 app.use('/api/branches', branchRoutes);
 
-
 // =========================================================
 // 2. RUTE YANG DIPROTEKSI (MEMBUTUHKAN TOKEN)
 // =========================================================
@@ -79,6 +79,7 @@ app.use('/api/admin/bookings', adminBookingRoutes);
 app.use('/api/admin/photos', adminPhotoRoutes);
 app.use('/api/admin/users', adminUserRoutes);
 app.use('/api/admin/dashboard', adminDashboardRoutes);
+app.use('/api/admin/rooms', adminRoomRoutes);
 
 
 // Error handling for 404 (Endpoint not found)
