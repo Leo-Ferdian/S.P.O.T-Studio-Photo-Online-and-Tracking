@@ -83,29 +83,56 @@ class AdminUserService {
     }
 
     /**
-     * @desc Mengambil detail satu pengguna (tanpa password)
+     * @desc Mengambil detail satu pengguna DAN riwayat booking mereka
      * @param {string} userId UUID pengguna
-     * @returns {Promise<object>} Data pengguna
+     * @returns {Promise<object>} Objek berisi { user, bookings }
      */
     async getUserDetails(userId) {
-        const query = `
+        // --- PERBAIKAN DI SINI: KITA TAMBAHKAN KUERI KEDUA ---
+
+        // Kueri 1: Ambil data pengguna (Seperti sebelumnya)
+        const userQuery = `
             SELECT 
-                user_id, 
-                full_name, 
-                email, 
-                phone_number, 
-                "role", 
-                created_at, 
-                updated_at
+                user_id, full_name, email, phone_number, "role", created_at, updated_at
             FROM users 
             WHERE user_id = $1
-        `;
-        const result = await db.query(query, [userId]);
+            `;
 
-        if (result.rows.length === 0) {
-            throw new ApiError(404, 'Pengguna tidak ditemukan.');
+        // Kueri 2: Ambil riwayat booking untuk pengguna ini
+        const bookingsQuery = `
+            SELECT 
+                b.booking_id, b.start_time, b.payment_status, b.total_price, 
+                p.package_name, br.branch_name
+            FROM bookings b
+            JOIN packages p ON b.package_id = p.package_id
+            JOIN rooms r ON p.room_id = r.room_id
+            JOIN branches br ON r.branch_id = br.branch_id
+            WHERE b.user_id = $1 
+            ORDER BY b.start_time DESC;
+            `;
+
+        try {
+            // Jalankan kedua kueri secara paralel
+            const [userResult, bookingsResult] = await Promise.all([
+                db.query(userQuery, [userId]),
+                db.query(bookingsQuery, [userId])
+            ]);
+
+            if (userResult.rows.length === 0) {
+                throw new ApiError(404, 'Pengguna tidak ditemukan.');
+            }
+
+            // Gabungkan hasilnya
+            const user = userResult.rows[0];
+            const bookings = bookingsResult.rows;
+
+            return { user, bookings };
+
+        } catch (error) {
+            logger.error('Error in getUserDetails (Admin):', error);
+            if (error instanceof ApiError) throw error;
+            throw new ApiError('Gagal mengambil data detail pengguna.', 500);
         }
-        return result.rows[0];
     }
 
     /**

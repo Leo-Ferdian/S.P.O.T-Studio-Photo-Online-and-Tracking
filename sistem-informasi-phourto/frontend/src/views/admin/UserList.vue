@@ -2,9 +2,10 @@
 import { ref, onMounted, nextTick } from 'vue'
 import apiClient from '../../api/api'
 import feather from 'feather-icons'
+import { useRouter } from 'vue-router'
 
 // ========================
-// STATE DAFTAR PENGGUNA
+// STATE: Daftar User
 // ========================
 const users = ref([])
 const isLoadingList = ref(true)
@@ -13,16 +14,18 @@ const currentPage = ref(1)
 const totalPages = ref(1)
 const limit = ref(10)
 const searchQuery = ref('')
+const router = useRouter()
 
 // ========================
-// STATE DETAIL PENGGUNA
+// STATE: Detail User
 // ========================
 const selectedUser = ref(null)
+const userBookings = ref([])
 const isLoadingDetail = ref(false)
 const detailErrorMessage = ref(null)
 
 // ========================
-// STATE FORM SETTING
+// STATE: Form Settings
 // ========================
 const editForm = ref({
     full_name: '',
@@ -34,7 +37,7 @@ const isUpdating = ref(false)
 const successMessage = ref(null)
 
 // ========================
-// FUNGSI: Ambil Daftar Pengguna
+// Fetch: List User
 // ========================
 const fetchUsers = async (page = 1) => {
     isLoadingList.value = true
@@ -44,7 +47,7 @@ const fetchUsers = async (page = 1) => {
         page,
         limit: limit.value,
         search: searchQuery.value || undefined,
-        _: new Date().getTime() // cache buster
+        _: Date.now()
     }
 
     try {
@@ -53,11 +56,11 @@ const fetchUsers = async (page = 1) => {
         totalPages.value = response.data.data.pagination.totalPages
         currentPage.value = response.data.data.pagination.page
 
-        if (users.value.length === 0) {
+        if (!users.value.length) {
             listErrorMessage.value = 'Tidak ada pengguna yang ditemukan.'
         }
     } catch (error) {
-        console.error('Fetch users error:', error)
+        console.error(error)
         listErrorMessage.value = 'Gagal memuat data pengguna.'
     } finally {
         isLoadingList.value = false
@@ -66,19 +69,21 @@ const fetchUsers = async (page = 1) => {
 }
 
 // ========================
-// FUNGSI: Lihat Detail Pengguna
+// Fetch: Detail User
 // ========================
 const viewUserDetails = async (userId) => {
     isLoadingDetail.value = true
     detailErrorMessage.value = null
     successMessage.value = null
     selectedUser.value = null
+    userBookings.value = []
 
     try {
         const response = await apiClient.get(`/admin/users/${userId}`)
-        selectedUser.value = response.data.data
 
-        // Isi form edit dengan data pengguna
+        selectedUser.value = response.data.data.user
+        userBookings.value = response.data.data.bookings
+
         editForm.value = {
             full_name: selectedUser.value.full_name,
             email: selectedUser.value.email,
@@ -86,7 +91,7 @@ const viewUserDetails = async (userId) => {
             role: selectedUser.value.role
         }
     } catch (error) {
-        console.error('Fetch detail error:', error)
+        console.error(error)
         detailErrorMessage.value = 'Gagal memuat detail pengguna.'
     } finally {
         isLoadingDetail.value = false
@@ -95,17 +100,18 @@ const viewUserDetails = async (userId) => {
 }
 
 // ========================
-// FUNGSI: Kembali ke Daftar
+// Kembali ke daftar
 // ========================
 const backToList = () => {
     selectedUser.value = null
     detailErrorMessage.value = null
     successMessage.value = null
+    userBookings.value = []
     nextTick(() => feather.replace())
 }
 
 // ========================
-// FUNGSI: Update Pengaturan
+// Update Setting User
 // ========================
 const handleSettingsUpdate = async () => {
     if (!selectedUser.value) return
@@ -115,7 +121,8 @@ const handleSettingsUpdate = async () => {
         editForm.value.email !== selectedUser.value.email ||
         editForm.value.phone_number !== selectedUser.value.phone_number
 
-    const roleChanged = editForm.value.role !== selectedUser.value.role
+    const roleChanged =
+        editForm.value.role !== selectedUser.value.role
 
     if (!profileDataChanged && !roleChanged) {
         successMessage.value = 'Tidak ada perubahan yang disimpan.'
@@ -127,48 +134,72 @@ const handleSettingsUpdate = async () => {
     detailErrorMessage.value = null
 
     try {
-        const updatePromises = []
+        const promises = []
 
         if (profileDataChanged) {
-            const profilePayload = {
-                full_name: editForm.value.full_name,
-                email: editForm.value.email,
-                phone_number: editForm.value.phone_number
-            }
-            updatePromises.push(
-                apiClient.put(`/admin/users/${selectedUser.value.user_id}/profile`, profilePayload)
+            promises.push(
+                apiClient.put(
+                    `/admin/users/${selectedUser.value.user_id}/profile`,
+                    {
+                        full_name: editForm.value.full_name,
+                        email: editForm.value.email,
+                        phone_number: editForm.value.phone_number
+                    }
+                )
             )
         }
 
         if (roleChanged) {
-            updatePromises.push(
-                apiClient.put(`/admin/users/${selectedUser.value.user_id}/role`, { role: editForm.value.role })
+            promises.push(
+                apiClient.put(
+                    `/admin/users/${selectedUser.value.user_id}/role`,
+                    { role: editForm.value.role }
+                )
             )
         }
 
-        await Promise.all(updatePromises)
+        await Promise.all(promises)
 
-        // Update data lokal
         Object.assign(selectedUser.value, editForm.value)
         successMessage.value = 'Data pengguna berhasil diperbarui!'
-        fetchUsers(currentPage.value) // refresh daftar
-
+        fetchUsers(currentPage.value)
     } catch (error) {
-        console.error('Update settings error:', error)
-        detailErrorMessage.value = error.response?.data?.message || 'Gagal memperbarui data.'
+        console.error(error)
+        detailErrorMessage.value =
+            error.response?.data?.message ||
+            'Gagal memperbarui data.'
     } finally {
         isUpdating.value = false
     }
 }
 
 // ========================
-// FUNGSI: Pencarian & Pagination
+// Helper
 // ========================
 const applySearch = () => fetchUsers(1)
+
 const changePage = (newPage) => {
     if (newPage >= 1 && newPage <= totalPages.value) {
         fetchUsers(newPage)
     }
+}
+
+const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    })
+}
+
+const formatCurrency = (value) => {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+    }).format(value || 0)
 }
 
 onMounted(() => fetchUsers())
@@ -254,7 +285,7 @@ onMounted(() => fetchUsers())
         </div>
 
         <!-- ===================== -->
-        <!-- DETAIL PENGGUNA -->
+        <!-- DETAIL USER -->
         <!-- ===================== -->
         <div v-else>
             <button @click="backToList"
@@ -263,44 +294,56 @@ onMounted(() => fetchUsers())
                 Back to User List
             </button>
 
-            <div v-if="isLoadingDetail">...</div>
-            <div v-else-if="!selectedUser && detailErrorMessage">...</div>
+            <div v-if="isLoadingDetail" class="text-center p-8">
+                Loading user details...
+            </div>
 
-            <div v-else-if="selectedUser" class="grid grid-cols-1 gap-6">
-                <div class="bg-primary text-white p-4 border-3 border-outline shadow-solid max-w-lg mx-auto w-full">
-                    <h2 class="font-bold mb-4 text-xl">Setting for {{ selectedUser.full_name }}</h2>
+            <div v-else-if="!selectedUser && detailErrorMessage"
+                class="text-center p-8 bg-red-800/50 rounded-lg text-white">
+                {{ detailErrorMessage }}
+            </div>
+
+            <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                <!-- ===================== -->
+                <!-- FORM SETTING USER -->
+                <!-- ===================== -->
+                <div class="bg-primary text-white p-4 border-3 border-outline shadow-solid lg:col-span-1">
+                    <h2 class="font-bold mb-4 text-xl">
+                        Setting for {{ selectedUser.full_name }}
+                    </h2>
 
                     <form @submit.prevent="handleSettingsUpdate" class="space-y-4">
                         <div>
-                            <label for="full_name" class="font-bold text-sm">Full Name</label>
-                            <input v-model="editForm.full_name" type="text" id="full_name" class="form-input-setting"
-                                required />
+                            <label class="font-bold text-sm">Full Name</label>
+                            <input v-model="editForm.full_name" type="text" class="form-input-setting" required />
                         </div>
+
                         <div>
-                            <label for="email" class="font-bold text-sm">Email</label>
-                            <input v-model="editForm.email" type="email" id="email" class="form-input-setting"
-                                required />
+                            <label class="font-bold text-sm">Email</label>
+                            <input v-model="editForm.email" type="email" class="form-input-setting" required />
                         </div>
+
                         <div>
-                            <label for="phone_number" class="font-bold text-sm">Phone Number</label>
-                            <input v-model="editForm.phone_number" type="tel" id="phone_number"
-                                class="form-input-setting" required />
+                            <label class="font-bold text-sm">Phone Number</label>
+                            <input v-model="editForm.phone_number" type="tel" class="form-input-setting" required />
                         </div>
 
                         <hr class="border-red-400/50 my-4" />
 
-                        <div>
-                            <label for="role-select" class="font-bold text-sm">User Role</label>
-                            <select v-model="editForm.role" id="role-select" class="form-input-setting">
+                        <!-- <div>
+                            <label class="font-bold text-sm">User Role</label>
+                            <select v-model="editForm.role" class="form-input-setting">
                                 <option value="customer">Customer</option>
                                 <option value="admin">Admin</option>
                             </select>
-                        </div>
+                        </div> -->
 
-                        <div v-if="successMessage" class="mt-4 text-center p-3 bg-green-500/30 text-green-300">
+                        <div v-if="successMessage" class="mt-4 p-3 bg-green-500/30 text-green-300 text-center">
                             {{ successMessage }}
                         </div>
-                        <div v-if="detailErrorMessage" class="mt-4 text-center p-3 bg-red-800/50 text-white">
+
+                        <div v-if="detailErrorMessage" class="mt-4 p-3 bg-red-800/50 text-white text-center">
                             {{ detailErrorMessage }}
                         </div>
 
@@ -310,6 +353,53 @@ onMounted(() => fetchUsers())
                             <span v-else>Save Changes</span>
                         </button>
                     </form>
+                </div>
+
+                <!-- ===================== -->
+                <!-- BOOKING HISTORY -->
+                <!-- ===================== -->
+                <div class="bg-primary text-white p-4 border-3 border-outline shadow-solid rounded-lg lg:col-span-2">
+                    <h2 class="font-bold text-xl mb-4">Booking History</h2>
+
+                    <div v-if="userBookings.length === 0" class="text-center p-8 text-white/70">
+                        Pengguna ini belum memiliki riwayat booking.
+                    </div>
+
+                    <div v-else class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead>
+                                <tr class="border-b-2 border-red-400">
+                                    <th class="p-3">ID Booking</th>
+                                    <th class="p-3">Package</th>
+                                    <th class="p-3">Schedule</th>
+                                    <th class="p-3">Status</th>
+                                    <th class="p-3">Total</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <tr v-for="booking in userBookings" :key="booking.booking_id"
+                                    class="border-b border-red-800 hover:bg-red-700/50">
+                                    <td class="p-3">
+                                        {{ booking.booking_id.split('-')[0] }}...
+                                    </td>
+                                    <td class="p-3">
+                                        {{ booking.package_name }} ({{ booking.branch_name }})
+                                    </td>
+                                    <td class="p-3">
+                                        {{ formatDate(booking.start_time) }}
+                                    </td>
+                                    <td class="p-3">
+                                        {{ booking.payment_status }}
+                                    </td>
+                                    <td class="p-3">
+                                        {{ formatCurrency(booking.total_price) }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
                 </div>
             </div>
         </div>
