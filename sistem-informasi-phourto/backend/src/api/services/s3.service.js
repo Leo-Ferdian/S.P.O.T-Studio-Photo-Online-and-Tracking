@@ -1,6 +1,6 @@
 require('dotenv').config();
-const { S3Client, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
-const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+const { S3Client, GetObjectCommand, DeleteObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
+// const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const multer = require('multer');
 const multerS3 = require('multer-s3');
 const path = require('path');
@@ -35,20 +35,20 @@ class S3Service {
             storage: multerS3({
                 s3: s3Client,
                 bucket: BUCKET_NAME,
-                acl: 'private', // File privat, hanya bisa diakses dengan Pre-signed URL
+                // acl: 'public-read', // File privat, hanya bisa diakses dengan Pre-signed URL
                 contentType: multerS3.AUTO_CONTENT_TYPE,
                 key: function (req, file, cb) {
                     // Path file di S3: bookings/[uuid-booking-id]/[timestamp]-[nama-file-asli]
                     // req.params.bookingId akan diisi oleh rute Admin
                     const bookingId = req.params.bookingId || 'unknown-booking';
-                    
+
                     // Membersihkan nama file
                     const baseName = path.basename(file.originalname).replace(/[^a-zA-Z0-9.\-_]/g, '');
                     const fileName = `${Date.now().toString()}-${baseName}`;
-                    
+
                     // Ini akan menjadi 'file_key' di tabel 'photos' kita
                     const filePath = `bookings/${bookingId}/${fileName}`;
-                    
+
                     logger.debug(`S3 Key generated: ${filePath}`);
                     cb(null, filePath);
                 }
@@ -69,34 +69,54 @@ class S3Service {
         });
     }
 
-    /**
-     * Menghasilkan URL sementara yang aman (Pre-signed URL) untuk mengakses file privat di S3.
-     * Ini akan dipanggil oleh 'photo.service.js' untuk pelanggan.
-     * @param {string} key - Path file di dalam bucket S3 (cth: 'bookings/uuid/foto.jpg').
-     * @returns {Promise<string>} - Pre-signed URL yang valid.
-     */
-    async getSignedUrl(key) {
-        if (!key) {
-            logger.warn('getSignedUrl dipanggil dengan key kosong.');
-            return null;
-        }
-
-        const command = new GetObjectCommand({
-            Bucket: BUCKET_NAME,
-            Key: key,
-        });
-
+    async uploadFile(buffer, key, mimetype) {
         try {
-            // URL akan valid selama 7 hari (standar yang baik untuk link download)
-            const sevenDaysInSeconds = 60 * 60 * 24 * 7;
-            const url = await getSignedUrl(s3Client, command, { expiresIn: sevenDaysInSeconds });
-            return url;
+            const command = new PutObjectCommand({
+                Bucket: BUCKET_NAME,
+                Key: key,
+                Body: buffer,
+                ContentType: mimetype,
+                ACL: 'private', // pastikan file tidak publik
+            });
+
+            await s3Client.send(command);
+            logger.info(`File berhasil diupload ke S3: ${key}`);
+            return `s3://${BUCKET_NAME}/${key}`;
         } catch (error) {
-            logger.error(`Gagal membuat pre-signed URL untuk key ${key}:`, error);
-            // Jangan melempar error agar jika 1 dari 100 foto gagal, galeri tetap tampil
-            return null; 
+            logger.error(`Gagal upload ke S3 untuk key ${key}: ${error.message}`);
+            throw error;
         }
     }
+
+    // /**
+    //  * Menghasilkan URL sementara yang aman (Pre-signed URL) untuk mengakses file privat di S3.
+    //  * Ini akan dipanggil oleh 'photo.service.js' untuk pelanggan.
+    //  * @param {string} key - Path file di dalam bucket S3 (cth: 'bookings/uuid/foto.jpg').
+    //  * @returns {Promise<string>} - Pre-signed URL yang valid.
+    //  */
+    // async getSignedUrl(key) {
+    //     if (!key) {
+    //         logger.warn('getSignedUrl dipanggil dengan key kosong.');
+    //         return null;
+    //     }
+
+    //     const command = new GetObjectCommand({
+    //         Bucket: BUCKET_NAME,
+    //         Key: key,
+    //     });
+
+    //     try {
+    //         // URL akan valid selama 7 hari (standar yang baik untuk link download)
+    //         const sevenDaysInSeconds = 60 * 60 * 24 * 7;
+    //         const url = await getSignedUrl(s3Client, command, { expiresIn: sevenDaysInSeconds });
+    //         logger.debug(`Generated signed URL for key ${key}: ${url}`);
+    //         return url;
+    //     } catch (error) {
+    //         logger.error(`Gagal membuat pre-signed URL untuk key ${key}:`, error);
+    //         // Jangan melempar error agar jika 1 dari 100 foto gagal, galeri tetap tampil
+    //         return null;
+    //     }
+    // }
 
     /**
      * Menghapus sebuah file dari bucket AWS S3.

@@ -155,55 +155,54 @@ class PhotoService {
         }
     }
 
-    // --- FUNGSI BARU UNTUK ADMIN GALLERY MANAGEMENT ---
-    /**
-     * @function getGalleryByBookingId
-     * @desc Mengambil detail booking dan semua foto terkait (untuk admin)
-     * @param {string} bookingId - UUID booking
-     * @returns {Promise<object>} Objek berisi { booking, photos }
-     */
     async getGalleryByBookingId(bookingId) {
-        // --- Kueri SQL ---
-        const bookingQuery = `
-        SELECT 
-            b.booking_id,
-            b.payment_status,
-            u.full_name AS customer_name,
-            p.package_name
-        FROM bookings b
-        JOIN users u ON b.user_id = u.user_id
-        JOIN packages p ON b.package_id = p.package_id
-        WHERE b.booking_id = $1;
-    `;
-
-        const photosQuery = `
-        SELECT 
-            photo_id,
-            file_url,
-            file_name_original
-        FROM photos
-        WHERE booking_id = $1
-        ORDER BY created_at ASC;
-    `;
-
+        // --- Kueri ini menjalankan kueri satu per satu (SEKUENSIAL) ---
         try {
-            // Jalankan kedua kueri secara paralel
-            const [bookingResult, photosResult] = await Promise.all([
-                db.query(bookingQuery, [bookingId]),
-                db.query(photosQuery, [bookingId])
-            ]);
+            // Kueri 1: Ambil detail booking (sudah benar)
+            const bookingQuery = `
+                SELECT 
+                    b.booking_id, 
+                    b.payment_status,
+                    b.start_time,
+                    b.total_price,
+                    b.amount_paid,
+                    u.full_name as customer_name,
+                    p.package_name
+                FROM bookings b
+                JOIN users u ON b.user_id = u.user_id
+                JOIN packages p ON b.package_id = p.package_id
+                WHERE b.booking_id = $1;
+                `;
+            const bookingResult = await db.query(bookingQuery, [bookingId]);
 
-            // Validasi: pastikan booking ditemukan
             if (bookingResult.rows.length === 0) {
                 throw new ApiError(404, 'Booking dengan ID ini tidak ditemukan.');
             }
-
             const bookingData = bookingResult.rows[0];
 
-            // Format hasil foto agar sesuai kebutuhan frontend
-            const photosData = photosResult.rows.map(photo => ({
+            // --- PERBAIKAN DI SINI ---
+            // Kueri 2: Ambil 'file_url' (link publik)
+            const photosQuery = `
+                SELECT 
+                    photo_id, 
+                    file_url, 
+                    file_name_original
+                FROM photos 
+                WHERE booking_id = $1 
+                ORDER BY uploaded_at ASC;
+                `;
+            const photosResult = await db.query(photosQuery, [bookingId]);
+
+            // // Langkah 3: Generate Pre-signed URLs
+            // const photoKeys = photosResult.rows.map(p => p.file_key);
+            // // Panggil S3Service untuk membuat URL aman
+            // const signedUrlsPromises = photoKeys.map(key => S3Service.getSignedUrl(key));
+            // const signedUrls = await Promise.all(signedUrlsPromises);
+
+            // Gabungkan data asli (id, name) dengan URL yang aman
+            const photosData = photosResult.rows.map((photo, index) => ({
                 photo_id: photo.photo_id,
-                url: photo.file_url,                // ubah 'file_url' -> 'url'
+                url: photo.file_url, // Gunakan URL langsung dari DB
                 name: photo.file_name_original
             }));
 
@@ -212,10 +211,12 @@ class PhotoService {
                 booking: bookingData,
                 photos: photosData
             };
+
         } catch (error) {
             logger.error('Error in getGalleryByBookingId (Admin):', error);
             if (error instanceof ApiError) throw error;
-            throw new ApiError(500, 'Gagal mengambil data galeri dari database.');
+            // Kirim pesan error yang lebih spesifik jika ada
+            throw new ApiError(error.message || 'Gagal mengambil data galeri dari database.', 500);
         }
     }
 
