@@ -47,20 +47,25 @@ const handlePasswordReset = async () => {
     isLoading.value = true;
 
     try {
+        // --- PERBAIKAN DI SINI ---
+        // Tambahkan 'confirmPassword' ke payload
         await apiClient.post('/auth/reset-password', {
             token: token.value,
-            newPassword: password.value
+            newPassword: password.value,
+            confirmPassword: confirmPassword.value // <-- TAMBAHKAN BARIS INI
         });
+        // -------------------------
 
+        // Sukses!
         successMessage.value = 'Password Anda telah berhasil direset!';
 
+        // Arahkan ke halaman login setelah 3 detik
         setTimeout(() => {
             router.push('/login');
         }, 3000);
+
     } catch (error) {
-        errorMessage.value =
-            error.response?.data?.message ||
-            'Gagal mereset password. Token mungkin sudah kadaluwarsa.';
+        errorMessage.value = error.response?.data?.message || 'Gagal mereset password. Token mungkin sudah kadaluwarsa.';
     } finally {
         isLoading.value = false;
     }
