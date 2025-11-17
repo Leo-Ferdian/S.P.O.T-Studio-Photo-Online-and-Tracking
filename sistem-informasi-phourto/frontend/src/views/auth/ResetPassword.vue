@@ -11,6 +11,8 @@ const router = useRouter();
 const token = ref(null);
 const password = ref('');
 const confirmPassword = ref('');
+const isPasswordVisible = ref(false); // State baru
+const isConfirmPasswordVisible = ref(false); // State baru
 
 const isLoading = ref(false);
 const errorMessage = ref(null);
@@ -70,6 +72,13 @@ const handlePasswordReset = async () => {
         isLoading.value = false;
     }
 };
+
+const togglePasswordVisibility = () => {
+    isPasswordVisible.value = !isPasswordVisible.value
+}
+const toggleConfirmPasswordVisibility = () => {
+    isConfirmPasswordVisible.value = !isConfirmPasswordVisible.value
+}
 </script>
 
 <template>
@@ -111,19 +120,38 @@ const handlePasswordReset = async () => {
                     <!-- Password -->
                     <div>
                         <label for="password" class="text-sm font-bold">Password Baru</label>
-                        <input v-model="password" type="password" id="password" required class="form-input-setting" />
-                        <p class="text-xs text-gray-500 mt-1">
-                            Min. 8 karakter, 1 huruf besar, 1 angka, 1 simbol.
-                        </p>
+                        <div class="relative mt-1">
+                            <input v-model="password" :type="isPasswordVisible ? 'text' : 'password'" id="password"
+                                required class="form-input-setting">
+                            <button type="button" @click="togglePasswordVisibility"
+                                class="absolute inset-y-0 right-0 pr-3 flex items-center text-text-inverse">
+                                <span v-show="isPasswordVisible">
+                                    <i data-feather="eye-off" class="w-5 h-5"></i>
+                                </span>
+                                <span v-show="!isPasswordVisible">
+                                    <i data-feather="eye" class="w-5 h-5"></i>
+                                </span>
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Min. 8 karakter, 1 huruf besar, 1 angka, 1 simbol.</p>
                     </div>
 
-                    <!-- Confirm -->
+                    <!-- Confirm Password -->
                     <div>
-                        <label for="confirm-password" class="text-sm font-bold">
-                            Konfirmasi Password Baru
-                        </label>
-                        <input v-model="confirmPassword" type="password" id="confirm-password" required
-                            class="form-input-setting" />
+                        <label for="confirm-password" class="text-sm font-bold">Konfirmasi Password Baru</label>
+                        <div class="relative mt-1">
+                            <input v-model="confirmPassword" :type="isConfirmPasswordVisible ? 'text' : 'password'"
+                                id="confirm-password" required class="form-input-setting">
+                            <button type="button" @click="toggleConfirmPasswordVisibility"
+                                class="absolute inset-y-0 right-0 pr-3 flex items-center text-text-inverse">
+                                <span v-show="isConfirmPasswordVisible">
+                                    <i data-feather="eye-off" class="w-5 h-5"></i>
+                                </span>
+                                <span v-show="!isConfirmPasswordVisible">
+                                    <i data-feather="eye" class="w-5 h-5"></i>
+                                </span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Button -->

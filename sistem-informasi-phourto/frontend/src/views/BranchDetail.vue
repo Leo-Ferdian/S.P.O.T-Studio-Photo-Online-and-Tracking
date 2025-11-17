@@ -208,7 +208,7 @@ onMounted(async () => {
                                                 <span>Rp. {{ plan.price.toLocaleString('id-ID') }}</span>
                                             </div>
 
-                                            <p class="text-sm font-semibold">{{ plan.capacity }}</p>
+                                            <p class="text-sm font-semibold">{{ plan.capacity }} Orang</p>
                                             <p class="text-sm">{{ plan.durationText }}</p>
 
                                             <ul class="text-sm list-disc ml-4">

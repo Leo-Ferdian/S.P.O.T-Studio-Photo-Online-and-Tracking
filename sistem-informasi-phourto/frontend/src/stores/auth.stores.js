@@ -40,7 +40,7 @@ export const useAuthStore = defineStore('auth', {
             try {
                 // --- PERBAIKAN: HAPUS 'router.push' ---
                 const response = await apiClient.post('/auth/register', userData);
-                return response.data.message || 'Registrasi berhasil.';
+                return response.data.message || 'Registrasi berhasil. Silahkan Cek Email Anda';
             } catch (error) {
                 const errorMessage = error.response?.data?.message || error.message;
                 throw new Error(`${errorMessage}`);

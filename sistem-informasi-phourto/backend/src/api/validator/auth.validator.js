@@ -21,9 +21,13 @@ const registerValidationRules = () => {
             .isEmail().withMessage('Format email tidak valid.')
             .normalizeEmail()
             .custom(async (value) => {
-                const { rows } = await db.query('SELECT 1 FROM users WHERE email = $1', [value]);
+                // Hanya blokir jika email sudah ada DAN terverifikasi
+                const { rows } = await db.query(
+                    'SELECT 1 FROM users WHERE email = $1 AND is_verified = true',
+                    [value]
+                );
                 if (rows.length > 0) {
-                    throw new ApiError(409, 'Email ini sudah terdaftar.');
+                    throw new ApiError(409, 'Email ini sudah terdaftar dan terverifikasi.');
                 }
             }),
 
@@ -32,10 +36,14 @@ const registerValidationRules = () => {
             .trim()
             .notEmpty().withMessage('Nomor HP tidak boleh kosong.')
             .isMobilePhone('id-ID').withMessage('Format nomor HP tidak valid (cth: 08123456789).')
-            .custom(async (value) => {
-                const { rows } = await db.query('SELECT 1 FROM users WHERE phone_number = $1', [value]);
+            .custom(async (value, { req }) => {
+                // Cek apakah nomor HP ini digunakan oleh ORANG LAIN
+                const { rows } = await db.query(
+                    'SELECT 1 FROM users WHERE phone_number = $1 AND email != $2 AND is_verified = true',
+                    [value, req.body.email] // Pastikan itu bukan milik akun (belum terverifikasi) pengguna ini
+                );
                 if (rows.length > 0) {
-                    throw new ApiError(409, 'Nomor HP ini sudah terdaftar.');
+                    throw new ApiError(409, 'Nomor HP ini sudah terdaftar di akun lain.');
                 }
             }),
 
@@ -134,9 +142,33 @@ const resetPasswordValidationRules = () => {
     ];
 };
 
+/**
+ * Aturan validasi untuk Verifikasi OTP
+ * (Dipanggil oleh POST /api/auth/verify-otp)
+ */
+const verifyOtpValidationRules = () => {
+    return [
+        // 1. Validasi Email
+        body('email')
+            .trim()
+            .notEmpty().withMessage('Email tidak boleh kosong.')
+            .isEmail().withMessage('Format email tidak valid.')
+            .normalizeEmail(),
+
+        // 2. Validasi OTP
+        body('otp')
+            .trim()
+            .notEmpty().withMessage('Kode OTP tidak boleh kosong.')
+            .isString().withMessage('OTP harus berupa string.')
+            .isLength({ min: 6, max: 6 }).withMessage('Kode OTP harus 6 digit.')
+            .isNumeric().withMessage('Kode OTP harus berupa angka.')
+    ];
+};
+
 module.exports = {
     registerValidationRules,
     loginValidationRules,
     forgotPasswordValidationRules,
-    resetPasswordValidationRules
+    resetPasswordValidationRules,
+    verifyOtpValidationRules
 };

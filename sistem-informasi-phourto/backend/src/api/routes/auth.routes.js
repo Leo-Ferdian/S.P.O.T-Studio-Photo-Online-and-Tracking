@@ -8,7 +8,8 @@ const {
     registerValidationRules,
     loginValidationRules,
     forgotPasswordValidationRules,
-    resetPasswordValidationRules
+    resetPasswordValidationRules,
+    verifyOtpValidationRules
 } = require('../validator/auth.validator');
 
 // Rate Limiting (tidak berubah)
@@ -44,4 +45,10 @@ router.post(
     AuthController.resetPassword // Panggil controller baru
 );
 
+// POST /api/auth/verify-otp
+router.post(
+    '/verify-otp',
+    verifyOtpValidationRules(), // Terapkan validator baru
+    AuthController.verifyOtp // Panggil controller baru
+);
 module.exports = router;

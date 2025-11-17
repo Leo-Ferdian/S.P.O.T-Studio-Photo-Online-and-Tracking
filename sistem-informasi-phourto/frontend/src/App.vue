@@ -13,6 +13,10 @@ const showMainHeader = computed(() => {
   const pagesWithCustomHeader = [
     'Login',
     'Register',
+    'dashboard',
+    'profile',
+    'gallery',
+    'RiwayatBooking',
     'Location',
     'ServiceDetail',
     'AboutUs',
@@ -27,6 +31,7 @@ const showMainHeader = computed(() => {
     'Payment',
     'ClaimResult',
     'ResetPassword',
+    'VerifyEmail',
     // Halaman Admin
     'AdminDashboard',
     'AdminBookings',
@@ -47,6 +52,7 @@ const showMainFooter = computed(() => {
     'ClaimPhotos',
     'ClaimResult',
     'ResetPassword',
+    'VerifyEmail',
     // Halaman Admin
     'AdminDashboard',
     'AdminBookings',

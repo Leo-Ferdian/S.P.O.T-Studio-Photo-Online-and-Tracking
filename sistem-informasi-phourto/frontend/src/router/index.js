@@ -3,7 +3,7 @@ import Home from '../views/Home.vue'
 import Login from '../views/auth/login.vue'
 import Register from '../views/auth/register.vue'
 import AdminLayout from '../components/layout/AdminLayout.vue'
-import { useAuthStore } from '../stores/auth.stores' // gunakan alias '@' jika sudah diset di vite.config.js
+// import { useAuthStore } from '../stores/auth.stores' // gunakan alias '@' jika sudah diset di vite.config.js
 
 const routes = [
     {
@@ -28,6 +28,26 @@ const routes = [
         meta: { requiresGuest: true },
     },
     {
+        path: '/dashboard',
+        name: 'dashboard',
+        component: () => import('../views/dashboard.vue'),
+    },
+    {
+        path: '/profile',
+        name: 'profile',
+        component: () => import('../views/profile.vue'),
+    },
+    {
+        path: '/gallery',
+        name: 'gallery',
+        component: () => import('../views/gallery.vue'),
+    },
+    {
+        path: '/RiwayatBooking',
+        name: 'RiwayatBooking',
+        component: () => import('../views/RiwayatBooking.vue'),
+    },
+    {
         path: '/admin/login',
         name: 'AdminLogin',
         component: () => import('../views/auth/AdminLogin.vue'),
@@ -43,6 +63,12 @@ const routes = [
         path: '/reset-password', // Path dari link email
         name: 'ResetPassword',
         component: () => import('../views/auth/ResetPassword.vue'),
+        meta: { requiresGuest: true },
+    },
+    {
+        path: '/verify-email',
+        name: 'VerifyEmail',
+        component: () => import('../views/auth/VerifyEmail.vue'),
         meta: { requiresGuest: true },
     },
     {
@@ -155,8 +181,9 @@ const router = createRouter({
 })
 
 // --- NAVIGATION GUARD ---
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
     // Pastikan auth store diambil setiap kali navigasi
+    const { useAuthStore } = await import('../stores/auth.stores');
     const authStore = useAuthStore();
 
     const requiresAuth = to.matched.some(record => record.meta.requiresAuth)

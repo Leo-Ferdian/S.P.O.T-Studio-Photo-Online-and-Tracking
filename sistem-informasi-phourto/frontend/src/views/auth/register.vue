@@ -2,8 +2,10 @@
 import { ref, onMounted, nextTick } from 'vue'
 import { useAuthStore } from '@/stores/auth.stores'
 import feather from 'feather-icons'
+import { useRouter } from 'vue-router'
 
 const authStore = useAuthStore()
+const router = useRouter()
 
 const name = ref('')
 const email = ref('')
@@ -23,6 +25,7 @@ const handleRegister = async () => {
     }
 
     isLoading.value = true
+
     try {
         await authStore.register({
             full_name: name.value,
@@ -31,14 +34,14 @@ const handleRegister = async () => {
             password: password.value,
             confirmPassword: confirmPassword.value,
         })
+        // (Kita kirim email-nya agar halaman verify bisa menggunakannya)
         router.push({
-            name: '/login',
-            query: { registered: 'true' } // Kirim pesan sukses
+            name: 'VerifyEmail', // Kita akan buat rute ini
+            query: { email: email.value }
         });
-
-    } catch (error) {
-        errorMessage.value =
-            error.message || 'Gagal mendaftar. Pastikan email belum terdaftar.'
+    }
+    catch (error) {
+        errorMessage.value = error.message;
     } finally {
         isLoading.value = false
     }
@@ -46,16 +49,18 @@ const handleRegister = async () => {
 
 const togglePasswordVisibility = () => {
     isPasswordVisible.value = !isPasswordVisible.value
-    nextTick(() => feather.replace())
 }
 
 const toggleConfirmPasswordVisibility = () => {
     isConfirmPasswordVisible.value = !isConfirmPasswordVisible.value
-    nextTick(() => feather.replace())
 }
 
 onMounted(() => {
-    feather.replace()
+    // nextTick memastikan Vue telah merender semua v-show
+    // sebelum feather menggantinya.
+    nextTick(() => {
+        feather.replace()
+    });
 })
 </script>
 
@@ -102,31 +107,47 @@ onMounted(() => {
                         <!-- Password -->
                         <div>
                             <label for="password" class="text-sm font-bold">Password</label>
+
                             <div class="relative mt-1">
                                 <input v-model="password" :type="isPasswordVisible ? 'text' : 'password'" id="password"
                                     required class="form-input" />
+
+                                <!-- Tombol Ikon Mata -->
                                 <button type="button" @click="togglePasswordVisibility"
                                     class="absolute inset-y-0 right-0 pr-3 flex items-center text-text-inverse">
-                                    <i v-if="isPasswordVisible" data-feather="eye-off" class="w-5 h-5"></i>
-                                    <i v-else data-feather="eye" class="w-5 h-5"></i>
+                                    <span v-show="isPasswordVisible">
+                                        <i data-feather="eye-off" class="w-5 h-5"></i>
+                                    </span>
+                                    <span v-show="!isPasswordVisible">
+                                        <i data-feather="eye" class="w-5 h-5"></i>
+                                    </span>
                                 </button>
                             </div>
+
+                            <!-- Pesan Bantuan (Hint) -->
                             <p class="text-xs text-gray-500 mt-1">
-                                Password harus memiliki angka, simbol, huruf besar dan minimal 8 karakter.
+                                Min. 8 karakter, 1 huruf besar, 1 angka, 1 simbol.
                             </p>
                         </div>
 
                         <!-- Confirm Password -->
                         <div>
                             <label for="confirm-password" class="text-sm font-bold">Confirm Password</label>
+
                             <div class="relative mt-1">
                                 <input v-model="confirmPassword" :type="isConfirmPasswordVisible ? 'text' : 'password'"
                                     id="confirm-password" required class="form-input" />
-                                <!-- <button type="button" @click="toggleConfirmPasswordVisibility"
+
+                                <!-- Tombol Ikon Mata -->
+                                <button type="button" @click="toggleConfirmPasswordVisibility"
                                     class="absolute inset-y-0 right-0 pr-3 flex items-center text-text-inverse">
-                                    <i v-if="isConfirmPasswordVisible" data-feather="eye-off" class="w-5 h-5"></i>
-                                    <i v-else data-feather="eye" class="w-5 h-5"></i>
-                                </button> -->
+                                    <span v-show="isConfirmPasswordVisible">
+                                        <i data-feather="eye-off" class="w-5 h-5"></i>
+                                    </span>
+                                    <span v-show="!isConfirmPasswordVisible">
+                                        <i data-feather="eye" class="w-5 h-5"></i>
+                                    </span>
+                                </button>
                             </div>
                         </div>
                     </div>

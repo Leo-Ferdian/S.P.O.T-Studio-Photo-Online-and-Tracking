@@ -74,6 +74,22 @@ const userProfileLink = computed(() => {
                     <router-link :to="userProfileLink" class="font-bold hover:text-primary transition-colors">
                         {{ userProfileText }}
                     </router-link>
+                    
+                 <!-- USER BUTTON -->
+                 <router-link
+                 to="/dashboard"
+                 class="bg-primary text-text-default px-3 py-1 border-3 border-outline shadow-solid 
+                 hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 
+                 transition-all duration-100 flex items-center gap-2">
+                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                 stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M5.121 17.804A5 5 0 0110 15h4a5 5 0 014.879 2.804M15 10a3 3 0 11-6 0 3 3 0 016 0z" />
+       </svg>
+    USER
+</router-link>
+
+                    
                     <button @click="handleLogout"
                         class="bg-gray-700 text-white px-4 py-1 border-3 border-outline shadow-solid hover:bg-gray-800 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all duration-100">
                         LOG OUT

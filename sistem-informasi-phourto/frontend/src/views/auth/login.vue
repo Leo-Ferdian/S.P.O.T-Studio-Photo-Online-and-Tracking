@@ -42,12 +42,14 @@ const handleLogin = async () => {
 
 const togglePasswordVisibility = () => {
     isPasswordVisible.value = !isPasswordVisible.value;
-    nextTick(() => feather.replace());
 };
 
 onMounted(() => {
     if (route.query.registered === 'true') {
-        successMessage.value = 'Registrasi berhasil! Silakan login.';
+        successMessage.value = 'Registrasi berhasil! Silakan cek email Anda untuk OTP.';
+    }
+    if (route.query.verified === 'true') {
+        successMessage.value = 'Verifikasi berhasil! Silakan login.';
     }
     nextTick(() => feather.replace());
 });
@@ -89,8 +91,12 @@ onMounted(() => {
                             class="form-input-setting" />
                         <button type="button" @click="togglePasswordVisibility"
                             class="absolute inset-y-0 right-0 pr-3 flex items-center text-text-inverse">
-                            <i v-if="isPasswordVisible" data-feather="eye-off" class="w-5 h-5"></i>
-                            <i v-else data-feather="eye" class="w-5 h-5"></i>
+                            <span v-show="isPasswordVisible">
+                                <i data-feather="eye-off" class="w-5 h-5"></i>
+                            </span>
+                            <span v-show="!isPasswordVisible">
+                                <i data-feather="eye" class="w-5 h-5"></i>
+                            </span>
                         </button>
                     </div>
                     <router-link to="/forgot-password" class="block text-right text-xs mt-1 hover:underline">
