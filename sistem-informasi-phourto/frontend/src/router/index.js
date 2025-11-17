@@ -30,22 +30,22 @@ const routes = [
     {
         path: '/dashboard',
         name: 'dashboard',
-        component: () => import('../views/dashboard.vue'),
+        component: () => import('../views/user/dashboard.vue'),
     },
     {
         path: '/profile',
         name: 'profile',
-        component: () => import('../views/profile.vue'),
+        component: () => import('../views/user/profile.vue'),
     },
     {
         path: '/gallery',
         name: 'gallery',
-        component: () => import('../views/gallery.vue'),
+        component: () => import('../views/user/gallery.vue'),
     },
     {
         path: '/RiwayatBooking',
         name: 'RiwayatBooking',
-        component: () => import('../views/RiwayatBooking.vue'),
+        component: () => import('../views/user/RiwayatBooking.vue'),
     },
     {
         path: '/admin/login',
