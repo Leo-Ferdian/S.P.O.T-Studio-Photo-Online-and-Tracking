@@ -4,6 +4,8 @@ const S3Service = require('./s3.service');
 const BookingService = require('./booking.service');
 const { logger } = require('../../utils/logger');
 const { BOOKING_STATUS } = require('../../config/constants');
+const fs = require('fs'); // <-- Impor File System
+const path = require('path'); // <-- Impor Path
 
 // --- IMPOR AWS LAMBDA SDK ---
 const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda');
@@ -27,7 +29,6 @@ const lambdaClient = new LambdaClient({
 });
 
 class PhotoService {
-
     /**
      * (Refactored V1.12)
      * Menyimpan informasi file foto ke DB setelah upload S3 berhasil.
@@ -52,6 +53,7 @@ class PhotoService {
             if (bookingCheck.rows.length === 0) {
                 throw new ApiError(404, 'Booking tidak ditemukan.');
             }
+            const bookingInfo = bookingCheck.rows[0];
 
             // 2. Loop dan INSERT setiap file ke tabel 'photos' (Tabel V1.10)
             for (const file of files) {
@@ -72,11 +74,9 @@ class PhotoService {
             }
             logger.debug(`Berhasil INSERT ${insertedPhotos.length} foto ke tabel 'photos'.`);
 
-
             // 3. Reset status ZIP (V1.13)
             await BookingService.resetZipStatus(bookingId, client);
             logger.debug(`ZIP status direset ke PENDING.`);
-
 
             // 4. Set URL pengiriman foto (Link Galeri Internal)
             const galleryUrl = `/my-bookings/${bookingId}/gallery`;
@@ -90,13 +90,45 @@ class PhotoService {
             );
 
             // 6. Set photo_delivery_url
-            await client.query(
-                `UPDATE bookings SET photo_delivery_url = $1 WHERE booking_id = $2`,
-                [galleryUrl, bookingId]
-            );
+            // await client.query(
+            //     `UPDATE bookings SET photo_delivery_url = $1 WHERE booking_id = $2`,
+            //     [galleryUrl, bookingId]
+            // );
 
             await client.query('COMMIT');
             logger.info(`Transaksi berhasil: ${insertedPhotos.length} foto ditambahkan ke ${bookingId}.`);
+
+            // --- LANGKAH 6: KIRIM EMAIL KLAIM FOTO ---
+            try {
+                // Ambil data pelanggan dan paket
+                const userData = await db.query('SELECT full_name, email FROM users WHERE user_id = $1', [bookingInfo.user_id]);
+                const packageData = await db.query('SELECT package_name FROM packages WHERE package_id = $1', [bookingInfo.package_id]);
+
+                const user = userData.rows[0];
+                const pkg = packageData.rows[0];
+
+                const templatePath = path.join(__dirname, '..', '..', 'templates', 'claim_photo_template.html');
+                let html = fs.readFileSync(templatePath, 'utf8');
+
+                // Ganti placeholder
+                html = html.replace('{{CUSTOMER_NAME}}', user.full_name);
+                html = html.replace('{{PACKAGE_NAME}}', pkg.package_name);
+                html = html.replace('{{CLAIM_CODE}}', bookingInfo.unique_code); // Ini kuncinya!
+
+                // (Pastikan FRONTEND_URL diatur di .env)
+                const claimUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/claimphotos`;
+                html = html.replace('{{CLAIM_URL}}', claimUrl);
+
+                const subject = `Foto Phourto Anda Siap Diunduh! (Booking #${bookingInfo.unique_code})`;
+                const text = `Hai ${user.full_name}, foto Anda siap! Gunakan kode ${bookingInfo.unique_code} di ${claimUrl} untuk mengunduh.`;
+
+                // Kirim email (tanpa 'await' agar tidak memblokir admin)
+                EmailService.sendEmail(user.email, subject, text, html)
+                    .catch(err => logger.error(`Gagal mengirim email KLAIM FOTO untuk booking ${bookingId}:`, err));
+
+            } catch (emailError) {
+                logger.error(`Gagal menyiapkan data untuk email KLAIM FOTO (booking ${bookingId}):`, emailError);
+            }
 
             return insertedPhotos;
 

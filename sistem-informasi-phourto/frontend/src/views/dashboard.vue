@@ -31,38 +31,30 @@ onMounted(() => {
 
         <!-- SIDEBAR -->
         <aside class="w-90 bg-primary text-white p-12 flex flex-col gap-4">
-      <h2 class="text-2xl font-bold mb-4">Studio Phour To</h2>
+            <h2 class="text-2xl font-bold mb-4">Studio Phour To</h2>
 
-      <nav class="text-xl flex flex-col gap-3">
-        <router-link
-          to="/dashboard"
-          class="text-white bg-primary px-3 py-2 rounded hover:bg-[#A21217] cursor-pointer"
-        >
-          Dashboard
-        </router-link>
+            <nav class="text-xl flex flex-col gap-3">
+                <router-link to="/dashboard"
+                    class="text-white bg-primary px-3 py-2 rounded hover:bg-[#A21217] cursor-pointer">
+                    Dashboard
+                </router-link>
 
-        <router-link
-          to="/RiwayatBooking"
-          class="text-white bg-primary px-3 py-2 rounded hover:bg-[#A21217] cursor-pointer"
-        >
-          Riwayat Booking
-        </router-link>
+                <router-link to="/RiwayatBooking"
+                    class="text-white bg-primary px-3 py-2 rounded hover:bg-[#A21217] cursor-pointer">
+                    Riwayat Booking
+                </router-link>
 
-        <router-link
-          to="/gallery"
-          class="text-white bg-primary px-3 py-2 rounded hover:bg-[#A21217] cursor-pointer"
-        >
-          Gallery Foto
-        </router-link>
+                <router-link to="/gallery"
+                    class="text-white bg-primary px-3 py-2 rounded hover:bg-[#A21217] cursor-pointer">
+                    Gallery Foto
+                </router-link>
 
-        <router-link
-          to="/profile"
-          class="text-white bg-primary px-3 py-2 rounded hover:bg-[#A21217] cursor-pointer"
-        >
-          Profile
-        </router-link>
-      </nav>
-    </aside>
+                <router-link to="/profile"
+                    class="text-white bg-primary px-3 py-2 rounded hover:bg-[#A21217] cursor-pointer">
+                    Profile
+                </router-link>
+            </nav>
+        </aside>
 
         <!-- MAIN CONTENT -->
         <main class="flex-1 p-8">
@@ -73,41 +65,29 @@ onMounted(() => {
             </div>
 
             <!-- BUTTON ACTIONS - full grid -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
 
-    <router-link
-        to="/home"
-        class="text-xl bg-primary text-white px-4 py-3 font-semibold border-3 border-outline 
-               shadow-solid hover:bg-[#A21217] cursor-pointer w-full text-center block"
-    >
-        Buat Booking Baru
-    </router-link>
+                <router-link to="/home" class="text-xl bg-primary text-white px-4 py-3 font-semibold border-3 border-outline 
+                shadow-solid hover:bg-[#A21217] cursor-pointer w-full text-center block">
+                    Buat Booking Baru
+                </router-link>
 
-    <router-link
-        to="/RiwayatBooking"
-        class="text-xl bg-primary text-white px-4 py-3 font-semibold border-3 border-outline 
-               shadow-solid hover:bg-[#A21217] cursor-pointer w-full text-center block"
-    >
-        Lacak Riwayat Booking
-    </router-link>
+                <router-link to="/RiwayatBooking" class="text-xl bg-primary text-white px-4 py-3 font-semibold border-3 border-outline 
+                shadow-solid hover:bg-[#A21217] cursor-pointer w-full text-center block">
+                    Lacak Riwayat Booking
+                </router-link>
 
-    <router-link
-        to="/gallery"
-        class="text-xl bg-primary text-white px-4 py-3 font-semibold border-3 border-outline 
-               shadow-solid hover:bg-[#A21217] cursor-pointer w-full text-center block"
-    >
-        Lihat Hasil Foto
-    </router-link>
+                <router-link to="/gallery" class="text-xl bg-primary text-white px-4 py-3 font-semibold border-3 border-outline 
+                shadow-solid hover:bg-[#A21217] cursor-pointer w-full text-center block">
+                    Lihat Hasil Foto
+                </router-link>
 
-    <router-link
-        to="/profile"
-        class="text-xl bg-primary text-white px-4 py-3 font-semibold border-3 border-outline 
-               shadow-solid hover:bg-[#A21217] cursor-pointer w-full text-center block"
-    >
-        Edit Profile
-    </router-link>
+                <router-link to="/profile" class="text-xl bg-primary text-white px-4 py-3 font-semibold border-3 border-outline 
+                shadow-solid hover:bg-[#A21217] cursor-pointer w-full text-center block">
+                    Edit Profile
+                </router-link>
 
-</div>
+            </div>
 
 
 
