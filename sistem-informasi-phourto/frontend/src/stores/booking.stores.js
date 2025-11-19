@@ -395,19 +395,39 @@ export const useBookingStore = defineStore('booking', {
 
 
         /* -------------------------------------------
-        PAYMENT QR
+        PAYMENT QR (UPDATE: SUPPORT DOKU CHECKOUT)
         ------------------------------------------- */
         async generatePaymentQR(bookingId) {
             this.isLoading = true;
             this.error = null;
 
+            const authStore = useAuthStore();
+            const token = authStore.token || localStorage.getItem('token');
+
+            if (!token) {
+                this.error = 'Sesi Anda telah berakhir. Silakan login kembali.';
+                this.isLoading = false;
+                authStore.returnUrl = router.currentRoute.value.fullPath;
+                router.push('/login');
+                throw new Error(this.error);
+            }
+
             try {
-                const response = await apiClient.post(`/payments/${bookingId}/qr`);
+                // Header Authorization Manual
+                const response = await apiClient.post(
+                    `/payments/${bookingId}/qr`,
+                    {}, 
+                    { headers: { 'Authorization': `Bearer ${token}` } }
+                );
+                
                 const paymentData = response.data.data;
 
+                // [UPDATE PENTING DI SINI]
+                // Kita sekarang menerima 'payment_url' dari backend, bukan hanya 'qr_code_url'
                 if (this.currentBooking && this.currentBooking.booking_id === bookingId) {
-                    this.currentBooking.payment_qr_url = paymentData.qr_code_url;
-                    this.currentBooking.payment_deadline = paymentData.expires_at;
+                    // Simpan link pembayaran ke property state
+                    this.currentBooking.payment_link = paymentData.payment_url; 
+                    
                     this.currentBooking.total_price_paid =
                         paymentData.total_amount || this.currentBooking.total_price_paid;
                 }
@@ -416,14 +436,13 @@ export const useBookingStore = defineStore('booking', {
 
             } catch (error) {
                 const message = error.response?.data?.message || error.message;
-                this.error = `Gagal membuat QR Pembayaran: ${message}`;
-                throw new Error(`Gagal membuat QR Pembayaran: ${message}`);
+                this.error = `Gagal memproses pembayaran: ${message}`;
+                throw new Error(this.error);
 
             } finally {
                 this.isLoading = false;
             }
         },
-
 
         /* -------------------------------------------
         ZIP DOWNLOAD (Trigger)

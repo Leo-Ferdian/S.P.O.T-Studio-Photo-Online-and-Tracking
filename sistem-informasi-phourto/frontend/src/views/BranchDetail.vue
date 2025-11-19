@@ -3,35 +3,57 @@ import { ref, onMounted, computed } from 'vue';
 import { useBookingStore } from '../stores/booking.stores.js';
 import feather from 'feather-icons';
 
+// --- Props ---
 const props = defineProps({
     branchName: String,
 });
-
+// --- Store ---
 const bookingStore = useBookingStore();
 
+// --- Accordion State ---
 const activePackageId = ref(null);
 const togglePlanSection = (pkgId) => {
     activePackageId.value = activePackageId.value === pkgId ? null : pkgId;
 };
 
+// --- Select Plan ---
 const selectPlan = (plan) => {
     console.log("Plan selected:", plan);
+    
+    // PERBAIKAN V1.15: Uncomment baris ini untuk menyimpan pilihan ke Pinia.
+    // Kita juga gunakan 'branchDisplayData.value' (V1.14) BUKAN 'branchInfo.value' (V1.10)
+    const branchData = {
+        id: branchDisplayData.value.id,
+        name: branchDisplayData.value.name,
+        slug: branchDisplayData.value.slug
+    };
+    
+    // Panggil action V1.11 yang ada di store (booking.stores.js)
+    bookingStore.setBranchAndPackage(branchData, plan._apiData);
 };
 
+// --- Computed Properties ---
+// Data  dibaca secara reaktif dari Pinia store
 const branchDisplayData = computed(() => bookingStore.currentBranchDetails);
 const isLoading = computed(() => bookingStore.isLoading);
 const errorMessage = computed(() => bookingStore.error);
 
+// --- Lifecycle  ---
 onMounted(async () => {
+    // 1. Ambil branchSlug dari prop (properti) rute
     const slug = props.branchName ? props.branchName.toLowerCase().trim() : null;
-
+    
     if (slug) {
+        // 2. Panggil 'action' (aksi) V1.14 di Pinia Store.
+        //    Store (Gudang data) akan menangani SEMUA logika (fetch, filter, map)
         await bookingStore.fetchBranchDetails(slug);
     } else {
+        // (Perbaikan V1.14: Set error (kesalahan) di store (gudang data))
         bookingStore.error = "Nama cabang tidak ditemukan di URL.";
     }
 
-    setTimeout(() => feather.replace(), 50);
+    // Ganti ikon (jika Anda masih menggunakan Feather)
+    setTimeout(() => feather.replace(), 50);
 });
 </script>
 

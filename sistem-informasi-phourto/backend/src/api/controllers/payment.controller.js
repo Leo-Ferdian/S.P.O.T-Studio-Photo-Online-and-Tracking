@@ -1,5 +1,3 @@
-// File: src/api/controllers/payment.controller.js (Diperbaiki)
-
 const PaymentService = require('../services/payment.service');
 const asyncHandler = require('../../utils/asyncHandler');
 const { logger } = require('../../utils/logger');
@@ -10,7 +8,7 @@ class PaymentController {
     // --- METHOD BARU: GENERATE QR CODE ---
     generateQrCode = asyncHandler(async (req, res) => {
         const { bookingId } = req.params;
-        const userId = req.user.id; // Asumsi authMiddleware mengisi req.user
+        const userId = req.user.user_id;
 
         if (!bookingId) {
             return res.status(400).json({ message: 'ID Booking diperlukan.' });
