@@ -64,7 +64,7 @@ class PaymentService {
                 amount: amountValue,
                 invoice_number: booking.booking_id,
                 currency: "IDR",
-                callback_url: "https://google.com", // Ganti dengan URL frontend success page Anda
+                callback_url: "http://localhost:5173/booking/success", // Ganti dengan URL frontend success page Anda
                 auto_redirect: true
             },
             payment: {

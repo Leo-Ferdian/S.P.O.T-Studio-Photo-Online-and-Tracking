@@ -108,7 +108,7 @@ const routes = [
         path: '/booking/ClaimResult',
         name: 'ClaimResult',
         component: () => import('../views/booking/ClaimResult.vue'),
-        meta: { requiresAuth: true },
+        // meta: { requiresAuth: true },
     },
     {
         path: '/booking/Confirmation',

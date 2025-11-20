@@ -85,20 +85,18 @@ export const useBookingStore = defineStore('booking', {
         isLoading: false,
         error: null,
 
-        // ZIP Download
-        zipStatus: {
-            status: null,
-            message: '',
-            downloadUrl: null,
-        },
-
         // Branch detail
         currentBranchDetails: {
             id: null,
             name: 'Loading...',
             slug: '',
             packages: []
-        }
+        },
+
+        // --- NEW: HYBRID GALLERY SYSTEM ---
+        galleryPhotos: [],       // Menyimpan daftar foto untuk ditampilkan di grid
+        galleryBookingInfo: [],
+        isGalleryLoading: false, // Loading state khusus galeri
     }),
 
     /* ===============================================================
@@ -107,8 +105,6 @@ export const useBookingStore = defineStore('booking', {
     getters: {
         isCatalogLoaded: (state) => state.catalog.length > 0,
         isLoadingCatalog: (state) => state.isLoading && state.catalog.length === 0,
-        isZipReady: (state) => state.zipStatus.status === 'READY' && state.zipStatus.downloadUrl,
-        isZipProcessing: (state) => state.zipStatus.status === 'PROCESSING',
 
         hasSelectedPackage: (state) =>
             !!state.selectedBranch && !!state.selectedPackage,
@@ -395,7 +391,7 @@ export const useBookingStore = defineStore('booking', {
 
 
         /* -------------------------------------------
-        PAYMENT QR (UPDATE: SUPPORT DOKU CHECKOUT)
+        PAYMENT QR
         ------------------------------------------- */
         async generatePaymentQR(bookingId) {
             this.isLoading = true;
@@ -413,21 +409,16 @@ export const useBookingStore = defineStore('booking', {
             }
 
             try {
-                // Header Authorization Manual
                 const response = await apiClient.post(
                     `/payments/${bookingId}/qr`,
-                    {}, 
+                    {},
                     { headers: { 'Authorization': `Bearer ${token}` } }
                 );
-                
+
                 const paymentData = response.data.data;
 
-                // [UPDATE PENTING DI SINI]
-                // Kita sekarang menerima 'payment_url' dari backend, bukan hanya 'qr_code_url'
                 if (this.currentBooking && this.currentBooking.booking_id === bookingId) {
-                    // Simpan link pembayaran ke property state
-                    this.currentBooking.payment_link = paymentData.payment_url; 
-                    
+                    this.currentBooking.payment_link = paymentData.payment_url;
                     this.currentBooking.total_price_paid =
                         paymentData.total_amount || this.currentBooking.total_price_paid;
                 }
@@ -444,54 +435,51 @@ export const useBookingStore = defineStore('booking', {
             }
         },
 
+        /* =================================================================
+        HYBRID GALLERY SYSTEM (NEW)
+        Menggantikan sistem Worker/Lambda ZIP lama.
+        ================================================================= */
+
         /* -------------------------------------------
-        ZIP DOWNLOAD (Trigger)
+        1. FETCH GALLERY (Untuk Tampilan Grid)
         ------------------------------------------- */
-        async triggerZipDownload(bookingId) {
-            this.isLoading = true;
+        async fetchGallery(bookingId, email) {
+            this.isGalleryLoading = true;
             this.error = null;
-            this.zipStatus = {
-                status: 'PROCESSING',
-                message: 'Memicu pembuatan file ZIP...',
-                downloadUrl: null
-            };
+            this.galleryPhotos = [];
+            this.galleryBookingInfo = null; // Reset info
 
             try {
-                const response = await apiClient.post(`/photos/${bookingId}/download`);
-                const data = response.data.data;
+                const response = await apiClient.get(`/photos/${bookingId}/gallery`, {
+                    params: { email }
+                });
 
-                this.zipStatus = { ...this.zipStatus, ...data };
-                return data;
+                // Backend sekarang mengirim: { booking: {...}, photos: [...] }
+                const result = response.data.data;
+
+                this.galleryPhotos = result.photos || [];
+                this.galleryBookingInfo = result.booking || null;
+
+                return result;
 
             } catch (error) {
                 const message = error.response?.data?.message || error.message;
-                this.error = `Gagal memicu ZIP: ${message}`;
-                this.zipStatus = { status: 'FAILED', message, downloadUrl: null };
-                throw new Error(`Gagal memicu ZIP: ${message}`);
-
+                this.error = message;
+                throw error;
             } finally {
-                this.isLoading = false;
+                this.isGalleryLoading = false;
             }
         },
 
-
         /* -------------------------------------------
-        ZIP STATUS CHECK
+        2. GET ZIP URL (Untuk Tombol Download All)
+        Membangun URL untuk streaming ZIP langsung
         ------------------------------------------- */
-        async checkZipStatus(bookingId) {
-            this.error = null;
-
-            try {
-                const response = await apiClient.get(`/photos/${bookingId}/download-status`);
-                const data = response.data.data;
-                this.zipStatus = data;
-                return data;
-
-            } catch (error) {
-                const message = error.response?.data?.message || error.message;
-                this.zipStatus = { status: 'FAILED', message, downloadUrl: null };
-                throw new Error(`Gagal mengecek status ZIP: ${message}`);
-            }
+        getZipDownloadUrl(bookingId, email) {
+            // Kita perlu menyusun URL lengkap karena ini akan dibuka via window.location
+            // Pastikan VITE_API_URL di .env mengarah ke backend (misal http://localhost:3000/api)
+            const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+            return `${baseURL}/photos/${bookingId}/download-zip?email=${encodeURIComponent(email)}`;
         }
     }
 });

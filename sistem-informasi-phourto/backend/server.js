@@ -7,6 +7,7 @@ const apiError = require('./src/utils/apiError');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
+const initCronJobs = require('./src/jobs/cron.js')
 
 const app = express();
 
@@ -90,6 +91,8 @@ app.use((req, res, next) => {
 // Error handling middleware utama
 app.use(errorHandler);
 
+// Cron Jobs
+initCronJobs();
 
 // Jalankan Server
 const PORT = process.env.PORT || 5000;

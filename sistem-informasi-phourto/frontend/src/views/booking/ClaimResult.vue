@@ -1,164 +1,186 @@
 <script setup>
-import { ref, onMounted, nextTick, onUnmounted, computed } from 'vue';
+import { ref, onMounted, nextTick, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useBookingStore } from '../../stores/booking.stores.js';
-import { storeToRefs } from 'pinia';
+import { useBookingStore } from '@/stores/booking.stores';
 import feather from 'feather-icons';
 
 const route = useRoute();
 const router = useRouter();
 const bookingStore = useBookingStore();
 
-// --- Data dari URL ---
-const bookingCode = computed(() => route.query.code);
-const customerEmail = computed(() => route.query.email);
+const bookingCode = route.query.code;
+const email = route.query.email;
 
-// --- State dari Store ---
-// Kita gunakan zipStatus dari store untuk menampilkan status
-const { zipStatus, isLoading } = storeToRefs(bookingStore);
-const isInitialLoad = ref(true); // Untuk kontrol tampilan loading awal
+const isLoading = ref(true);
+const photos = ref([]);
+const bookingInfo = ref(null); // Info tambahan
+const errorMessage = ref(null);
 
-// Polling interval (setiap 5 detik)
-const POLLING_INTERVAL = 5000;
-let pollTimer = null;
+// --- Format Tanggal ---
+const formattedDate = computed(() => {
+  if (!bookingInfo.value?.start_time) return '-';
+  const date = new Date(bookingInfo.value.start_time);
+  return new Intl.DateTimeFormat('id-ID', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  }).format(date) + ' WIB';
+});
 
-// === Fungsi Utama ===
-
-// Fungsi untuk memulai pemeriksaan status (polling)
-const startPolling = (code) => {
-  // Jalankan pengecekan pertama kali
-  bookingStore.checkZipStatus(code);
-
-  // Atur timer untuk polling selanjutnya
-  pollTimer = setInterval(() => {
-    // Hentikan polling jika status sudah FINAL
-    if (zipStatus.value.status === 'READY' || zipStatus.value.status === 'FAILED') {
-      clearInterval(pollTimer);
-      return;
-    }
-    bookingStore.checkZipStatus(code);
-  }, POLLING_INTERVAL);
+const downloadAll = () => {
+  if (!bookingCode || !email) return;
+  const url = bookingStore.getZipDownloadUrl(bookingCode, email);
+  window.location.href = url;
 };
 
-// Fungsi untuk memicu pembuatan ZIP di backend
-const triggerDownload = async () => {
-  isInitialLoad.value = false;
-  // Panggil action trigger dari store
-  await bookingStore.triggerZipDownload(bookingCode.value);
+const refreshPage = () => router.go(0);
 
-  // Mulai polling setelah berhasil memicu
-  if (zipStatus.value.status === 'PROCESSING') {
-    startPolling(bookingCode.value);
-  }
-  nextTick(() => feather.replace());
-};
-
-// === Lifecycle ===
-onMounted(() => {
-  // 1. Guard: Pastikan kita punya kode booking dari URL
-  if (!bookingCode.value || !customerEmail.value) {
-    router.push('/claimphotos');
+onMounted(async () => {
+  if (!bookingCode || !email) {
+    errorMessage.value = "Data klaim tidak lengkap.";
+    isLoading.value = false;
     return;
   }
 
-  // 2. Lakukan pengecekan status awal
-  // (Kita asumsikan store akan mengembalikan status ZIP yang disimpan)
-  startPolling(bookingCode.value);
+  try {
+    // Fetch data (returns { booking, photos })
+    const result = await bookingStore.fetchGallery(bookingCode, email);
+    photos.value = result.photos;
+    bookingInfo.value = result.booking;
 
-  isInitialLoad.value = false;
-  nextTick(() => feather.replace());
-});
-
-// Hentikan polling saat keluar halaman
-onUnmounted(() => {
-  if (pollTimer) {
-    clearInterval(pollTimer);
+  } catch (error) {
+    errorMessage.value = error.message || "Gagal memuat foto.";
+  } finally {
+    isLoading.value = false;
+    nextTick(() => feather.replace());
   }
 });
 </script>
 
 <template>
-  <div class="bg-background min-h-screen text-text-default pt-24 pb-12">
+  <div class="bg-background min-h-screen font-display text-text-default pt-24 pb-12">
     <main class="container mx-auto px-4 max-w-2xl">
-      <!-- Header Navigasi -->
-      <div class="flex items-center justify-between mb-12">
-        <button @click="$router.back()"
-          class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-8">
+        <button @click="$router.push('/claimphotos')"
+          class="p-2 bg-primary text-white border-3 border-outline shadow-solid hover:translate-y-1 hover:shadow-none transition-all">
           <i data-feather="arrow-left" class="w-6 h-6"></i>
         </button>
-        <h1 class="text-3xl font-bold">Klaim Foto</h1>
-        <div class="w-12"></div>
+        <h1 class="text-3xl font-bold text-center flex-1">Download Foto</h1>
+        <div class="w-10"></div>
       </div>
 
-      <!-- Kartu Hasil Klaim -->
-      <div class="bg-white text-black p-6 border-4 border-outline shadow-solid space-y-6">
+      <!-- Card Utama -->
+      <div
+        class="bg-white border-4 border-outline shadow-solid p-6 md:p-8 rounded-lg text-center space-y-6 relative z-10">
 
-        <!-- Info Booking -->
-        <div class="border-b-2 border-dashed border-gray-300 pb-4">
-          <h2 class="text-xl font-bold">Status Galeri Anda</h2>
-          <p class="text-sm text-gray-700">Kode Booking: <span class="font-bold">{{ bookingCode }}</span></p>
-          <p class="text-sm text-gray-700">Email: {{ customerEmail }}</p>
+        <!-- 1. Detail Booking (DIPERBARUI) -->
+        <div class="border-b-2 border-gray-200 pb-6">
+          <div class="flex flex-col gap-1 mb-4">
+            <p class="text-gray-500 text-xs uppercase tracking-widest">Kode Booking</p>
+            <p class="text-3xl font-black text-primary tracking-wide">{{ bookingCode }}</p>
+          </div>
+
+          <!-- Grid Info Detail (Jika Data Ada) -->
+          <div v-if="bookingInfo"
+            class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left bg-gray-50 p-4 rounded-lg border-2 border-gray-100">
+            <!-- Paket -->
+            <div class="flex items-start gap-3">
+              <div class="bg-white p-2 rounded border border-gray-200">
+                <i data-feather="package" class="w-4 h-4 text-primary"></i>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">Paket</p>
+                <p class="font-bold text-sm text-gray-800 leading-tight">{{ bookingInfo.package_name }}</p>
+              </div>
+            </div>
+
+            <!-- Cabang -->
+            <div class="flex items-start gap-3">
+              <div class="bg-white p-2 rounded border border-gray-200">
+                <i data-feather="map-pin" class="w-4 h-4 text-primary"></i>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">Lokasi</p>
+                <p class="font-bold text-sm text-gray-800 leading-tight">{{ bookingInfo.branch_name }}</p>
+              </div>
+            </div>
+
+            <!-- Waktu (Full Width di Mobile) -->
+            <div class="md:col-span-2 flex items-start gap-3">
+              <div class="bg-white p-2 rounded border border-gray-200">
+                <i data-feather="calendar" class="w-4 h-4 text-primary"></i>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">Waktu Sesi</p>
+                <p class="font-bold text-sm text-gray-800 leading-tight">{{ formattedDate }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fallback Email jika data detail blm load -->
+          <div v-else>
+            <p class="text-gray-500 text-sm">Email</p>
+            <p class="font-bold">{{ email }}</p>
+          </div>
         </div>
 
-        <!-- Tampilan Status -->
-        <div :class="[
-          zipStatus.status === 'READY' ? 'bg-green-100 border-green-500' :
-            zipStatus.status === 'PROCESSING' ? 'bg-blue-100 border-blue-500' :
-              zipStatus.status === 'FAILED' ? 'bg-red-100 border-red-500' : 'bg-yellow-100 border-yellow-500'
-        ]" class="p-4 border-2 rounded-lg text-center">
-
-          <h3 class="font-bold text-lg mb-2">Status: {{ zipStatus.status || 'CHECKING' }}</h3>
-          <p class="text-sm">{{ zipStatus.message }}</p>
+        <!-- STATE: LOADING -->
+        <div v-if="isLoading" class="py-8">
+          <i data-feather="loader" class="w-12 h-12 animate-spin mx-auto text-primary mb-4"></i>
+          <p>Memuat detail sesi...</p>
         </div>
 
-        <!-- Tombol Aksi (Trigger / Download) -->
-        <div class="pt-4">
+        <!-- STATE: ERROR -->
+        <div v-else-if="errorMessage" class="bg-red-100 border-2 border-red-500 text-red-700 p-4 rounded">
+          <p class="font-bold flex items-center justify-center gap-2">
+            <i data-feather="alert-circle" class="w-5 h-5"></i> Gagal
+          </p>
+          <p class="mt-2 text-sm">{{ errorMessage }}</p>
+          <button @click="refreshPage" class="mt-4 text-xs underline hover:text-red-900">Coba Lagi</button>
+        </div>
 
-          <!-- 1. Jika SEDANG DIPROSES -->
-          <button v-if="zipStatus.status === 'PROCESSING'" disabled
-            class="w-full bg-gray-400 text-white font-bold py-3 border-3 border-outline shadow-solid disabled:opacity-70">
-            <i data-feather="loader" class="w-5 h-5 animate-spin mr-2"></i> SEDANG DIPROSES...
-          </button>
+        <!-- STATE: SUKSES -->
+        <div v-else class="pt-2 pb-4">
 
-          <!-- 2. Jika SUDAH SIAP -->
-          <a v-else-if="zipStatus.status === 'READY' && zipStatus.downloadUrl" :href="zipStatus.downloadUrl"
-            target="_blank"
-            class="w-full bg-background text-black font-bold py-3 border-3 border-outline shadow-solid hover:bg-yellow-300 block text-center">
-            <i data-feather="download" class="w-5 h-5 mr-2"></i> UNDUH GALERI SEKARANG
-          </a>
+          <!-- GRID FOTO -->
+          <div v-if="photos.length > 0" class="mb-8">
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-left">
+              <div v-for="(photo, index) in photos" :key="index"
+                class="group relative aspect-square bg-gray-100 border-2 border-outline rounded-lg overflow-hidden shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all">
 
-          <!-- 3. Jika PENDING atau GAGAL (Tampilkan tombol Trigger) -->
-          <button v-else-if="zipStatus.status === 'PENDING' || zipStatus.status === 'FAILED' || isInitialLoad"
-            @click="triggerDownload" :disabled="isLoading"
-            class="w-full bg-primary text-white font-bold py-3 border-3 border-outline shadow-solid hover:bg-red-600 disabled:opacity-50">
-            <span v-if="isLoading">MEMVERIFIKASI...</span>
-            <span v-else>KLIK UNTUK MENDAPATKAN LINK UNDUH</span>
-          </button>
+                <img :src="photo.photo_url" class="w-full h-full object-cover" loading="lazy" />
+
+                <a :href="photo.photo_url" download target="_blank"
+                  class="absolute bottom-1 right-1 bg-white border-2 border-outline p-1.5 rounded-full hover:bg-yellow-400 transition-colors opacity-0 group-hover:opacity-100">
+                  <i data-feather="download" class="w-3 h-3"></i>
+                </a>
+              </div>
+            </div>
+            <p class="text-xs text-gray-400 mt-2 text-right italic">Total: {{ photos.length }} Foto</p>
+          </div>
+
+          <!-- Tombol Download -->
+          <div class="border-t-2 border-gray-100 pt-6">
+            <p class="text-sm font-bold text-gray-700 mb-3">Simpan semua kenangan?</p>
+            <button @click="downloadAll"
+              class="block w-full bg-primary text-white font-bold py-4 text-xl border-3 border-outline shadow-solid hover:bg-red-700 transition-all hover:translate-y-1 hover:shadow-none">
+              <span class="flex items-center justify-center gap-3">
+                <i data-feather="download" class="w-6 h-6"></i>
+                DOWNLOAD SEMUA (.ZIP)
+              </span>
+            </button>
+          </div>
 
         </div>
+
       </div>
+
+      <!-- Bantuan -->
+      <div class="text-center mt-8 text-sm text-gray-500">
+        <p>Mengalami kendala? Hubungi <a href="#" class="text-primary underline font-bold">Admin WhatsApp</a></p>
+      </div>
+
     </main>
   </div>
 </template>
-
-<style scoped>
-/* Style tambahan untuk ikon yang berputar */
-i[data-feather].animate-spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Style input yang konsisten */
-.form-input-setting {
-  @apply w-full p-3 bg-white text-black border-3 border-outline shadow-solid focus:outline-none focus:ring-2 focus:ring-yellow-400;
-}
-</style>

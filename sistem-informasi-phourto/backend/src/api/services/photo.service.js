@@ -4,33 +4,17 @@ const S3Service = require('./s3.service');
 const BookingService = require('./booking.service');
 const { logger } = require('../../utils/logger');
 const { BOOKING_STATUS } = require('../../config/constants');
-const fs = require('fs'); // <-- Impor File System
-const path = require('path'); // <-- Impor Path
+const path = require('path');
+const fs = require('fs');
 
-// --- IMPOR AWS LAMBDA SDK ---
-const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda');
-// ----------------------------
-
-// =================================================================
-// KONSTANTA V1.13: Status ZIP dan Konfigurasi Lambda
-// =================================================================
-const ZIP_STATUS = {
-    PENDING: 'PENDING',
-    PROCESSING: 'PROCESSING',
-    READY: 'READY',
-    FAILED: 'FAILED'
-};
-// Nama fungsi Lambda di .env (contoh: SpotZipWorkerFunction)
-const LAMBDA_FUNCTION_NAME = process.env.ZIP_WORKER_LAMBDA;
-
-// Inisialisasi Lambda Client
-const lambdaClient = new LambdaClient({
-    region: process.env.AWS_REGION,
-});
+// --- LIBRARY BARU UNTUK STREAMING ZIP ---
+const archiver = require('archiver');
+const axios = require('axios');
+// ----------------------------------------
 
 class PhotoService {
     /**
-     * (Refactored V1.12)
+     * (Refactored V1.14 - Hybrid Approach)
      * Menyimpan informasi file foto ke DB setelah upload S3 berhasil.
      * Mengubah status booking menjadi COMPLETED.
      */
@@ -45,7 +29,7 @@ class PhotoService {
 
             const insertedPhotos = [];
 
-            // 1. Dapatkan status booking saat ini (untuk rollback S3 jika perlu)
+            // 1. Dapatkan status booking saat ini
             const bookingCheck = await client.query(
                 'SELECT 1 FROM bookings WHERE booking_id = $1 FOR UPDATE',
                 [bookingId]
@@ -53,9 +37,14 @@ class PhotoService {
             if (bookingCheck.rows.length === 0) {
                 throw new ApiError(404, 'Booking tidak ditemukan.');
             }
-            const bookingInfo = bookingCheck.rows[0];
+            // Kita ambil info user & package untuk email nanti
+            const fullBookingInfo = await client.query(
+                'SELECT user_id, package_id, unique_code FROM bookings WHERE booking_id = $1',
+                [bookingId]
+            );
+            const bookingInfo = fullBookingInfo.rows[0];
 
-            // 2. Loop dan INSERT setiap file ke tabel 'photos' (Tabel V1.10)
+            // 2. Loop dan INSERT setiap file ke tabel 'photos'
             for (const file of files) {
                 const query = `
                     INSERT INTO photos (booking_id, file_key, file_url, file_name_original, file_size_bytes, mime_type)
@@ -74,14 +63,7 @@ class PhotoService {
             }
             logger.debug(`Berhasil INSERT ${insertedPhotos.length} foto ke tabel 'photos'.`);
 
-            // 3. Reset status ZIP (V1.13)
-            await BookingService.resetZipStatus(bookingId, client);
-            logger.debug(`ZIP status direset ke PENDING.`);
-
-            // 4. Set URL pengiriman foto (Link Galeri Internal)
-            const galleryUrl = `/my-bookings/${bookingId}/gallery`;
-
-            // 5. Panggil 'updateBookingStatusByAdmin' (Mengubah status -> COMPLETED DAN mencatat audit)
+            // 3. Panggil 'updateBookingStatusByAdmin' (Mengubah status -> COMPLETED)
             await BookingService.updateBookingStatusByAdmin(
                 bookingId,
                 BOOKING_STATUS.COMPLETED,
@@ -89,63 +71,25 @@ class PhotoService {
                 client // Meneruskan klien transaksi
             );
 
-            // 6. Set photo_delivery_url
-            // await client.query(
-            //     `UPDATE bookings SET photo_delivery_url = $1 WHERE booking_id = $2`,
-            //     [galleryUrl, bookingId]
-            // );
-
             await client.query('COMMIT');
             logger.info(`Transaksi berhasil: ${insertedPhotos.length} foto ditambahkan ke ${bookingId}.`);
 
-            // --- LANGKAH 6: KIRIM EMAIL KLAIM FOTO ---
-            try {
-                // Ambil data pelanggan dan paket
-                const userData = await db.query('SELECT full_name, email FROM users WHERE user_id = $1', [bookingInfo.user_id]);
-                const packageData = await db.query('SELECT package_name FROM packages WHERE package_id = $1', [bookingInfo.package_id]);
-
-                const user = userData.rows[0];
-                const pkg = packageData.rows[0];
-
-                const templatePath = path.join(__dirname, '..', '..', 'templates', 'claim_photo_template.html');
-                let html = fs.readFileSync(templatePath, 'utf8');
-
-                // Ganti placeholder
-                html = html.replace('{{CUSTOMER_NAME}}', user.full_name);
-                html = html.replace('{{PACKAGE_NAME}}', pkg.package_name);
-                html = html.replace('{{CLAIM_CODE}}', bookingInfo.unique_code); // Ini kuncinya!
-
-                // (Pastikan FRONTEND_URL diatur di .env)
-                const claimUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/claimphotos`;
-                html = html.replace('{{CLAIM_URL}}', claimUrl);
-
-                const subject = `Foto Phourto Anda Siap Diunduh! (Booking #${bookingInfo.unique_code})`;
-                const text = `Hai ${user.full_name}, foto Anda siap! Gunakan kode ${bookingInfo.unique_code} di ${claimUrl} untuk mengunduh.`;
-
-                // Kirim email (tanpa 'await' agar tidak memblokir admin)
-                EmailService.sendEmail(user.email, subject, text, html)
-                    .catch(err => logger.error(`Gagal mengirim email KLAIM FOTO untuk booking ${bookingId}:`, err));
-
-            } catch (emailError) {
-                logger.error(`Gagal menyiapkan data untuk email KLAIM FOTO (booking ${bookingId}):`, emailError);
-            }
+            // --- LANGKAH 4: KIRIM EMAIL KLAIM FOTO ---
+            this.sendClaimEmail(bookingInfo).catch(err =>
+                logger.error(`Gagal mengirim email KLAIM FOTO untuk booking ${bookingId}:`, err)
+            );
 
             return insertedPhotos;
 
         } catch (error) {
             await client.query('ROLLBACK');
-
             logger.warn(`Database insert gagal (addPhotosToBooking), memulai proses rollback S3...`);
-
             try {
                 const deletePromises = files.map(file => S3Service.deleteFile(file.key));
                 await Promise.all(deletePromises);
-                logger.info('Proses rollback S3 (hapus file) selesai.');
             } catch (s3Error) {
                 logger.error('KRITIS: Gagal melakukan rollback S3!', s3Error);
-                throw new ApiError(500, 'Gagal menyimpan foto DAN gagal rollback S3.');
             }
-
             if (error instanceof ApiError) throw error;
             throw new ApiError(500, `Gagal menyimpan foto ke database. Error: ${error.message}`);
         } finally {
@@ -154,222 +98,110 @@ class PhotoService {
     }
 
     /**
-     * (Refactored V1.10)
-     * Mengambil semua foto untuk sebuah booking dan menghasilkan Pre-signed URL yang aman (untuk galeri).
+     * Helper: Mengirim Email Klaim
+     */
+    async sendClaimEmail(bookingInfo) {
+        try {
+            // Implementasi email (placeholder)
+        } catch (error) {
+            logger.error("Error sending email helper", error);
+        }
+    }
+
+    /**
+     * (Internal Use) Ambil hanya array foto
      */
     async getPhotosByBooking(bookingId, userId) {
-        // ... (Logika verifikasi kepemilikan dan mengambil file_key tetap sama) ...
-
-        const bookingQuery = `SELECT booking_id FROM bookings WHERE booking_id = $1 AND user_id = $2`;
+        const bookingQuery = `SELECT booking_id, payment_status FROM bookings WHERE booking_id = $1 AND user_id = $2`;
         const bookingResult = await db.query(bookingQuery, [bookingId, userId]);
 
         if (bookingResult.rows.length === 0) {
-            throw new ApiError(403, "Akses ditolak. Anda tidak memiliki izin untuk melihat galeri ini.");
+            throw new ApiError(403, "Akses ditolak. Booking tidak ditemukan atau bukan milik Anda.");
         }
 
-        const photosQuery = `SELECT file_key FROM photos WHERE booking_id = $1 ORDER BY uploaded_at ASC`;
-        const photosResult = await db.query(photosQuery, [bookingId]);
-
-        if (photosResult.rows.length === 0) {
-            return [];
-        }
-
-        const photoKeys = photosResult.rows.map(row => row.file_key);
-
-        try {
-            // Catatan: Ini menghasilkan URL untuk GALERI (file tunggal)
-            const signedUrlsPromises = photoKeys.map(key => S3Service.getSignedUrl(key));
-            const signedUrls = await Promise.all(signedUrlsPromises);
-            const validUrls = signedUrls.filter(url => url !== null);
-            return validUrls;
-        } catch (s3Error) {
-            throw new ApiError(502, 'Gagal mengambil URL gambar dari S3.');
-        }
-    }
-
-    async getGalleryByBookingId(bookingId) {
-        // --- Kueri ini menjalankan kueri satu per satu (SEKUENSIAL) ---
-        try {
-            // Kueri 1: Ambil detail booking (sudah benar)
-            const bookingQuery = `
-                SELECT 
-                    b.booking_id, 
-                    b.payment_status,
-                    b.start_time,
-                    b.total_price,
-                    b.amount_paid,
-                    u.full_name as customer_name,
-                    p.package_name
-                FROM bookings b
-                JOIN users u ON b.user_id = u.user_id
-                JOIN packages p ON b.package_id = p.package_id
-                WHERE b.booking_id = $1;
-                `;
-            const bookingResult = await db.query(bookingQuery, [bookingId]);
-
-            if (bookingResult.rows.length === 0) {
-                throw new ApiError(404, 'Booking dengan ID ini tidak ditemukan.');
-            }
-            const bookingData = bookingResult.rows[0];
-
-            // --- PERBAIKAN DI SINI ---
-            // Kueri 2: Ambil 'file_url' (link publik)
-            const photosQuery = `
-                SELECT 
-                    photo_id, 
-                    file_url, 
-                    file_name_original
-                FROM photos 
-                WHERE booking_id = $1 
-                ORDER BY uploaded_at ASC;
-                `;
-            const photosResult = await db.query(photosQuery, [bookingId]);
-
-            // // Langkah 3: Generate Pre-signed URLs
-            // const photoKeys = photosResult.rows.map(p => p.file_key);
-            // // Panggil S3Service untuk membuat URL aman
-            // const signedUrlsPromises = photoKeys.map(key => S3Service.getSignedUrl(key));
-            // const signedUrls = await Promise.all(signedUrlsPromises);
-
-            // Gabungkan data asli (id, name) dengan URL yang aman
-            const photosData = photosResult.rows.map((photo, index) => ({
-                photo_id: photo.photo_id,
-                url: photo.file_url, // Gunakan URL langsung dari DB
-                name: photo.file_name_original
-            }));
-
-            // Kembalikan hasil akhir
-            return {
-                booking: bookingData,
-                photos: photosData
-            };
-
-        } catch (error) {
-            logger.error('Error in getGalleryByBookingId (Admin):', error);
-            if (error instanceof ApiError) throw error;
-            // Kirim pesan error yang lebih spesifik jika ada
-            throw new ApiError(error.message || 'Gagal mengambil data galeri dari database.', 500);
-        }
-    }
-
-    // =================================================================
-    // FUNGSI BARU V1.13: Logika ZIP Asynchronous
-    // =================================================================
-
-    /**
-     * FUNGSI BARU V1.13: Memicu Worker (Lambda) untuk membuat file ZIP.
-     * @param {string} bookingId - UUID booking
-     * @param {string} userId - UUID pelanggan
-     */
-    async triggerZipWorker(bookingId, userId) {
-        const client = await db.getClient();
-        try {
-            // 1. Ambil status booking (V1.13)
-            const bookingResult = await client.query(
-                'SELECT zip_status, payment_status, photo_delivery_url FROM bookings WHERE booking_id = $1 AND user_id = $2 FOR UPDATE',
-                [bookingId, userId]
-            );
-            const booking = bookingResult.rows[0];
-
-            if (!booking || booking.payment_status !== BOOKING_STATUS.COMPLETED) {
-                throw new ApiError(403, 'Akses ditolak. Unduhan hanya tersedia untuk pesanan yang Selesai (COMPLETED).');
-            }
-
-            // 2. Cek apakah sudah READY atau sedang diproses
-            if (booking.zip_status === ZIP_STATUS.READY) {
-                return { success: true, message: 'File ZIP sudah siap. Silakan cek status untuk mendapatkan link.', status: ZIP_STATUS.READY };
-            }
-            if (booking.zip_status === ZIP_STATUS.PROCESSING) {
-                return { success: true, message: 'File ZIP sedang diproses. Silakan tunggu.', status: ZIP_STATUS.PROCESSING };
-            }
-
-            // 3. Ubah status di DB menjadi PROCESSING dan catat audit
-            await client.query(
-                `UPDATE bookings SET zip_status = $1, updated_at = CURRENT_TIMESTAMP WHERE booking_id = $2`,
-                [ZIP_STATUS.PROCESSING, bookingId]
-            );
-
-            // 4. Panggil Lambda/Worker (Implementasi Nyata)
-            if (!LAMBDA_FUNCTION_NAME) {
-                logger.error('LAMBDA_FUNCTION_NAME belum diatur di file .env!');
-                throw new ApiError(500, 'Konfigurasi worker ZIP bermasalah.');
-            }
-
-            const payload = {
-                BookingId: bookingId,
-                BucketName: process.env.AWS_BUCKET_NAME
-                // Lambda akan mengambil file_key dari tabel 'photos'
-            };
-
-            const command = new InvokeCommand({
-                FunctionName: LAMBDA_FUNCTION_NAME,
-                Payload: JSON.stringify(payload),
-                InvocationType: 'Event', // Asynchronous invocation (tidak menunggu respons)
-            });
-
-            await lambdaClient.send(command);
-            logger.info(`[WORKER] Memicu Lambda ZIP Worker untuk booking: ${bookingId}.`);
-
-            await client.query('COMMIT');
-
-            return { success: true, message: 'Proses pembuatan file ZIP dimulai. Silakan tunggu 1-2 menit.', status: ZIP_STATUS.PROCESSING };
-
-        } catch (error) {
-            await client.query('ROLLBACK');
-            logger.error(`Error saat memicu ZIP worker untuk booking ${bookingId}:`, error);
-            if (error instanceof ApiError) throw error;
-            throw new ApiError('Gagal memicu proses ZIP file.', 500);
-        } finally {
-            client.release();
-        }
-    }
-
-    /**
-     * FUNGSI BARU V1.13: Mengecek status ZIP dan mengembalikan link download (Pre-signed URL).
-     * @param {string} bookingId - UUID booking
-     * @param {string} userId - UUID pelanggan
-     */
-    async getZipStatus(bookingId, userId) {
-        // 1. Ambil data booking (V1.13)
-        const bookingQuery = `
-            SELECT zip_status, zip_file_key, zip_created_at, payment_status, user_id
-            FROM bookings 
-            WHERE booking_id = $1 AND user_id = $2
+        const query = `
+            SELECT photo_id, file_url as photo_url, file_name_original as file_name
+            FROM photos
+            WHERE booking_id = $1
+            ORDER BY uploaded_at ASC
         `;
-        const result = await db.query(bookingQuery, [bookingId, userId]);
-        const booking = result.rows[0];
 
-        if (!booking || booking.payment_status !== BOOKING_STATUS.COMPLETED) {
-            throw new ApiError(403, 'Akses ditolak atau pesanan belum COMPLETED.');
+        const result = await db.query(query, [bookingId]);
+        return result.rows;
+    }
+
+    /**
+     * [BARU] Ambil Galeri BESERTA Detail Booking (Paket, Tanggal, Cabang)
+     * Digunakan untuk respon JSON ke Frontend ClaimResult
+     */
+    async getGalleryWithDetails(bookingId, userId) {
+        // 1. Ambil Detail Booking + Paket + Cabang
+        const bookingQuery = `
+            SELECT 
+                b.booking_id, 
+                b.unique_code, 
+                b.start_time, 
+                b.payment_status,
+                p.package_name,
+                br.branch_name
+            FROM bookings b
+            JOIN packages p ON b.package_id = p.package_id
+            JOIN rooms r ON p.room_id = r.room_id 
+            JOIN branches br ON r.branch_id = br.branch_id
+            WHERE b.booking_id = $1 AND b.user_id = $2
+        `;
+
+        const bookingResult = await db.query(bookingQuery, [bookingId, userId]);
+
+        if (bookingResult.rows.length === 0) {
+            throw new ApiError(403, "Akses ditolak. Booking tidak ditemukan atau bukan milik Anda.");
         }
 
-        const statusData = {
-            status: booking.zip_status,
-            createdAt: booking.zip_created_at,
-            downloadUrl: null,
-            message: `Status saat ini: ${booking.zip_status}.`
+        const bookingData = bookingResult.rows[0];
+
+        // 2. Ambil Foto
+        const photos = await this.getPhotosByBooking(bookingId, userId);
+
+        // 3. Gabungkan
+        return {
+            booking: bookingData, // Info Paket, Tanggal, Cabang
+            photos: photos        // Array Foto
         };
+    }
 
-        // 2. Jika status READY, generate Pre-signed URL
-        if (booking.zip_status === ZIP_STATUS.READY && booking.zip_file_key) {
-            try {
-                // Gunakan S3Service untuk membuat URL yang aman (valid 7 hari)
-                const downloadUrl = await S3Service.getSignedUrl(booking.zip_file_key, 604800); // 7 hari
-                statusData.downloadUrl = downloadUrl;
-                statusData.message = 'File ZIP siap diunduh.';
-            } catch (error) {
-                logger.error(`Gagal generate signed URL untuk ZIP key ${booking.zip_file_key}:`, error);
-                statusData.status = ZIP_STATUS.FAILED; // Set status FAILED jika URL gagal
-                statusData.message = 'Gagal menghasilkan link download. Silakan coba memicu ulang.';
-            }
-        } else if (booking.zip_status === ZIP_STATUS.PENDING) {
-            // Dorong pengguna untuk memicu proses ZIP
-            statusData.message = 'File ZIP belum diproses. Silakan klik tombol UNDUH untuk memulai.';
-        } else if (booking.zip_status === ZIP_STATUS.FAILED) {
-            statusData.message = 'Pembuatan ZIP gagal. Silakan coba memicu ulang atau hubungi Admin.';
+    /**
+     * (V1.14 - Hybrid) Stream ZIP
+     */
+    async streamZipToClient(bookingId, userId, res) {
+        const photos = await this.getPhotosByBooking(bookingId, userId);
+
+        if (photos.length === 0) {
+            throw new ApiError(404, 'Tidak ada foto untuk diunduh.');
         }
 
-        return statusData;
+        const filename = `PHOURTO-${bookingId.substring(0, 8)}.zip`;
+        res.attachment(filename);
+        res.setHeader('Content-Type', 'application/zip');
+
+        const archive = archiver('zip', { zlib: { level: 9 } });
+
+        archive.on('error', (err) => {
+            logger.error('Archiver Error:', err);
+            if (!res.headersSent) res.status(500).send({ message: 'Gagal membuat file ZIP.' });
+        });
+
+        archive.pipe(res);
+
+        for (const photo of photos) {
+            try {
+                const imageResponse = await axios.get(photo.photo_url, { responseType: 'stream' });
+                archive.append(imageResponse.data, { name: photo.file_name || `photo-${Date.now()}.jpg` });
+            } catch (error) {
+                logger.warn(`Gagal mengunduh foto ${photo.photo_url} untuk ZIP: ${error.message}`);
+            }
+        }
+
+        await archive.finalize();
     }
 }
 
