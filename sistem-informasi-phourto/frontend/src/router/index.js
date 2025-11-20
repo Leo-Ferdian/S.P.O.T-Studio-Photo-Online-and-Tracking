@@ -28,24 +28,9 @@ const routes = [
         meta: { requiresGuest: true },
     },
     {
-        path: '/dashboard',
-        name: 'dashboard',
-        component: () => import('../views/user/dashboard.vue'),
-    },
-    {
-        path: '/profile',
-        name: 'profile',
-        component: () => import('../views/user/profile.vue'),
-    },
-    {
-        path: '/gallery',
-        name: 'gallery',
-        component: () => import('../views/user/gallery.vue'),
-    },
-    {
         path: '/RiwayatBooking',
         name: 'RiwayatBooking',
-        component: () => import('../views/user/RiwayatBooking.vue'),
+        component: () => import('../views/RiwayatBooking.vue'),
     },
     {
         path: '/admin/login',

@@ -19,6 +19,11 @@ const branchRoutes = require('./src/api/routes/branch.routes');
 const bookingRoutes = require('./src/api/routes/booking.routes');
 const paymentRoutes = require('./src/api/routes/payment.routes');
 const photoRoutes = require('./src/api/routes/photo.routes');
+const riwayatBookingRoutes = require('./src/api/routes/riwayatBooking.routes');
+
+
+
+
 // Rute Admin
 const adminPackageRoutes = require('./src/api/routes/admin/package.routes');
 const adminBranchRoutes = require('./src/api/routes/admin/branch.routes');
@@ -73,6 +78,10 @@ app.use('/api/users', userRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/photos', photoRoutes);
+app.use('/api/riwayat-booking', riwayatBookingRoutes);
+
+
+
 // Rute Admin
 app.use('/api/admin/packages', adminPackageRoutes);
 app.use('/api/admin/branches', adminBranchRoutes);

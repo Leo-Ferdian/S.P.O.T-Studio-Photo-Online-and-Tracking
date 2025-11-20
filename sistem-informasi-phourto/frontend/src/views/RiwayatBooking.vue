@@ -7,7 +7,7 @@ const loading = ref(true)
 
 const fetchHistory = async () => {
   try {
-    const res = await apiClient.get('/user/booking-history')
+    const res = await apiClient.get('/riwayat-booking')
     history.value = res.data.data
   } catch (error) {
     console.error("Gagal memuat riwayat booking:", error)
@@ -26,35 +26,12 @@ onMounted(() => fetchHistory())
     <aside class="w-90 bg-primary text-white p-12 flex flex-col gap-4">
       <h2 class="text-2xl font-bold mb-4">Studio Phour To</h2>
 
-      <nav class="text-xl flex flex-col gap-3">
-        <router-link
-          to="/dashboard"
-          class="text-white bg-primary px-3 py-2 rounded hover:bg-[#A21217] cursor-pointer"
-        >
-          Dashboard
-        </router-link>
-
-        <router-link
-          to="/RiwayatBooking"
-          class="text-white bg-primary px-3 py-2 rounded hover:bg-[#A21217] cursor-pointer"
-        >
-          Riwayat Booking
-        </router-link>
-
-        <router-link
-          to="/gallery"
-          class="text-white bg-primary px-3 py-2 rounded hover:bg-[#A21217] cursor-pointer"
-        >
-          Gallery Foto
-        </router-link>
-
-        <router-link
-          to="/profile"
-          class="text-white bg-primary px-3 py-2 rounded hover:bg-[#A21217] cursor-pointer"
-        >
-          Profile
-        </router-link>
-      </nav>
+      <router-link
+        to="/home"
+        class="text-white text-3xl bg-primary px-3 py-2 rounded hover:bg-[#A21217] cursor-pointer"
+      >
+        Home
+      </router-link>
     </aside>
 
     <!-- MAIN -->
@@ -70,7 +47,7 @@ onMounted(() => fetchHistory())
       <!-- EMPTY -->
       <div
         v-else-if="history.length === 0"
-        class="bg-primary p-12 rounded text-center text-white border-4  border-outline shadow-solid hover:bg-[#A21217] cursor-pointer w-full"
+        class="bg-primary p-12 rounded text-center text-white border-4 border-outline shadow-solid hover:bg-[#A21217] cursor-pointer w-full"
       >
         <h2 class="text-2xl mb-4">Belum Ada Riwayat Booking</h2>
         <p class="text-white">Booking yang sudah dilakukan akan muncul di sini.</p>
@@ -86,11 +63,19 @@ onMounted(() => fetchHistory())
         >
           <h3 class="text-2xl font-bold mb-2">{{ item.serviceName }}</h3>
 
+          <p><span class="font-semibold">Location:</span> {{ item.location }}</p>
+
           <p><span class="font-semibold">Tanggal:</span>
             {{ new Date(item.date).toLocaleDateString('id-ID') }}
           </p>
 
-          <p><span class="font-semibold">Jam:</span> {{ item.time || "Tidak ada" }}</p>
+          <p><span class="font-semibold">Waktu Mulai:</span>
+            {{ new Date(item.start_time).toLocaleTimeString('id-ID') }}
+          </p>
+
+          <p><span class="font-semibold">Waktu Selesai:</span>
+            {{ new Date(item.end_time).toLocaleTimeString('id-ID') }}
+          </p>
 
           <p class="mt-2">
             <span class="font-semibold">Harga:</span> Rp {{ item.price?.toLocaleString() }}
@@ -104,7 +89,7 @@ onMounted(() => fetchHistory())
 
             <span
               class="px-3 py-1 rounded text-black font-bold bg-green-300 border border-black"
-              v-else-if="item.status === 'completed'"
+              v-else-if="item.status === 'paid'"
             >Selesai</span>
 
             <span
@@ -112,7 +97,6 @@ onMounted(() => fetchHistory())
               v-else
             >{{ item.status }}</span>
           </div>
-
         </div>
 
       </div>

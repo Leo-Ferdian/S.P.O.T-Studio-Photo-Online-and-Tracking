@@ -191,7 +191,7 @@ onMounted(() => {
       <!-- OUR LOCATION -->
       <section class="py-10">
         <div class="text-center mb-8">
-          <TittleBadge text="OUR LOCATION" />
+          <TittleBadge class="bg-white rounded-lg" text="OUR LOCATION" />
         </div>
 
         <div class="space-y-4 max-w-2xl mx-auto">
