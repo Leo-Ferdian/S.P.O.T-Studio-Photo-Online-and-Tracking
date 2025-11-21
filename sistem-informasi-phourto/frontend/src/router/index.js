@@ -101,11 +101,6 @@ const routes = [
         component: () => import('../views/booking/Confirmation.vue'),
         meta: { requiresAuth: true },
     },
-    {
-        path: '/contact-us',
-        name: 'ContactUs',
-        component: () => import('../views/ContactUs.vue'),
-    },
     // {
     //     path: '/framecatalog',
     //     name: 'FrameCatalog',
