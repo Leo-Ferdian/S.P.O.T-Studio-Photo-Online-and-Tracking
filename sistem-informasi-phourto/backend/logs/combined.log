@@ -3962,3 +3962,9 @@
 {"level":"info","message":"Inisialisasi Cron Jobs...","service":"phourto-api","timestamp":"2025-11-21 20:39:39"}
 {"level":"info","message":"Cron Jobs berhasil dijadwalkan.","service":"phourto-api","timestamp":"2025-11-21 20:39:39"}
 {"level":"info","message":"Email Transporter Siap Mengirim Email","service":"phourto-api","timestamp":"2025-11-21 20:39:41"}
+{"level":"info","message":"Inisialisasi Cron Jobs...","service":"phourto-api","timestamp":"2025-11-21 20:41:43"}
+{"level":"info","message":"Cron Jobs berhasil dijadwalkan.","service":"phourto-api","timestamp":"2025-11-21 20:41:43"}
+{"level":"info","message":"Email Transporter Siap Mengirim Email","service":"phourto-api","timestamp":"2025-11-21 20:41:45"}
+{"level":"info","message":"Inisialisasi Cron Jobs...","service":"phourto-api","timestamp":"2025-11-21 20:41:57"}
+{"level":"info","message":"Cron Jobs berhasil dijadwalkan.","service":"phourto-api","timestamp":"2025-11-21 20:41:57"}
+{"level":"info","message":"Email Transporter Siap Mengirim Email","service":"phourto-api","timestamp":"2025-11-21 20:41:58"}

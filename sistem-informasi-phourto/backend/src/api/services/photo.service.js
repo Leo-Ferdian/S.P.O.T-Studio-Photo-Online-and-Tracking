@@ -98,13 +98,121 @@ class PhotoService {
     }
 
     /**
-     * Helper: Mengirim Email Klaim
+     * @function getGalleryByBookingId
+     * @desc Mengambil detail booking dan semua foto terkait (untuk admin)
+     * @param {string} bookingId - UUID booking
+     * @returns {Promise<object>} Objek berisi { booking, photos }
      */
-    async sendClaimEmail(bookingInfo) {
+    async getGalleryByBookingId(bookingId) {
         try {
-            // Implementasi email (placeholder)
+            // --- 1. Ambil Detail Booking ---
+            const bookingQuery = `
+            SELECT 
+                b.booking_id, 
+                b.payment_status,
+                b.start_time,
+                b.total_price,
+                b.amount_paid,
+                u.full_name AS customer_name,
+                p.package_name
+            FROM bookings b
+            JOIN users u ON b.user_id = u.user_id
+            JOIN packages p ON b.package_id = p.package_id
+            WHERE b.booking_id = $1;
+        `;
+
+            const bookingResult = await db.query(bookingQuery, [bookingId]);
+
+            if (bookingResult.rows.length === 0) {
+                throw new ApiError(404, 'Booking dengan ID ini tidak ditemukan.');
+            }
+
+            const bookingData = bookingResult.rows[0];
+
+            // --- 2. Ambil Daftar Foto (file_url publik) ---
+            const photosQuery = `
+            SELECT
+                photo_id,
+                file_name_original,
+                file_url
+            FROM photos
+            WHERE booking_id = $1
+            ORDER BY uploaded_at ASC;
+        `;
+
+            const photosResult = await db.query(photosQuery, [bookingId]);
+
+            const photosData = photosResult.rows.map(photo => ({
+                photo_id: photo.photo_id,
+                url: photo.file_url, // URL publik langsung dari DB
+                name: photo.file_name_original
+            }));
+
+            // --- 3. Return Data Lengkap ---
+            return {
+                booking: bookingData,
+                photos: photosData
+            };
+
         } catch (error) {
-            logger.error("Error sending email helper", error);
+            logger.error('Error in getGalleryByBookingId (Admin):', error);
+
+            if (error instanceof ApiError) {
+                throw error;
+            }
+
+            throw new ApiError(
+                error.message || 'Gagal mengambil data galeri dari database.',
+                500
+            );
+        }
+    }
+
+
+    /**
+     * Helper: Mengirim Email Klaim dengan Template HTML
+     */
+    async sendClaimEmail(info) {
+        try {
+            // 1. Tentukan Path Template HTML
+            const templatePath = path.join(__dirname, '../../templates', 'claim_photo_template.html');
+
+            // 2. Baca File Template
+            let htmlContent = fs.readFileSync(templatePath, 'utf8');
+
+            // 3. Siapkan URL Magic Link
+            // Ambil URL Frontend dari .env atau default ke localhost
+            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+            // Link langsung ke halaman ClaimResult
+            const magicLink = `${frontendUrl}/booking/ClaimResult?code=${encodeURIComponent(info.unique_code)}&email=${encodeURIComponent(info.email)}`;
+
+            // 4. Ganti Placeholder di HTML (MENGGUNAKAN REGEX AGAR LEBIH AMAN)
+            // Regex /\{\{\s*KEY\s*\}\}/g artinya:
+            // - Cari kurung kurawal ganda {{ ... }}
+            // - \s* toleransi spasi (misal {{CUSTOMER_NAME}} atau {{ CUSTOMER_NAME }})
+            // - g (global) ganti semua kemunculan jika ada lebih dari satu
+
+            htmlContent = htmlContent.replace(/\{\{\s*CUSTOMER_NAME\s*\}\}/g, info.full_name);
+            htmlContent = htmlContent.replace(/\{\{\s*PACKAGE_NAME\s*\}\}/g, info.package_name);
+            htmlContent = htmlContent.replace(/\{\{\s*CLAIM_CODE\s*\}\}/g, info.unique_code);
+
+            // INI BAGIAN PENTING YANG TADI ERROR:
+            htmlContent = htmlContent.replace(/\{\{\s*CLAIM_URL\s*\}\}/g, magicLink);
+
+            // 5. Kirim Email
+            const EmailService = require('./email.service'); // Pastikan path ini benar
+
+            await EmailService.sendEmail({
+                to: info.email,
+                subject: `Foto Anda Siap! - Kode: ${info.unique_code}`,
+                html: htmlContent
+            });
+
+            logger.info(`Email klaim foto terkirim ke ${info.email}`);
+
+        } catch (error) {
+            logger.error("Error sending email helper:", error);
         }
     }
 
