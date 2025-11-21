@@ -29,11 +29,7 @@ const userProfileLink = computed(() => {
 
             <!-- Logo -->
             <router-link to="/" class="inline-block">
-            <img 
-            src="@/assets/logo phourto.png" 
-            alt="Phourto Logo" 
-            class="h-[130px] w-auto"
-            />
+                <img src="@/assets/logo phourto.png" alt="Phourto Logo" class="h-[100px] w-auto" />
             </router-link>
 
 
@@ -54,7 +50,7 @@ const userProfileLink = computed(() => {
                 </router-link>
                 <router-link to="/RiwayatBooking" class="bg-primary text-text-default px-3 py-1 border-3 border-outline shadow-solid 
                     hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 
-                     duration-100 flex items-center gap-2 hover:translate-y-1 hover:shadow-none transition-all">
+                    duration-100 flex items-center gap-2 hover:translate-y-1 hover:shadow-none transition-all">
                     Booking History
                 </router-link>
             </div>

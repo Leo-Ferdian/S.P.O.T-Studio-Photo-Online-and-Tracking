@@ -1,7 +1,9 @@
 <template>
     <aside class="w-64 bg-background text-text-default p-6 flex-col font-display hidden md:flex">
-        <h1 class="font-display text-4xl font-bold relative mb-12">
-            Phour<span class="text-primary text-5xl absolute -bottom-2 -right-6 transform -rotate-12">to</span>
+        <h1 class="font-display text-4xl font-bold relative">
+            <router-link to="/" class="inline-block">
+                <img src="@/assets/logo phourto.png" alt="Phourto Logo" class="h-[110px] w-auto" />
+            </router-link>
         </h1>
         <nav class="space-y-4">
             <div>
