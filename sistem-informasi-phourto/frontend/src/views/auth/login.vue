@@ -57,14 +57,14 @@ onMounted(() => {
 
 <template>
     <div class="bg-background min-h-screen flex items-center justify-center text-text-default">
-        <div class="max-w-lg w-full p-8 space-y-6">
+        <div class="max-w-lg w-full space-y-6">
             <!-- Logo -->
-            <router-link to="/" class="text-5xl font-bold relative inline-block mx-auto mb-8">
-                Phour
-                <span class="text-primary text-6xl absolute -bottom-2 -right-8 transform -rotate-12">to</span>
-                <span class="absolute top-0 right-0 text-[10px] leading-none w-20 text-right">
-                    we'll partner<br />with our<br />best
-                </span>
+            <router-link to="/" class="inline-block">
+            <img 
+            src="@/assets/logo phourto.png" 
+            alt="Phourto Logo" 
+            class="h-[150px] w-auto"
+            />
             </router-link>
 
             <!-- Form Login -->

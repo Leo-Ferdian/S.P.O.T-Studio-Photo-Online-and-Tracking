@@ -28,13 +28,15 @@ const userProfileLink = computed(() => {
         <div class="container mx-auto flex justify-between items-center px-4 h-20">
 
             <!-- Logo -->
-            <router-link to="/" class="text-4xl font-bold relative">
-                Phour
-                <span class="text-primary text-5xl absolute -bottom-2 -right-6 transform -rotate-12">to</span>
-                <span class="absolute top-0 right-0 text-[8px] leading-none w-16 text-right">
-                    we'll partner<br />with our<br />best
-                </span>
+            <router-link to="/" class="inline-block">
+            <img 
+            src="@/assets/logo phourto.png" 
+            alt="Phourto Logo" 
+            class="h-[130px] w-auto"
+            />
             </router-link>
+
+
 
             <!-- Menu Navigasi (Desktop) -->
             <div class="hidden md:flex items-center space-x-3">

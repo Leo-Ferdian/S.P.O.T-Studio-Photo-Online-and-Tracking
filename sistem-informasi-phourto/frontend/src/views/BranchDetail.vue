@@ -120,7 +120,7 @@ onMounted(async () => {
                         </div>
 
                         <button @click="togglePlanSection(pkg.id)"
-                            class="w-full bg-background text-text-default font-bold py-2 border-3 border-outline shadow-solid hover:translate-y-1 hover:shadow-none transition-all">
+                            class="w-full bg-background text-text-default font-bold py-2 border-3 border-outline shadow-solid hover:translate-y-1 hover:shadow-none transition-all hover:bg-yellow-600">
                             {{ activePackageId === pkg.id ? "Tutup Plan" : "Pilih Room" }}
                         </button>
 
@@ -150,7 +150,7 @@ onMounted(async () => {
                                             <router-link
                                                 :to="`/booking/${props.branchName}/${pkg.id}?plan=${plan.planId}`"
                                                 @click="selectPlan(plan)"
-                                                class="block text-center bg-background font-bold py-2 border-2 border-outline shadow-solid hover:translate-y-1 hover:shadow-none transition-all">
+                                                class="block text-center bg-background font-bold py-2 border-2 border-outline shadow-solid hover:translate-y-1 hover:shadow-none transition-all hover:bg-yellow-600">
                                                 Booking Room
                                             </router-link>
                                         </div>

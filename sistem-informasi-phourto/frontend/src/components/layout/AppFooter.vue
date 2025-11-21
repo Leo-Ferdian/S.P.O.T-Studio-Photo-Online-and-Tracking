@@ -8,16 +8,18 @@ onMounted(() => {
 </script>
 
 <template>
-    <footer class="bg-white text-text-default p-8">
+    <footer class="bg-white text-text-default p-4">
         <div class="container mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start lg:items-center">
 
             <div class="mb-8 lg:mb-0 lg:col-span-3">
-                <router-link to="/" class="font-display text-4xl font-bold relative inline-block">
-                    Phour<span class="text-primary text-5xl absolute -bottom-2 -right-6 transform -rotate-12">to</span>
-                    <span class="absolute top-0 right-0 text-[8px] leading-none font-sans font-bold w-16 text-right">
-                        we'll partner<br>with our<br>best
-                    </span>
-                </router-link>
+                <!-- Logo -->
+            <router-link to="/" class="inline-block">
+            <img 
+            src="@/assets/logo phourto.png" 
+            alt="Phourto Logo" 
+            class="h-[150px] w-auto"
+            />
+            </router-link>
             </div>
 
             <div class="lg:col-span-6 grid grid-cols-2 sm:grid-cols-4 gap-4 font-display text-sm w-full">
