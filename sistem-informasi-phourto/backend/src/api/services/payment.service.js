@@ -5,10 +5,10 @@ const ApiError = require('../../utils/apiError');
 const { logger } = require('../../utils/logger');
 
 // --- CONFIGURATION ---
-const DOKU_CLIENT_ID = ("BRN-0247-1763549965476").trim();
-const DOKU_SECRET_KEY = ("SK-y7ttkjxdPAji58REhIK3").trim();
+const DOKU_CLIENT_ID = "BRN-0213-1762253922705".trim();
+const DOKU_SECRET_KEY = "SK-Wvaeq22eWQCYKMvmFGCT".trim();
 
-const DOKU_ORDER_URL = "https://api-sandbox.doku.com/checkout/v1/payment";
+const DOKU_ORDER_URL = "https://api.doku.com/checkout/v1/payment";
 const DOKU_WEBHOOK_TARGET = process.env.DOKU_WEBHOOK_TARGET || '/api/payments/notifications';
 
 // Instance Axios Bersih
@@ -53,7 +53,6 @@ class PaymentService {
     async createCheckoutPayment(booking, user) {
         const requestId = `REQ-${booking.booking_id.substring(0, 8)}-${Date.now()}`;
 
-        // Format Timestamp ISO tanpa milidetik (.000Z -> Z)
         const now = new Date();
         const timestamp = now.toISOString().substring(0, 19) + "Z";
 
@@ -64,7 +63,7 @@ class PaymentService {
                 amount: amountValue,
                 invoice_number: booking.booking_id,
                 currency: "IDR",
-                callback_url: "http://localhost:5173/booking/success", // Ganti dengan URL frontend success page Anda
+                callback_url: "http://localhost:5173/booking/success",
                 auto_redirect: true
             },
             payment: {
@@ -82,10 +81,15 @@ class PaymentService {
 
         const bodyString = JSON.stringify(body);
         const digest = crypto.createHash('sha256').update(bodyString).digest('base64');
-
         const requestTarget = "/checkout/v1/payment";
 
-        const stringToSign = `Client-Id:${DOKU_CLIENT_ID}\nRequest-Id:${requestId}\nRequest-Timestamp:${timestamp}\nRequest-Target:${requestTarget}\nDigest:${digest}`;
+        const stringToSign =
+            `Client-Id:${DOKU_CLIENT_ID}\n` +
+            `Request-Id:${requestId}\n` +
+            `Request-Timestamp:${timestamp}\n` +
+            `Request-Target:${requestTarget}\n` +
+            `Digest:${digest}`;
+
         const signature = this._createSignature(stringToSign);
         const finalSignatureHeader = "HMACSHA256=" + signature;
 
@@ -100,32 +104,36 @@ class PaymentService {
         try {
             const response = await dokuClient.post(DOKU_ORDER_URL, body, { headers });
 
-            console.log("✅ DOKU Link Created:", response.data.response.payment.url);
+            console.log("========================================");
+            console.log("DOKU RESPONSE:", JSON.stringify(response.data, null, 2));
+            console.log("========================================");
 
+            const paymentId = response.data.response.payment.id;     // <= 🔥 WAJIB DISIMPAN
             const paymentUrl = response.data.response.payment.url;
             const invoiceNumber = response.data.response.order.invoice_number;
 
-            // [PERBAIKAN DATABASE] Menggunakan kolom 'amount_paid' yang valid
+            // ⬇⬇⬇ SIMPAN paymentId ke DB ⬇⬇⬇
             const updateQuery = `
-                UPDATE bookings
-                SET 
-                    payment_gateway_ref = $1, 
-                    payment_qr_url = $2, 
-                    amount_paid = $3,   -- <-- PERBAIKAN: Nama kolom disesuaikan dengan CSV
-                    updated_at = NOW()
-                WHERE booking_id = $4
-                RETURNING *;
-            `;
+            UPDATE bookings
+            SET 
+                payment_gateway_ref = $1,    -- <== SAVE payment.id KE SINI
+                payment_qr_url = $2,
+                amount_paid = $3,
+                updated_at = NOW()
+            WHERE booking_id = $4
+            RETURNING *;
+        `;
 
             await db.query(updateQuery, [
-                invoiceNumber,
+                paymentId,        // ⬅ Wajib: untuk check-status
                 paymentUrl,
-                amountValue, // Mengisi kolom amount_paid dengan nilai transaksi ini
+                amountValue,
                 booking.booking_id
             ]);
 
             return {
                 order_id: invoiceNumber,
+                payment_id: paymentId,       // ⬅ kirim ke frontend
                 payment_url: paymentUrl,
                 total_amount: amountValue,
             };

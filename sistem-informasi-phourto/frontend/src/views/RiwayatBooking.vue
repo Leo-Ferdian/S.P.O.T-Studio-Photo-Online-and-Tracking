@@ -3,8 +3,11 @@ import { ref, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import apiClient from '@/api/api'
 import feather from 'feather-icons'
+// Import Store
+import { useBookingStore } from '@/stores/booking.stores'
 
 const router = useRouter()
+const bookingStore = useBookingStore() // Gunakan store
 const history = ref([])
 const loading = ref(true)
 
@@ -12,7 +15,6 @@ const loading = ref(true)
 const fetchHistory = async () => {
   try {
     const res = await apiClient.get('/bookings/my-bookings')
-    // Mengambil data (pastikan backend sudah update seperti diskusi sebelumnya)
     history.value = res.data?.data?.data || []
   } catch (error) {
     console.error("Gagal memuat riwayat booking:", error)
@@ -22,12 +24,9 @@ const fetchHistory = async () => {
   }
 }
 
-// --- HELPER: AMBIL KODE KLAIM ---
+// --- HELPER ---
 const getClaimCode = (item) => {
-  // Prioritas ambil unique_code (misal: PHR-83921)
   if (item.unique_code) return item.unique_code;
-
-  // Fallback jika data lama belum punya unique_code
   return `PHR-${item.booking_id ? item.booking_id.substring(0, 6).toUpperCase() : 'ERR'}`;
 }
 
@@ -47,9 +46,28 @@ const formatTime = (start) => {
 
 // --- NAVIGASI ---
 const goToClaim = (item) => {
-  const code = getClaimCode(item);
-  // Arahkan ke halaman klaim dengan kode otomatis terisi
   router.push(`/claimphotos`);
+}
+
+// [FITUR BARU] Handle Bayar Sekarang
+const handlePayNow = (item) => {
+  // 1. Set 'currentBooking' di store dengan data dari item ini
+  //    Kita perlu memastikan struktur datanya cocok dengan yang diharapkan Payment.vue
+  //    Payment.vue butuh: booking_id, total_price_paid (atau total_price)
+
+  const bookingDataForStore = {
+    booking_id: item.booking_id,
+    total_price_paid: item.total_price, // Mapping harga
+    payment_status: item.payment_status,
+    // Tambahkan field lain jika Payment.vue butuh (misal payment_link kalau sudah ada di DB)
+    payment_link: item.payment_qr_url // Jika backend sudah simpan link di sini
+  };
+
+  // 2. Simpan ke Store (Manual Set)
+  bookingStore.currentBooking = bookingDataForStore;
+
+  // 3. Arahkan ke halaman Payment
+  router.push('/booking/payment');
 }
 
 onMounted(() => {
@@ -61,20 +79,15 @@ onMounted(() => {
   <div class="bg-background min-h-screen font-display text-text-default pt-24 pb-12">
     <main class="container mx-auto px-4 max-w-5xl">
 
-      <div class="flex items-center justify-between mb-12">
-        <div class="flex-1">
-          <div class="flex items-center space-x-2">
-            <button @click="$router.back()"
-              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
-              <i data-feather="arrow-left" class="w-6 h-6"></i>
-            </button>
-            <button @click="$router.push('/Home')"
-              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
-              <i data-feather="home" class="w-6 h-6"></i>
-            </button>
-          </div>
-        </div>
-
+      <div class="flex items-center justify-between mb-10">
+        <button @click="$router.back()"
+          class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
+          <i data-feather="arrow-left" class="w-6 h-6"></i>
+        </button>
+        <button @click="$router.push('/Home')"
+          class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
+          <i data-feather="home" class="w-6 h-6"></i>
+        </button>
         <h1 class="text-3xl md:text-4xl font-bold text-center flex-1 uppercase tracking-wider">
           Riwayat Sesi
         </h1>
@@ -179,7 +192,8 @@ onMounted(() => {
               <span>Ambil Foto</span>
             </button>
 
-            <button v-else-if="item.payment_status === 'PENDING'"
+            <!-- TOMBOL BAYAR DIPERBAIKI -->
+            <button v-else-if="item.payment_status === 'PENDING'" @click="handlePayNow(item)"
               class="flex items-center gap-2 bg-yellow-400 text-black px-4 py-2 rounded font-bold text-sm border-2 border-black hover:bg-yellow-500 transition-all shadow-md">
               <i data-feather="credit-card" class="w-4 h-4"></i>
               <span>Bayar Sekarang</span>
