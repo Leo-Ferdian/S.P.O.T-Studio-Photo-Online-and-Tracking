@@ -86,7 +86,7 @@ const toggleConfirmPasswordVisibility = () => {
         <div class="max-w-lg w-full p-8 space-y-6">
 
             <!-- Logo -->
-            <router-link to="/" class="text-5xl font-bold relative inline-block mx-auto mb-8 text-center block">
+            <router-link to="/" class="text-5xl font-bold relative inline-block mx-auto mb-8 text-center">
                 Phour
                 <span class="text-primary text-6xl absolute -bottom-2 -right-8 transform -rotate-12">
                     to

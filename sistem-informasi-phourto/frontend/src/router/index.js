@@ -59,12 +59,12 @@ const routes = [
     {
         path: '/about',
         name: 'AboutUs',
-        component: () => import('../views/AboutUs.vue'),
+        component: () => import('../views/aboutus.vue'),
     },
     {
         path: '/Location',
         name: 'Location',
-        component: () => import('../views/Location.vue'),
+        component: () => import('../views/location.vue'),
     },
     {
         path: '/service/:planName',
@@ -81,13 +81,13 @@ const routes = [
     {
         path: '/booking/Summary',
         name: 'BookingSummary',
-        component: () => import('../views/booking/Summary.vue'),
+        component: () => import('../views/booking/summary.vue'),
         meta: { requiresAuth: true },
     },
     {
         path: '/claimphotos',
         name: 'ClaimPhotos',
-        component: () => import('../views/ClaimPhotos.vue'),
+        component: () => import('../views/claimphotos.vue'),
     },
     {
         path: '/booking/ClaimResult',

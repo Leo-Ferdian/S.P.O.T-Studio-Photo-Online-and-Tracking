@@ -4058,3 +4058,15 @@
 {"level":"info","message":"Membuat QR Code DOKU untuk Booking ID: d4d54912-d19d-48d8-b124-c6120f74c773 oleh User: a833ee06-7351-4339-941d-498bf6c67d1e","service":"phourto-api","timestamp":"2025-11-21 21:29:14"}
 {"level":"http","message":"::1 - - [21/Nov/2025:14:29:15 +0000] \"POST /api/payments/d4d54912-d19d-48d8-b124-c6120f74c773/qr HTTP/1.1\" 200 246 \"http://localhost:5173/\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36\"","service":"phourto-api","timestamp":"2025-11-21 21:29:15"}
 {"level":"info","message":"Email terkirim: <abe2ca3e-dfe8-a51e-0f22-afc55dbe36e6@gmail.com>","service":"phourto-api","timestamp":"2025-11-21 21:29:17"}
+{"level":"info","message":"[CronJob] Berhasil meng-expire 1 pesanan.","service":"phourto-api","timestamp":"2025-11-21 22:02:00"}
+{"level":"info","message":"[Cron] 1 booking telah diubah menjadi EXPIRED.","service":"phourto-api","timestamp":"2025-11-21 22:02:00"}
+{"level":"info","message":"[CronJob] Berhasil meng-expire 1 pesanan.","service":"phourto-api","timestamp":"2025-11-21 22:10:00"}
+{"level":"info","message":"[Cron] 1 booking telah diubah menjadi EXPIRED.","service":"phourto-api","timestamp":"2025-11-21 22:10:00"}
+{"level":"info","message":"[CronJob] Berhasil meng-expire 1 pesanan.","service":"phourto-api","timestamp":"2025-11-21 22:14:00"}
+{"level":"info","message":"[Cron] 1 booking telah diubah menjadi EXPIRED.","service":"phourto-api","timestamp":"2025-11-21 22:14:00"}
+{"level":"info","message":"[CronJob] Berhasil meng-expire 1 pesanan.","service":"phourto-api","timestamp":"2025-11-21 22:21:00"}
+{"level":"info","message":"[Cron] 1 booking telah diubah menjadi EXPIRED.","service":"phourto-api","timestamp":"2025-11-21 22:21:00"}
+{"level":"info","message":"[CronJob] Berhasil meng-expire 1 pesanan.","service":"phourto-api","timestamp":"2025-11-21 22:22:00"}
+{"level":"info","message":"[Cron] 1 booking telah diubah menjadi EXPIRED.","service":"phourto-api","timestamp":"2025-11-21 22:22:00"}
+{"level":"info","message":"[CronJob] Berhasil meng-expire 1 pesanan.","service":"phourto-api","timestamp":"2025-11-21 22:30:00"}
+{"level":"info","message":"[Cron] 1 booking telah diubah menjadi EXPIRED.","service":"phourto-api","timestamp":"2025-11-21 22:30:00"}
