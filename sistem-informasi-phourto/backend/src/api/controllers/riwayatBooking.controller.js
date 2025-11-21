@@ -12,6 +12,7 @@ exports.getRiwayatBooking = async (req, res, next) => {
                 b.start_time,
                 b.end_time,
                 b.total_price AS price,
+                b.unique_code,
                 b.payment_status AS status,
                 b.created_at AS date
             FROM phourto.bookings b

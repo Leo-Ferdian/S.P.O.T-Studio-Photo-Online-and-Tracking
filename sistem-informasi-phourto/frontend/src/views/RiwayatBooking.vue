@@ -1,104 +1,183 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import apiClient from '@/api/api'
+import feather from 'feather-icons'
 
+const router = useRouter()
 const history = ref([])
 const loading = ref(true)
 
+// --- FETCH DATA ---
 const fetchHistory = async () => {
   try {
-    const res = await apiClient.get('/riwayat-booking')
-    history.value = res.data.data
+    const res = await apiClient.get('/bookings/my-bookings')
+    // Mengambil data (pastikan backend sudah update seperti diskusi sebelumnya)
+    history.value = res.data?.data?.data || []
   } catch (error) {
     console.error("Gagal memuat riwayat booking:", error)
   } finally {
     loading.value = false
+    nextTick(() => feather.replace())
   }
 }
 
-onMounted(() => fetchHistory())
+// --- HELPER: AMBIL KODE KLAIM ---
+const getClaimCode = (item) => {
+  // Prioritas ambil unique_code (misal: PHR-83921)
+  if (item.unique_code) return item.unique_code;
+
+  // Fallback jika data lama belum punya unique_code
+  return `PHR-${item.booking_id ? item.booking_id.substring(0, 6).toUpperCase() : 'ERR'}`;
+}
+
+const formatRupiah = (number) => {
+  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number || 0);
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return '-';
+  return new Intl.DateTimeFormat('id-ID', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' }).format(new Date(dateString));
+}
+
+const formatTime = (start) => {
+  if (!start) return '-';
+  return new Date(start).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+}
+
+// --- NAVIGASI ---
+const goToClaim = (item) => {
+  const code = getClaimCode(item);
+  // Arahkan ke halaman klaim dengan kode otomatis terisi
+  router.push(`/claimphotos`);
+}
+
+onMounted(() => {
+  fetchHistory();
+})
 </script>
 
 <template>
-  <div class="min-h-screen flex bg-background">
+  <div class="bg-background min-h-screen font-display text-text-default pt-24 pb-12">
+    <main class="container mx-auto px-4 max-w-5xl">
 
-    <!-- SIDEBAR -->
-    <aside class="w-90 bg-primary text-white p-12 flex flex-col gap-4">
-      <h2 class="text-2xl font-bold mb-4">Studio Phour To</h2>
-
-      <router-link
-        to="/home"
-        class="text-white text-3xl bg-primary px-3 py-2 rounded hover:bg-[#A21217] cursor-pointer"
-      >
-        Home
-      </router-link>
-    </aside>
-
-    <!-- MAIN -->
-    <main class="flex-1 p-8">
-
-      <h1 class="text-4xl font-bold text-white mb-10">Riwayat Booking</h1>
-
-      <!-- LOADING -->
-      <div v-if="loading" class="text-white text-xl">
-        Memuat data...
+      <div class="flex items-center justify-between mb-10">
+        <button @click="router.push('/home')"
+          class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:translate-y-1 hover:shadow-none transition-all">
+          <i data-feather="arrow-left" class="w-6 h-6"></i>
+        </button>
+        <h1 class="text-3xl md:text-4xl font-bold text-center flex-1 uppercase tracking-wider">
+          Riwayat Sesi
+        </h1>
+        <div class="w-12"></div>
       </div>
 
-      <!-- EMPTY -->
-      <div
-        v-else-if="history.length === 0"
-        class="bg-primary p-12 rounded text-center text-white border-4 border-outline shadow-solid hover:bg-[#A21217] cursor-pointer w-full"
-      >
-        <h2 class="text-2xl mb-4">Belum Ada Riwayat Booking</h2>
-        <p class="text-white">Booking yang sudah dilakukan akan muncul di sini.</p>
+      <div v-if="loading" class="flex flex-col items-center justify-center py-20">
+        <i data-feather="loader" class="w-12 h-12 animate-spin text-primary mb-4"></i>
+        <p class="font-bold text-xl">Memuat data...</p>
       </div>
 
-      <!-- CONTENT -->
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-
-        <div
-          v-for="item in history"
-          :key="item.id"
-          class="bg-primary text-white p-6 rounded-xl border-4 border-black shadow-xl hover:scale-[1.02] transition duration-300"
-        >
-          <h3 class="text-2xl font-bold mb-2">{{ item.serviceName }}</h3>
-
-          <p><span class="font-semibold">Location:</span> {{ item.location }}</p>
-
-          <p><span class="font-semibold">Tanggal:</span>
-            {{ new Date(item.date).toLocaleDateString('id-ID') }}
-          </p>
-
-          <p><span class="font-semibold">Waktu Mulai:</span>
-            {{ new Date(item.start_time).toLocaleTimeString('id-ID') }}
-          </p>
-
-          <p><span class="font-semibold">Waktu Selesai:</span>
-            {{ new Date(item.end_time).toLocaleTimeString('id-ID') }}
-          </p>
-
-          <p class="mt-2">
-            <span class="font-semibold">Harga:</span> Rp {{ item.price?.toLocaleString() }}
-          </p>
-
-          <div class="mt-4">
-            <span
-              class="px-3 py-1 rounded text-black font-bold bg-yellow-300 border border-black"
-              v-if="item.status === 'pending'"
-            >Pending</span>
-
-            <span
-              class="px-3 py-1 rounded text-black font-bold bg-green-300 border border-black"
-              v-else-if="item.status === 'paid'"
-            >Selesai</span>
-
-            <span
-              class="px-3 py-1 rounded text-black font-bold bg-red-300 border border-black"
-              v-else
-            >{{ item.status }}</span>
-          </div>
+      <div v-else-if="history.length === 0"
+        class="bg-white border-4 border-outline shadow-solid p-12 text-center max-w-2xl mx-auto">
+        <div class="inline-block p-4 bg-gray-100 rounded-full mb-4 border-2 border-outline">
+          <i data-feather="camera-off" class="w-12 h-12 text-gray-400"></i>
         </div>
+        <h2 class="text-2xl font-bold mb-2">Belum Ada Sesi</h2>
+        <p class="text-gray-500 mb-6">Ayo buat kenangan baru bersama kami!</p>
+        <router-link to="/home"
+          class="bg-primary text-white px-6 py-3 font-bold border-3 border-outline shadow-solid hover:translate-y-1 hover:shadow-none transition-all inline-block">
+          Booking Sekarang
+        </router-link>
+      </div>
 
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+        <div v-for="item in history" :key="item.booking_id"
+          class="bg-white border-4 border-outline shadow-solid overflow-hidden relative hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all duration-300 flex flex-col">
+
+          <div class="p-6 border-b-2 border-gray-200 text-center bg-gray-50 relative">
+
+            <div class="flex items-center justify-center gap-2 mb-2 text-gray-500">
+              <i data-feather="key" class="w-3 h-3"></i>
+              <p class="text-xs uppercase tracking-widest font-bold">KODE AKSES FOTO</p>
+            </div>
+
+            <p class="text-4xl font-black text-primary tracking-wider select-all font-mono">
+              {{ getClaimCode(item) }}
+            </p>
+            <p class="text-[10px] text-gray-400 mt-1">(Gunakan kode ini untuk download foto)</p>
+
+            <div class="absolute top-4 right-4">
+              <span v-if="item.payment_status === 'PENDING'"
+                class="bg-yellow-300 text-[10px] font-bold px-2 py-1 border-2 border-outline transform rotate-3 shadow-sm block text-black">
+                BELUM BAYAR
+              </span>
+              <span v-else-if="['PAID_FULL', 'PAID_DP', 'COMPLETED'].includes(item.payment_status)"
+                class="bg-[#4ADE80] text-[10px] font-bold px-2 py-1 border-2 border-outline transform -rotate-2 shadow-sm block text-black">
+                SUDAH BAYAR
+              </span>
+              <span v-else
+                class="bg-gray-300 text-[10px] font-bold px-2 py-1 border-2 border-outline block text-gray-600">
+                {{ item.payment_status }}
+              </span>
+            </div>
+          </div>
+
+          <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-left flex-grow">
+            <div class="flex items-start gap-3">
+              <div class="bg-white p-2 rounded border border-gray-200 shrink-0">
+                <i data-feather="package" class="w-4 h-4 text-primary"></i>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">Paket</p>
+                <p class="font-bold text-sm text-gray-800 leading-tight">{{ item.package_name || '-' }}</p>
+              </div>
+            </div>
+
+            <div class="flex items-start gap-3">
+              <div class="bg-white p-2 rounded border border-gray-200 shrink-0">
+                <i data-feather="map-pin" class="w-4 h-4 text-primary"></i>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">Lokasi</p>
+                <p class="font-bold text-sm text-gray-800 leading-tight">{{ item.branch_name || '-' }}</p>
+              </div>
+            </div>
+
+            <div class="col-span-1 sm:col-span-2 flex items-start gap-3 bg-gray-50 p-2 rounded border border-gray-100">
+              <div class="bg-white p-2 rounded border border-gray-200 shrink-0">
+                <i data-feather="calendar" class="w-4 h-4 text-primary"></i>
+              </div>
+              <div>
+                <p class="text-xs text-gray-400">Jadwal Sesi</p>
+                <p class="font-bold text-sm text-gray-800 leading-tight">
+                  {{ formatDate(item.start_time) }} <span class="mx-1 text-gray-300">|</span> {{
+                    formatTime(item.start_time) }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="px-6 py-4 bg-primary text-white flex justify-between items-center border-t-4 border-outline">
+            <div>
+              <p class="text-xs text-white/80 font-medium">Total Tagihan</p>
+              <p class="text-xl font-bold">{{ formatRupiah(item.total_price) }}</p>
+            </div>
+
+            <button v-if="['PAID_FULL', 'PAID_DP', 'COMPLETED'].includes(item.payment_status)" @click="goToClaim(item)"
+              class="flex items-center gap-2 bg-white text-primary px-4 py-2 rounded font-bold text-sm border-2 border-transparent hover:border-white hover:bg-primary hover:text-white transition-all shadow-md">
+              <i data-feather="download-cloud" class="w-4 h-4"></i>
+              <span>Ambil Foto</span>
+            </button>
+
+            <button v-else-if="item.payment_status === 'PENDING'"
+              class="flex items-center gap-2 bg-yellow-400 text-black px-4 py-2 rounded font-bold text-sm border-2 border-black hover:bg-yellow-500 transition-all shadow-md">
+              <i data-feather="credit-card" class="w-4 h-4"></i>
+              <span>Bayar Sekarang</span>
+            </button>
+          </div>
+
+        </div>
       </div>
 
     </main>

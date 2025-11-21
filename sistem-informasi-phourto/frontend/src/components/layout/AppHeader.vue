@@ -50,10 +50,11 @@ const userProfileLink = computed(() => {
                     class="bg-primary text-text-default px-4 py-1 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all duration-100">
                     Claim Photos
                 </router-link>
-                <!-- <router-link to="/framecatalog"
-                    class="bg-primary text-text-default px-4 py-1 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all duration-100">
-                    Frame Catalog
-                </router-link> -->
+                <router-link to="/RiwayatBooking" class="bg-primary text-text-default px-3 py-1 border-3 border-outline shadow-solid 
+                    hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 
+                    transition-all duration-100 flex items-center gap-2">
+                    Booking History
+                </router-link>
             </div>
 
             <!-- Area Auth -->
@@ -74,18 +75,7 @@ const userProfileLink = computed(() => {
                     <router-link :to="userProfileLink" class="font-bold hover:text-primary transition-colors">
                         {{ userProfileText }}
                     </router-link>
-                    
-                 <!-- USER BUTTON -->
-                 <router-link
-                 to="/RiwayatBooking"
-                 class="bg-primary text-text-default px-3 py-1 border-3 border-outline shadow-solid 
-                 hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 
-                 transition-all duration-100 flex items-center gap-2">
-                 
-    Riwayat Booking
-</router-link>
 
-                    
                     <button @click="handleLogout"
                         class="bg-gray-700 text-white px-4 py-1 border-3 border-outline shadow-solid hover:bg-gray-800 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all duration-100">
                         LOG OUT

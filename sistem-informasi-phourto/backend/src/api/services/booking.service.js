@@ -320,7 +320,7 @@ class BookingService {
         const offset = (page - 1) * limit;
         const query = `
             SELECT 
-                b.booking_id, b.start_time, b.payment_status, b.total_price, 
+                b.booking_id, b.start_time, b.payment_status, b.total_price, b.unique_code,
                 p.package_name, br.branch_name
             FROM bookings b
             JOIN packages p ON b.package_id = p.package_id

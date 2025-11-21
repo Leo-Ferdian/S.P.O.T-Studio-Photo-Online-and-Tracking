@@ -58,23 +58,40 @@ onMounted(async () => {
 
 <template>
   <div class="bg-background min-h-screen font-display text-text-default pt-24 pb-12">
-    <main class="container mx-auto px-4 max-w-2xl">
+    <main class="container mx-auto px-4 max-w-3xl">
 
-      <!-- Header -->
-      <div class="flex items-center justify-between mb-8">
-        <button @click="$router.push('/claimphotos')"
-          class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:translate-y-1 hover:shadow-none transition-all">
-          <i data-feather="arrow-left" class="w-6 h-6"></i>
-        </button>
-        <h1 class="text-3xl font-bold text-center flex-1">Download Foto</h1>
-        <div class="w-10"></div>
+      <!-- Header & Judul (Style: Location Page) -->
+      <div class="flex items-center justify-between mb-12">
+        <!-- 1. Kiri: Navigasi (Back & Home) -->
+        <div class="flex-1">
+          <div class="flex items-center space-x-2">
+            <button @click="$router.back()"
+              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all">
+              <i data-feather="arrow-left" class="w-6 h-6"></i>
+            </button>
+
+            <button @click="$router.push('/Home')"
+              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all">
+              <i data-feather="home" class="w-6 h-6"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. Tengah: Judul Halaman -->
+        <div class="flex-1 text-center">
+          <h1 class="text-2xl md:text-3xl font-bold uppercase whitespace-nowrap">
+            DOWNLOAD PHOTO
+          </h1>
+        </div>
+
+        <!-- 3. Kanan: Spacer -->
+        <div class="flex-1"></div>
       </div>
 
-      <!-- Card Utama -->
-      <div
-        class="bg-white border-4 border-outline shadow-solid p-6 md:p-8 rounded-lg text-center space-y-6 relative z-10">
+      <!-- Card Putih (Isi Data) -->
+      <div class="bg-white border-3 border-outline shadow-solid p-6 text-center space-y-6 relative">
 
-        <!-- 1. Detail Booking (DIPERBARUI) -->
+        <!-- 1. Detail Booking -->
         <div class="border-b-2 border-gray-200 pb-6">
           <div class="flex flex-col gap-1 mb-4">
             <p class="text-gray-500 text-xs uppercase tracking-widest">Kode Booking</p>
@@ -83,10 +100,10 @@ onMounted(async () => {
 
           <!-- Grid Info Detail (Jika Data Ada) -->
           <div v-if="bookingInfo"
-            class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left bg-gray-50 p-4 rounded-lg border-2 border-gray-100">
+            class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left bg-gray-50 p-4 border-2 border-gray-100">
             <!-- Paket -->
             <div class="flex items-start gap-3">
-              <div class="bg-white p-2 rounded border border-gray-200">
+              <div class="bg-white p-2 border border-gray-200">
                 <i data-feather="package" class="w-4 h-4 text-primary"></i>
               </div>
               <div>
@@ -97,7 +114,7 @@ onMounted(async () => {
 
             <!-- Cabang -->
             <div class="flex items-start gap-3">
-              <div class="bg-white p-2 rounded border border-gray-200">
+              <div class="bg-white p-2 border border-gray-200">
                 <i data-feather="map-pin" class="w-4 h-4 text-primary"></i>
               </div>
               <div>
@@ -106,9 +123,9 @@ onMounted(async () => {
               </div>
             </div>
 
-            <!-- Waktu (Full Width di Mobile) -->
+            <!-- Waktu -->
             <div class="md:col-span-2 flex items-start gap-3">
-              <div class="bg-white p-2 rounded border border-gray-200">
+              <div class="bg-white p-2 border border-gray-200">
                 <i data-feather="calendar" class="w-4 h-4 text-primary"></i>
               </div>
               <div>
@@ -118,7 +135,7 @@ onMounted(async () => {
             </div>
           </div>
 
-          <!-- Fallback Email jika data detail blm load -->
+          <!-- Fallback Email -->
           <div v-else>
             <p class="text-gray-500 text-sm">Email</p>
             <p class="font-bold">{{ email }}</p>
@@ -132,12 +149,12 @@ onMounted(async () => {
         </div>
 
         <!-- STATE: ERROR -->
-        <div v-else-if="errorMessage" class="bg-red-100 border-2 border-red-500 text-red-700 p-4 rounded">
+        <div v-else-if="errorMessage" class="bg-red-100 border-2 border-red-500 text-red-700 p-4">
           <p class="font-bold flex items-center justify-center gap-2">
             <i data-feather="alert-circle" class="w-5 h-5"></i> Gagal
           </p>
           <p class="mt-2 text-sm">{{ errorMessage }}</p>
-          <button @click="refreshPage" class="mt-4 text-xs underline hover:text-red-900">Coba Lagi</button>
+          <button @click="refreshPage" class="mt-4 text-xs font-bold underline hover:text-red-900">Coba Lagi</button>
         </div>
 
         <!-- STATE: SUKSES -->
@@ -147,12 +164,12 @@ onMounted(async () => {
           <div v-if="photos.length > 0" class="mb-8">
             <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-left">
               <div v-for="(photo, index) in photos" :key="index"
-                class="group relative aspect-square bg-gray-100 border-2 border-outline rounded-lg overflow-hidden shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all">
+                class="group relative aspect-square bg-gray-100 border-2 border-outline overflow-hidden shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all">
 
                 <img :src="photo.photo_url" class="w-full h-full object-cover" loading="lazy" />
 
                 <a :href="photo.photo_url" download target="_blank"
-                  class="absolute bottom-1 right-1 bg-white border-2 border-outline p-1.5 rounded-full hover:bg-yellow-400 transition-colors opacity-0 group-hover:opacity-100">
+                  class="absolute bottom-2 right-2 bg-white border-2 border-outline p-1.5 hover:bg-yellow-400 transition-colors opacity-0 group-hover:opacity-100">
                   <i data-feather="download" class="w-3 h-3"></i>
                 </a>
               </div>
@@ -160,11 +177,15 @@ onMounted(async () => {
             <p class="text-xs text-gray-400 mt-2 text-right italic">Total: {{ photos.length }} Foto</p>
           </div>
 
+          <div v-else class="py-8 text-gray-500">
+            <p>Tidak ada foto ditemukan.</p>
+          </div>
+
           <!-- Tombol Download -->
           <div class="border-t-2 border-gray-100 pt-6">
             <p class="text-sm font-bold text-gray-700 mb-3">Simpan semua kenangan?</p>
-            <button @click="downloadAll"
-              class="block w-full bg-primary text-white font-bold py-4 text-xl border-3 border-outline shadow-solid hover:bg-red-700 transition-all hover:translate-y-1 hover:shadow-none">
+            <button @click="downloadAll" :disabled="photos.length === 0"
+              class="block w-full bg-primary text-white font-bold py-4 text-xl border-3 border-outline shadow-solid hover:bg-red-700 transition-all hover:translate-y-1 hover:shadow-none disabled:opacity-50 disabled:cursor-not-allowed">
               <span class="flex items-center justify-center gap-3">
                 <i data-feather="download" class="w-6 h-6"></i>
                 DOWNLOAD SEMUA (.ZIP)
@@ -173,14 +194,42 @@ onMounted(async () => {
           </div>
 
         </div>
-
       </div>
-
-      <!-- Bantuan -->
-      <!-- <div class="text-center mt-8 text-sm text-gray-500">
-        <p>Mengalami kendala? Hubungi <a href="#" class="text-primary underline font-bold">Admin WhatsApp</a></p>
-      </div> -->
 
     </main>
   </div>
 </template>
+
+<style scoped>
+.bg-background {
+  background-color: #f7f500;
+}
+
+.bg-primary {
+  background-color: #ff1b1b;
+}
+
+.text-text-default {
+  color: #000000;
+}
+
+.border-outline {
+  border-color: #000000;
+}
+
+.shadow-solid {
+  box-shadow: 4px 4px 0 #000000;
+}
+
+.shadow-strong {
+  box-shadow: 8px 8px 0 #000000;
+}
+
+/* Reset radius untuk style Neo-Brutalist */
+.rounded,
+.rounded-lg,
+.rounded-md,
+.rounded-sm {
+  border-radius: 0 !important;
+}
+</style>
