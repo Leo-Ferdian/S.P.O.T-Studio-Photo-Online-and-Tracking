@@ -13,7 +13,7 @@ onMounted(() => {
             <div class="mb-8 md:mb-0">
                 <!-- Logo -->
                 <router-link to="/" class="inline-block">
-                    <img src="@/assets/logo phourto.png" alt="Phourto Logo" class="h-[150px] w-auto" />
+                    <img src="@/assets/logo-phourto.png" alt="Phourto Logo" class="h-[150px] w-auto" />
                 </router-link>
             </div>
 

@@ -29,7 +29,7 @@ const userProfileLink = computed(() => {
 
             <!-- Logo -->
             <router-link to="/" class="inline-block">
-                <img src="@/assets/logo phourto.png" alt="Phourto Logo" class="h-[100px] w-auto" />
+                <img src="@/assets/logo-phourto.png" alt="Phourto Logo" class="h-[100px] w-auto" />
             </router-link>
 
 
