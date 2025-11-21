@@ -136,6 +136,7 @@ class PhotoService {
      */
     async getGalleryWithDetails(bookingId, userId) {
         // 1. Ambil Detail Booking + Paket + Cabang
+        // PERBAIKAN: Join ke 'rooms' dulu baru ke 'branches'
         const bookingQuery = `
             SELECT 
                 b.booking_id, 
@@ -202,6 +203,34 @@ class PhotoService {
         }
 
         await archive.finalize();
+    }
+
+    /**
+     * (V1.15 - Single Download Proxy)
+     * Mengunduh satu foto dari URL S3 dan meneruskannya ke klien.
+     * Ini mengatasi masalah CORS pada browser.
+     */
+    async streamSingleFileToClient(bookingId, userId, photoUrl, res) {
+        // 1. Validasi: Pastikan foto ini benar-benar milik booking tersebut
+        const photos = await this.getPhotosByBooking(bookingId, userId);
+
+        const targetPhoto = photos.find(p => p.photo_url === photoUrl);
+
+        if (!targetPhoto) {
+            throw new ApiError(404, 'Foto tidak ditemukan dalam booking ini.');
+        }
+
+        // 2. Set Header agar browser langsung download
+        res.attachment(targetPhoto.file_name);
+
+        // 3. Stream dari sumber (S3/Cloudinary) ke Client
+        try {
+            const response = await axios.get(targetPhoto.photo_url, { responseType: 'stream' });
+            response.data.pipe(res);
+        } catch (error) {
+            logger.error(`Gagal streaming single photo: ${error.message}`);
+            throw new ApiError(502, 'Gagal mengunduh foto dari server penyimpanan.');
+        }
     }
 }
 

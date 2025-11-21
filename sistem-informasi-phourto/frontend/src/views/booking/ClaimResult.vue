@@ -13,8 +13,9 @@ const email = route.query.email;
 
 const isLoading = ref(true);
 const photos = ref([]);
-const bookingInfo = ref(null); // Info tambahan
+const bookingInfo = ref(null);
 const errorMessage = ref(null);
+const isDownloading = ref(false);
 
 // --- Format Tanggal ---
 const formattedDate = computed(() => {
@@ -26,9 +27,21 @@ const formattedDate = computed(() => {
   }).format(date) + ' WIB';
 });
 
+// --- 1. DOWNLOAD ZIP (SEMUA) ---
 const downloadAll = () => {
   if (!bookingCode || !email) return;
   const url = bookingStore.getZipDownloadUrl(bookingCode, email);
+  window.open(url, '_self');
+};
+
+// --- 2. DOWNLOAD FOTO SATUAN (UPDATE: VIA PROXY BACKEND) ---
+const downloadSinglePhoto = (photoUrl) => {
+  if (!bookingCode || !email) return;
+
+  // Gunakan URL dari Store yang mengarah ke Backend Proxy
+  const url = bookingStore.getSinglePhotoDownloadUrl(bookingCode, email, photoUrl);
+
+  // Memicu download langsung
   window.location.href = url;
 };
 
@@ -42,11 +55,9 @@ onMounted(async () => {
   }
 
   try {
-    // Fetch data (returns { booking, photos })
     const result = await bookingStore.fetchGallery(bookingCode, email);
     photos.value = result.photos;
     bookingInfo.value = result.booking;
-
   } catch (error) {
     errorMessage.value = error.message || "Gagal memuat foto.";
   } finally {
@@ -60,45 +71,38 @@ onMounted(async () => {
   <div class="bg-background min-h-screen font-display text-text-default pt-24 pb-12">
     <main class="container mx-auto px-4 max-w-3xl">
 
-      <!-- Header & Judul (Style: Location Page) -->
+      <!-- Header & Judul -->
       <div class="flex items-center justify-between mb-12">
-        <!-- 1. Kiri: Navigasi (Back & Home) -->
         <div class="flex-1">
           <div class="flex items-center space-x-2">
             <button @click="$router.back()"
               class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all">
               <i data-feather="arrow-left" class="w-6 h-6"></i>
             </button>
-
             <button @click="$router.push('/Home')"
               class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all">
               <i data-feather="home" class="w-6 h-6"></i>
             </button>
           </div>
         </div>
-
-        <!-- 2. Tengah: Judul Halaman -->
         <div class="flex-1 text-center">
           <h1 class="text-2xl md:text-3xl font-bold uppercase whitespace-nowrap">
             DOWNLOAD PHOTO
           </h1>
         </div>
-
-        <!-- 3. Kanan: Spacer -->
         <div class="flex-1"></div>
       </div>
 
-      <!-- Card Putih (Isi Data) -->
+      <!-- Card Putih -->
       <div class="bg-white border-3 border-outline shadow-solid p-6 text-center space-y-6 relative">
 
-        <!-- 1. Detail Booking -->
+        <!-- Detail Booking -->
         <div class="border-b-2 border-gray-200 pb-6">
           <div class="flex flex-col gap-1 mb-4">
             <p class="text-gray-500 text-xs uppercase tracking-widest">Kode Booking</p>
             <p class="text-3xl font-black text-primary tracking-wide">{{ bookingCode }}</p>
           </div>
 
-          <!-- Grid Info Detail (Jika Data Ada) -->
           <div v-if="bookingInfo"
             class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left bg-gray-50 p-4 border-2 border-gray-100">
             <!-- Paket -->
@@ -111,7 +115,6 @@ onMounted(async () => {
                 <p class="font-bold text-sm text-gray-800 leading-tight">{{ bookingInfo.package_name }}</p>
               </div>
             </div>
-
             <!-- Cabang -->
             <div class="flex items-start gap-3">
               <div class="bg-white p-2 border border-gray-200">
@@ -122,7 +125,6 @@ onMounted(async () => {
                 <p class="font-bold text-sm text-gray-800 leading-tight">{{ bookingInfo.branch_name }}</p>
               </div>
             </div>
-
             <!-- Waktu -->
             <div class="md:col-span-2 flex items-start gap-3">
               <div class="bg-white p-2 border border-gray-200">
@@ -135,7 +137,6 @@ onMounted(async () => {
             </div>
           </div>
 
-          <!-- Fallback Email -->
           <div v-else>
             <p class="text-gray-500 text-sm">Email</p>
             <p class="font-bold">{{ email }}</p>
@@ -168,10 +169,14 @@ onMounted(async () => {
 
                 <img :src="photo.photo_url" class="w-full h-full object-cover" loading="lazy" />
 
-                <a :href="photo.photo_url" download target="_blank"
-                  class="absolute bottom-2 right-2 bg-white border-2 border-outline p-1.5 hover:bg-yellow-400 transition-colors opacity-0 group-hover:opacity-100">
+                <!-- Tombol Download Satuan -->
+                <!-- Menggunakan @click yang memanggil endpoint backend proxy -->
+                <button @click.prevent="downloadSinglePhoto(photo.photo_url)"
+                  class="absolute bottom-2 right-2 bg-white border-2 border-outline p-1.5 hover:bg-yellow-400 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer z-10"
+                  title="Download Foto Ini">
                   <i data-feather="download" class="w-3 h-3"></i>
-                </a>
+                </button>
+
               </div>
             </div>
             <p class="text-xs text-gray-400 mt-2 text-right italic">Total: {{ photos.length }} Foto</p>
@@ -181,7 +186,7 @@ onMounted(async () => {
             <p>Tidak ada foto ditemukan.</p>
           </div>
 
-          <!-- Tombol Download -->
+          <!-- Tombol Download ZIP -->
           <div class="border-t-2 border-gray-100 pt-6">
             <p class="text-sm font-bold text-gray-700 mb-3">Simpan semua kenangan?</p>
             <button @click="downloadAll" :disabled="photos.length === 0"

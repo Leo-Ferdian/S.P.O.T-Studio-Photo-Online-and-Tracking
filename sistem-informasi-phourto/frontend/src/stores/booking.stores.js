@@ -478,8 +478,16 @@ export const useBookingStore = defineStore('booking', {
         getZipDownloadUrl(bookingId, email) {
             // Kita perlu menyusun URL lengkap karena ini akan dibuka via window.location
             // Pastikan VITE_API_URL di .env mengarah ke backend (misal http://localhost:3000/api)
-            const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+            const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
             return `${baseURL}/photos/${bookingId}/download-zip?email=${encodeURIComponent(email)}`;
+        },
+        /* -------------------------------------------
+        3. GET SINGLE PHOTO URL (PROXY)
+        ------------------------------------------- */
+        getSinglePhotoDownloadUrl(bookingId, email, photoUrl) {
+            const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+            // Kita kirim URL foto asli sebagai parameter query 'url' agar backend bisa memprosesnya
+            return `${baseURL}/photos/${bookingId}/download-single?email=${encodeURIComponent(email)}&url=${encodeURIComponent(photoUrl)}`;
         }
     }
 });

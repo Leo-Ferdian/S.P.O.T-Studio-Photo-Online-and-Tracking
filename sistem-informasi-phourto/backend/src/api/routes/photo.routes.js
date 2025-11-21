@@ -22,12 +22,22 @@ router.get(
  * @route   GET /api/photos/:bookingId/download-zip?email=...
  * @desc    Memicu download langsung file ZIP (Streaming).
  * @access  Public (Verified by Code & Email)
- * @note    Diganti dari POST ke GET karena ini link download langsung
  */
 router.get(
     '/:bookingId/download-zip',
     claimPhotoValidationRules(), // Middleware validasi kita
     PhotoController.downloadGalleryZip
+);
+
+/**
+ * @route   GET /api/photos/:bookingId/download-single?email=...&url=...
+ * @desc    Memicu download satu foto (Proxy agar tidak kena CORS).
+ * @access  Public
+ */
+router.get(
+    '/:bookingId/download-single',
+    claimPhotoValidationRules(),
+    PhotoController.downloadSinglePhoto
 );
 
 module.exports = router;
