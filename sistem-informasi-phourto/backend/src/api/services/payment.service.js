@@ -3,16 +3,13 @@ const axios = require('axios');
 const db = require('../../config/database');
 const ApiError = require('../../utils/apiError');
 const { logger } = require('../../utils/logger');
-const url = require('url');
 require('dotenv').config();
 
 const DOKU_CLIENT_ID = process.env.DOKU_CLIENT_ID;
 const DOKU_SECRET_KEY = process.env.DOKU_SECRET_KEY;
-const DOKU_ORDER_URL = process.env.DOKU_API_URL;
+const DOKU_API_URL = process.env.DOKU_API_URL; // Pastikan ini ada di .env
 
-const DOKU_WEBHOOK_TARGET = process.env.DOKU_WEBHOOK_TARGET || '/api/payments/notifications';
-
-// Instance Axios Bersih
+// Instance Axios
 const dokuClient = axios.create();
 
 class PaymentService {
@@ -23,6 +20,7 @@ class PaymentService {
             .digest('base64');
     }
 
+    // --- 1. GENERATE QR CODE ---
     async generateQrCode(bookingId, userId) {
         console.log("\n============== [PAYMENT SERVICE] ==============");
         console.log("1. Processing Booking ID:", bookingId);
@@ -53,18 +51,17 @@ class PaymentService {
 
     async createCheckoutPayment(booking, user) {
         const requestId = `REQ-${booking.booking_id.substring(0, 8)}-${Date.now()}`;
-
         const now = new Date();
         const timestamp = now.toISOString().substring(0, 19) + "Z";
-
         const amountValue = Math.round(booking.total_price || booking.amount_due || 0);
 
+        // ✅ PERBAIKAN 1: Hapus Localhost, ganti domain production
         const body = {
             order: {
                 amount: amountValue,
                 invoice_number: booking.booking_id,
                 currency: "IDR",
-                callback_url: "http://localhost:5173/booking/success",
+                callback_url: "https://phourto.my.id/booking/success",
                 auto_redirect: true
             },
             payment: {
@@ -76,9 +73,6 @@ class PaymentService {
                 phone: user.phone_number || "081234567890"
             }
         };
-
-        console.log("🌐 Target URL:", DOKU_ORDER_URL);
-        console.log("🕒 Timestamp :", timestamp);
 
         const bodyString = JSON.stringify(body);
         const digest = crypto.createHash('sha256').update(bodyString).digest('base64');
@@ -92,32 +86,27 @@ class PaymentService {
             `Digest:${digest}`;
 
         const signature = this._createSignature(stringToSign);
-        const finalSignatureHeader = "HMACSHA256=" + signature;
-
-        const headers = {
-            'Client-Id': DOKU_CLIENT_ID,
-            'Request-Id': requestId,
-            'Request-Timestamp': timestamp,
-            'Signature': finalSignatureHeader,
-            'Content-Type': 'application/json'
-        };
 
         try {
-            const response = await dokuClient.post(DOKU_ORDER_URL, body, { headers });
+            const response = await dokuClient.post(DOKU_API_URL + requestTarget, body, {
+                headers: {
+                    'Client-Id': DOKU_CLIENT_ID,
+                    'Request-Id': requestId,
+                    'Request-Timestamp': timestamp,
+                    'Signature': "HMACSHA256=" + signature,
+                    'Content-Type': 'application/json'
+                }
+            });
 
-            console.log("========================================");
-            console.log("DOKU RESPONSE:", JSON.stringify(response.data, null, 2));
-            console.log("========================================");
-
-            const paymentId = response.data.response.payment.id;     // <= 🔥 WAJIB DISIMPAN
+            const paymentId = response.data.response.payment.id;
             const paymentUrl = response.data.response.payment.url;
             const invoiceNumber = response.data.response.order.invoice_number;
 
-            // ⬇⬇⬇ SIMPAN paymentId ke DB ⬇⬇⬇
+            // Update DB
             const updateQuery = `
             UPDATE bookings
             SET 
-                payment_gateway_ref = $1,    -- <== SAVE payment.id KE SINI
+                payment_gateway_ref = $1,
                 payment_qr_url = $2,
                 amount_paid = $3,
                 updated_at = NOW()
@@ -126,7 +115,7 @@ class PaymentService {
         `;
 
             await db.query(updateQuery, [
-                paymentId,        // ⬅ Wajib: untuk check-status
+                paymentId,
                 paymentUrl,
                 amountValue,
                 booking.booking_id
@@ -134,24 +123,77 @@ class PaymentService {
 
             return {
                 order_id: invoiceNumber,
-                payment_id: paymentId,       // ⬅ kirim ke frontend
+                payment_id: paymentId,
                 payment_url: paymentUrl,
                 total_amount: amountValue,
             };
 
         } catch (error) {
-            if (error.response) {
-                console.error("❌ DOKU Error Status:", error.response.status);
-                console.error("❌ DOKU Error Data:", JSON.stringify(error.response.data, null, 2));
-                const dokuMsg = error.response.data?.error?.message || "Gagal membuat link pembayaran";
-                throw new ApiError(502, `Gagal dari DOKU: ${dokuMsg}`);
-            } else {
-                console.error("❌ Network Error:", error.message);
-                throw new ApiError(502, `Gagal komunikasi dengan DOKU: ${error.message}`);
-            }
+            console.error("❌ DOKU Error:", error.response ? error.response.data : error.message);
+            throw new ApiError(502, "Gagal membuat pembayaran ke DOKU.");
         }
     }
 
+    // --- ✅ PERBAIKAN 2: MENAMBAHKAN FUNGSI CEK STATUS (WAJIB ADA) ---
+    async checkTransactionStatus(bookingId) {
+        console.log(`[PAYMENT] Checking status for booking: ${bookingId}`);
+
+        const requestTarget = `/orders/v1/status/${bookingId}`;
+        const requestId = `CHK-${Date.now()}`;
+        const now = new Date();
+        const timestamp = now.toISOString().substring(0, 19) + "Z";
+
+        // Digest untuk GET request biasanya string kosong hash
+        const digest = crypto.createHash('sha256').update("").digest('base64');
+
+        const stringToSign =
+            `Client-Id:${DOKU_CLIENT_ID}\n` +
+            `Request-Id:${requestId}\n` +
+            `Request-Timestamp:${timestamp}\n` +
+            `Request-Target:${requestTarget}\n` +
+            `Digest:${digest}`;
+
+        const signature = this._createSignature(stringToSign);
+
+        try {
+            const response = await dokuClient.get(DOKU_API_URL + requestTarget, {
+                headers: {
+                    'Client-Id': DOKU_CLIENT_ID,
+                    'Request-Id': requestId,
+                    'Request-Timestamp': timestamp,
+                    'Signature': "HMACSHA256=" + signature,
+                    'Request-Target': requestTarget
+                }
+            });
+
+            const transactionStatus = response.data.transaction.status;
+            console.log(`[PAYMENT] Real-time status from DOKU: ${transactionStatus}`);
+
+            if (transactionStatus === 'SUCCESS') {
+                // Gunakan PAID-FULL agar aman sesuai ENUM
+                await db.query(
+                    `UPDATE bookings SET status = 'PAID-FULL', updated_at = NOW() WHERE booking_id = $1 AND status != 'PAID-FULL'`,
+                    [bookingId]
+                );
+                return { status: 'PAID-FULL', message: 'Pembayaran Berhasil' };
+            }
+            else if (transactionStatus === 'FAILED' || transactionStatus === 'EXPIRED') {
+                await db.query(
+                    `UPDATE bookings SET status = 'CANCELLED', updated_at = NOW() WHERE booking_id = $1`,
+                    [bookingId]
+                );
+                return { status: 'CANCELLED', message: 'Pembayaran Gagal/Expired' };
+            }
+
+            return { status: 'PENDING', message: 'Menunggu Pembayaran' };
+
+        } catch (error) {
+            console.error("❌ Gagal Cek Status DOKU:", error.message);
+            return { status: 'PENDING', message: 'Belum terupdate' };
+        }
+    }
+
+    // --- 3. HANDLE WEBHOOK ---
     async handleDokuNotification(notificationPayload, headers) {
         const clientId = headers['client-id'];
 
@@ -169,13 +211,15 @@ class PaymentService {
             await client.query('BEGIN');
 
             if (status === 'SUCCESS') {
-                const updateSuccess = `UPDATE bookings SET status = 'PAID', updated_at = NOW() WHERE booking_id = $1`;
+                // ✅ PERBAIKAN 3: Gunakan 'PAID-FULL' agar sesuai database
+                const updateSuccess = `UPDATE bookings SET status = 'PAID-FULL', updated_at = NOW() WHERE booking_id = $1`;
                 await client.query(updateSuccess, [invoiceNumber]);
-                logger.info(`[WEBHOOK] Booking ${invoiceNumber} updated to PAID.`);
+                logger.info(`[WEBHOOK] Booking ${invoiceNumber} updated to PAID-FULL.`);
             } else if (status === 'FAILED' || status === 'EXPIRED') {
-                const updateFail = `UPDATE bookings SET status = 'FAILED', updated_at = NOW() WHERE booking_id = $1`;
+                // ✅ PERBAIKAN 3: Gunakan 'CANCELLED'
+                const updateFail = `UPDATE bookings SET status = 'CANCELLED', updated_at = NOW() WHERE booking_id = $1`;
                 await client.query(updateFail, [invoiceNumber]);
-                logger.info(`[WEBHOOK] Booking ${invoiceNumber} updated to FAILED.`);
+                logger.info(`[WEBHOOK] Booking ${invoiceNumber} updated to CANCELLED.`);
             }
 
             await client.query('COMMIT');
