@@ -121,42 +121,40 @@ onMounted(() => {
         <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
 
           <!-- 1 -->
-          <router-link to="/service/basic-ramean" class="border-3 border-accent-green block rounded-lg overflow-hidden 
-                  transition-transform duration-300 hover:scale-105">
+          <div class="border-3 border-accent-green block rounded-lg overflow-hidden 
+                transition-transform duration-300 hover:scale-105 cursor-pointer active:translate-y-1 active:translate-x-1">
             <img :src="serviceImages.basic1" class="w-full aspect-[2/3] object-cover hover:opacity-80" />
-          </router-link>
+          </div>
 
           <!-- 2 -->
-          <router-link to="/service/basic-ramean" class="border-3 border-outline block rounded-lg overflow-hidden 
-                  transition-transform duration-300 hover:scale-105">
+          <div class="border-3 border-outline block rounded-lg overflow-hidden 
+                transition-transform duration-300 hover:scale-105 cursor-pointer active:translate-y-1 active:translate-x-1">
             <img :src="serviceImages.basic" class="w-full aspect-[2/3] object-cover hover:opacity-80" />
-          </router-link>
+          </div>
 
           <!-- 3 -->
-          <router-link to="/service/pas-foto" class="border-3 border-accent-blue block rounded-lg overflow-hidden 
-                  transition-transform duration-300 hover:scale-105">
+          <div class="border-3 border-accent-blue block rounded-lg overflow-hidden 
+                transition-transform duration-300 hover:scale-105 cursor-pointer active:translate-y-1 active:translate-x-1">
             <img :src="serviceImages.pasFotom" class="w-full aspect-[2/3] object-cover hover:opacity-80" />
-          </router-link>
+          </div>
 
           <!-- 4 -->
-          <router-link to="/service/basic-ramean" class="border-3 border-accent-blue block rounded-lg overflow-hidden 
-                  transition-transform duration-300 hover:scale-105">
+          <div class="border-3 border-accent-blue block rounded-lg overflow-hidden 
+                transition-transform duration-300 hover:scale-105 cursor-pointer active:translate-y-1 active:translate-x-1">
             <img :src="serviceImages.basic2" class="w-full aspect-[2/3] object-cover hover:opacity-80" />
-          </router-link>
+          </div>
 
           <!-- 5 -->
-          <router-link to="/service/emerald-green" class="border-3 border-accent-green block rounded-lg overflow-hidden 
-                  transition-transform duration-300 hover:scale-105">
+          <div class="border-3 border-accent-green block rounded-lg overflow-hidden 
+                transition-transform duration-300 hover:scale-105 cursor-pointer active:translate-y-1 active:translate-x-1">
             <img :src="serviceImages.emerald" class="w-full aspect-[2/3] object-cover hover:opacity-80" />
-          </router-link>
-
+          </div>
 
           <!-- 6 -->
-          <router-link to="/service/pas-foto" class="border-3 border-outline block rounded-lg overflow-hidden 
-                  transition-transform duration-300 hover:scale-105">
+          <div class="border-3 border-outline block rounded-lg overflow-hidden 
+                transition-transform duration-300 hover:scale-105 cursor-pointer active:translate-y-1 active:translate-x-1">
             <img :src="serviceImages.pasFotob" class="w-full aspect-[2/3] object-cover hover:opacity-80" />
-          </router-link>
-
+          </div>
         </div>
       </section>
 
