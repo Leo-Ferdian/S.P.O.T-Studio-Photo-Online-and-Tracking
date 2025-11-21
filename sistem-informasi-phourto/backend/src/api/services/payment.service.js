@@ -3,12 +3,19 @@ const axios = require('axios');
 const db = require('../../config/database');
 const ApiError = require('../../utils/apiError');
 const { logger } = require('../../utils/logger');
+require('dotenv').config();
 
-// --- CONFIGURATION ---
-const DOKU_CLIENT_ID = ("BRN-0247-1763549965476").trim();
-const DOKU_SECRET_KEY = ("SK-y7ttkjxdPAji58REhIK3").trim();
 
-const DOKU_ORDER_URL = "https://api-sandbox.doku.com/checkout/v1/payment";
+// --- CONFIGURATION --- 
+// const DOKU_CLIENT_ID = ("BRN-0275-1763727915322").trim();
+// const DOKU_SECRET_KEY = ("SK-nOGeqPWP7ak53Bmi1scl").trim();
+// const DOKU_ORDER_URL = "https://api-sandbox.doku.com/checkout/v1/payment";
+
+const DOKU_CLIENT_ID = process.env.DOKU_CLIENT_ID;
+const DOKU_SECRET_KEY = process.env.DOKU_SECRET_KEY;
+const DOKU_ORDER_URL = process.env.DOKU_API_URL;
+
+
 const DOKU_WEBHOOK_TARGET = process.env.DOKU_WEBHOOK_TARGET || '/api/payments/notifications';
 
 // Instance Axios Bersih
