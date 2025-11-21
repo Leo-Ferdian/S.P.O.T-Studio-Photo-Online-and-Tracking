@@ -63,7 +63,7 @@ onMounted(async () => {
       <!-- Header -->
       <div class="flex items-center justify-between mb-8">
         <button @click="$router.push('/claimphotos')"
-          class="p-2 bg-primary text-white border-3 border-outline shadow-solid hover:translate-y-1 hover:shadow-none transition-all">
+          class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:translate-y-1 hover:shadow-none transition-all">
           <i data-feather="arrow-left" class="w-6 h-6"></i>
         </button>
         <h1 class="text-3xl font-bold text-center flex-1">Download Foto</h1>
@@ -177,9 +177,9 @@ onMounted(async () => {
       </div>
 
       <!-- Bantuan -->
-      <div class="text-center mt-8 text-sm text-gray-500">
+      <!-- <div class="text-center mt-8 text-sm text-gray-500">
         <p>Mengalami kendala? Hubungi <a href="#" class="text-primary underline font-bold">Admin WhatsApp</a></p>
-      </div>
+      </div> -->
 
     </main>
   </div>
