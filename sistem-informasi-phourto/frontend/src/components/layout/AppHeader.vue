@@ -39,20 +39,20 @@ const userProfileLink = computed(() => {
             <!-- Menu Navigasi (Desktop) -->
             <div class="hidden md:flex items-center space-x-3">
                 <router-link to="/about"
-                    class="bg-primary text-text-default px-4 py-1 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all duration-100">
+                    class="bg-primary text-text-default px-4 py-1 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 duration-100 hover:translate-y-1 hover:shadow-none transition-all">
                     About Us
                 </router-link>
                 <router-link to="/location"
-                    class="bg-primary text-text-default px-4 py-1 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all duration-100">
+                    class="bg-primary text-text-default px-4 py-1 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 duration-100 hover:translate-y-1 hover:shadow-none transition-all">
                     Location
                 </router-link>
                 <router-link to="/claimphotos"
-                    class="bg-primary text-text-default px-4 py-1 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all duration-100">
+                    class="bg-primary text-text-default px-4 py-1 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 duration-100 hover:translate-y-1 hover:shadow-none transition-all">
                     Claim Photos
                 </router-link>
                 <router-link to="/RiwayatBooking" class="bg-primary text-text-default px-3 py-1 border-3 border-outline shadow-solid 
                     hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 
-                    transition-all duration-100 flex items-center gap-2">
+                     duration-100 flex items-center gap-2 hover:translate-y-1 hover:shadow-none transition-all">
                     Booking History
                 </router-link>
             </div>
@@ -65,7 +65,7 @@ const userProfileLink = computed(() => {
                         LOG IN
                     </router-link>
                     <router-link to="/register"
-                        class="bg-primary text-text-default px-4 py-1 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all duration-100">
+                        class="bg-primary text-text-default px-4 py-1 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 duration-100 hover:translate-y-1 hover:shadow-none transition-all">
                         SIGN UP
                     </router-link>
                 </div>
@@ -77,7 +77,7 @@ const userProfileLink = computed(() => {
                     </router-link>
 
                     <button @click="handleLogout"
-                        class="bg-gray-700 text-white px-4 py-1 border-3 border-outline shadow-solid hover:bg-gray-800 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 transition-all duration-100">
+                        class="bg-gray-700 text-white px-4 py-1 border-3 border-outline shadow-solid hover:bg-gray-800 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 duration-100 hover:translate-y-1 hover:shadow-none transition-all">
                         LOG OUT
                     </button>
                 </div>

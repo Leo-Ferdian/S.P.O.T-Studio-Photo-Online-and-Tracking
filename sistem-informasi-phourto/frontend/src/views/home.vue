@@ -169,7 +169,7 @@ onMounted(() => {
           </p>
 
           <a href="#"
-            class="inline-block bg-white text-text-default font-bold py-3 px-6 border-3 border-outline shadow-solid hover:bg-gray-200 active:shadow-none active:translate-x-1 active:translate-y-1 transition-all duration-100">
+            class="inline-block bg-white text-text-default font-bold py-3 px-6 border-3 border-outline shadow-solid hover:bg-gray-200 active:shadow-none active:translate-x-1 active:translate-y-1 duration-100 hover:translate-y-1 hover:shadow-none transition-all">
             Find Your Inspiration Here 👉
           </a>
         </div>

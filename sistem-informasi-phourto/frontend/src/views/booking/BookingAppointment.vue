@@ -142,11 +142,11 @@ onMounted(() => {
         <div class="flex-1">
           <div class="flex items-center space-x-2">
             <button @click="$router.back()"
-              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5">
+              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
               <i data-feather="arrow-left" class="w-6 h-6"></i>
             </button>
             <button @click="$router.push('/')"
-              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5">
+              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
               <i data-feather="home" class="w-6 h-6"></i>
             </button>
           </div>
@@ -164,7 +164,7 @@ onMounted(() => {
           <div class="md:col-span-2 bg-white text-black p-6 border-4 border-outline">
             <div class="flex justify-between items-center mb-6">
               <button @click="goToToday"
-                class="bg-primary text-white px-3 py-1 border-2 border-black shadow-solid text-sm font-display hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5">
+                class="bg-primary text-white px-3 py-1 border-2 border-black shadow-solid text-sm font-display hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
                 Hari ini
               </button>
               <div class="flex items-center space-x-4">
@@ -240,7 +240,7 @@ onMounted(() => {
               <div v-else-if="selectedDate && availability.slots.length > 0" class="grid grid-cols-4 gap-2">
                 <button v-for="time in availability.slots" :key="time" @click="handleTimeSelect(time)" :class="[
                   'p-2 border-3 border-outline shadow-solid font-bold transition-all duration-100 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 font-display',
-                  selectedTime === time ? 'bg-black text-white' : 'bg-primary text-white hover:bg-red-600'
+                  selectedTime === time ? 'bg-black text-white' : 'bg-primary text-white hover:bg-red-600 hover:translate-y-1 hover:shadow-none transition-all'
                 ]">
                   {{ time }}
                 </button>
@@ -255,7 +255,7 @@ onMounted(() => {
         <!-- Tombol Next -->
         <div class="text-center mt-12">
           <button @click="goToNextStep" :disabled="!selectedTime"
-            class="bg-primary text-text-default font-bold text-lg py-3 px-12 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-1 active:translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-display">
+            class="bg-primary text-text-default font-bold text-lg py-3 px-12 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-1 active:translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed font-display hover:translate-y-1 hover:shadow-none transition-all">
             Next
           </button>
         </div>

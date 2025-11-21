@@ -16,11 +16,11 @@ onMounted(() => {
         <div class="flex-1">
           <div class="flex items-center space-x-2">
             <button @click="$router.back()"
-              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5">
+              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
               <i data-feather="arrow-left" class="w-6 h-6"></i>
             </button>
             <button @click="$router.push('/Home')"
-              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5">
+              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
               <i data-feather="home" class="w-6 h-6"></i>
             </button>
           </div>
@@ -57,7 +57,7 @@ onMounted(() => {
           </div>
           <div class="mt-10 text-center">
             <button
-              class="bg-white text-text-default font-bold text-lg py-4 px-8 border-3 border-outline shadow-solid hover:bg-gray-200 active:shadow-none active:translate-x-1 active:translate-y-1 transition-all">
+              class="bg-white text-text-default font-bold text-lg py-4 px-8 border-3 border-outline shadow-solid hover:bg-gray-200 active:shadow-none active:translate-x-1 active:translate-y-1 hover:translate-y-1 hover:shadow-none transition-all">
               Go Grab Your Photos with Us!!!
             </button>
           </div>

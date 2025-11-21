@@ -72,7 +72,7 @@ const confirmBooking = async () => {
 }
 
 // === OPSI BACKGROUND ===
-const backgroundOptions = ['Putih', 'Abu-abu', 'Hitam', 'Merah Maroon']
+const backgroundOptions = ['Putih', 'Abu-abu', 'Hitam', 'Merah Maroon','Biru', 'Merah']
 
 // === FORMAT TANGGAL ===
 const formattedDateTime = computed(() => {
@@ -131,17 +131,12 @@ onMounted(() => {
       <div class="flex items-center justify-between mb-12">
         <div class="flex-1">
           <div class="flex items-center space-x-2">
-            <button
-              @click="$router.back()"
-              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5"
-            >
+            <button @click="$router.back()"
+              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
               <i data-feather="arrow-left" class="w-6 h-6"></i>
             </button>
-
-            <button
-              @click="$router.push('/')"
-              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5"
-            >
+            <button @click="$router.push('/Home')"
+              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
               <i data-feather="home" class="w-6 h-6"></i>
             </button>
           </div>
@@ -173,9 +168,15 @@ onMounted(() => {
             </div>
 
             <router-link
-              to="/booking/appointment"
+            :to="{
+              name: 'BookingAppointment',
+               params: {
+                branchId: summary.branch.id,
+                packageId: summary.package.package_id,
+              }
+               }"
               class="text-gray-500 hover:text-primary"
-            >
+              >
               <i data-feather="edit-2" class="w-5 h-5"></i>
             </router-link>
           </div>
@@ -329,7 +330,7 @@ onMounted(() => {
             <button
               type="submit"
               :disabled="isLoading"
-              class="w-full bg-primary text-text-default font-bold text-lg py-3 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-1 active:translate-y-1 transition-all disabled:opacity-50"
+              class="w-full bg-primary text-text-default font-bold text-lg py-3 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-1 active:translate-y-1 disabled:opacity-50 hover:translate-y-1 hover:shadow-none transition-all"
             >
               <span v-if="isLoading">MEMPROSES...</span>
               <span v-else>Lanjut ke Pembayaran</span>

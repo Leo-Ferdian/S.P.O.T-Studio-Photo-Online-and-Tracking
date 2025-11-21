@@ -66,12 +66,12 @@ onMounted(async () => {
                 <div class="flex-1">
                     <div class="flex items-center space-x-2">
                         <button @click="$router.back()"
-                            class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid">
+                            class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:translate-y-1 hover:shadow-none transition-all">
                             <i data-feather="arrow-left" class="w-6 h-6"></i>
                         </button>
 
                         <button @click="$router.push('/Home')"
-                            class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid">
+                            class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:translate-y-1 hover:shadow-none transition-all">
                             <i data-feather="home" class="w-6 h-6"></i>
                         </button>
                     </div>
@@ -120,7 +120,7 @@ onMounted(async () => {
                         </div>
 
                         <button @click="togglePlanSection(pkg.id)"
-                            class="w-full bg-background text-text-default font-bold py-2 border-3 border-outline shadow-solid">
+                            class="w-full bg-background text-text-default font-bold py-2 border-3 border-outline shadow-solid hover:translate-y-1 hover:shadow-none transition-all">
                             {{ activePackageId === pkg.id ? "Tutup Plan" : "Pilih Room" }}
                         </button>
 
@@ -150,7 +150,7 @@ onMounted(async () => {
                                             <router-link
                                                 :to="`/booking/${props.branchName}/${pkg.id}?plan=${plan.planId}`"
                                                 @click="selectPlan(plan)"
-                                                class="block text-center bg-background font-bold py-2 border-2 border-outline shadow">
+                                                class="block text-center bg-background font-bold py-2 border-2 border-outline shadow-solid hover:translate-y-1 hover:shadow-none transition-all">
                                                 Booking Room
                                             </router-link>
                                         </div>
