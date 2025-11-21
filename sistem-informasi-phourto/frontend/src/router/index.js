@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import Login from '../views/auth/login.vue'
-import Register from '../views/auth/register.vue'
+import Register from '../views/auth/Register.vue'
 import AdminLayout from '../components/layout/AdminLayout.vue'
 // import { useAuthStore } from '../stores/auth.stores' // gunakan alias '@' jika sudah diset di vite.config.js
 
