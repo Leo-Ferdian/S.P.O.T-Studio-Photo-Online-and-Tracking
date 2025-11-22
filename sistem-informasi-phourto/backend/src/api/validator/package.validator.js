@@ -8,7 +8,7 @@ const ApiError = require('../../utils/apiError');
  */
 const packageIdValidationRules = () => {
     return [
-        param('id')
+        param('packageId')
             .isUUID().withMessage('ID Paket (Package ID) harus berupa UUID yang valid.')
     ];
 };
@@ -71,18 +71,18 @@ const packageBodyValidationRules = () => {
         body('addons.*.addon_name')
             .trim()
             .notEmpty().withMessage('Nama addon (addon_name) tidak boleh kosong.'),
-        
+
         body('addons.*.addon_price')
             .notEmpty().withMessage('Harga addon (addon_price) tidak boleh kosong.')
             .isNumeric().withMessage('Harga addon harus berupa angka.'),
-        
+
         body('addons.*.addon_unit')
             .optional().trim(),
 
         body('addons.*.max_qty')
             .notEmpty().withMessage('Max Qty addon tidak boleh kosong.')
             .isInt({ min: 0 }).withMessage('Max Qty harus berupa angka (0 atau lebih).'),
-        
+
         // (Khusus untuk UPDATE) Validasi addon_id jika ada
         body('addons.*.addon_id')
             .optional() // Hanya ada saat UPDATE

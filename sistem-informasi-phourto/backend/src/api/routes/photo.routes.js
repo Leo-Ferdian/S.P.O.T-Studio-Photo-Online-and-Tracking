@@ -1,43 +1,43 @@
 const express = require('express');
 const router = express.Router();
 const PhotoController = require('../controllers/photo.controller');
-const authMiddleware = require('../middlewares/auth.middleware');
-const { getGalleryValidationRules } = require('../validator/photo.validator'); 
+const { claimPhotoValidationRules } = require('../validator/photo.validator');
 
-// 2. Terapkan Middleware Keamanan
-// Semua rute di bawah ini dilindungi (hanya pelanggan yang login bisa akses)
-router.use(authMiddleware);
+// =================================================================
+// ROUTE PUBLIK (DENGAN VALIDASI CLAIM)
+// =================================================================
 
 /**
- * @route GET /api/photos/:bookingId/gallery
- * @desc Mendapatkan URL Pre-signed untuk semua file foto (Gallery View)
+ * @route   GET /api/photos/:bookingId/gallery?email=...
+ * @desc    Mengambil daftar foto (JSON) untuk ditampilkan di halaman klaim.
+ * @access  Public (Verified by Code & Email)
  */
 router.get(
     '/:bookingId/gallery',
-    getGalleryValidationRules(), 
-    PhotoController.getBookingGallery 
+    claimPhotoValidationRules(), // Middleware validasi kita
+    PhotoController.getBookingGallery
 );
+
 /**
- * @route POST /api/photos/:bookingId/download
- * @desc BARU V1.13: Memicu proses pembuatan file .zip Galeri secara Asynchronous.
- * Memanggil PhotoService.triggerZipWorker.
- */
-router.post(
-    '/:bookingId/download',
-    getGalleryValidationRules(), 
-    PhotoController.triggerGalleryDownload 
-);
-/**
- * @route GET /api/photos/:bookingId/download-status
- * @desc BARU V1.13: Endpoint polling untuk memeriksa status file .zip dan mendapatkan link download.
- * Memanggil PhotoService.getDownloadStatus.
+ * @route   GET /api/photos/:bookingId/download-zip?email=...
+ * @desc    Memicu download langsung file ZIP (Streaming).
+ * @access  Public (Verified by Code & Email)
  */
 router.get(
-    '/:bookingId/download-status',
-    getGalleryValidationRules(), 
-    PhotoController.getDownloadStatus
+    '/:bookingId/download-zip',
+    claimPhotoValidationRules(), // Middleware validasi kita
+    PhotoController.downloadGalleryZip
 );
-// Rute POST /upload/... yang lama (penyebab error) telah dihapus dari file ini.
-// Rute itu seharusnya ada di 'api/routes/admin/photo.routes.js'.
+
+/**
+ * @route   GET /api/photos/:bookingId/download-single?email=...&url=...
+ * @desc    Memicu download satu foto (Proxy agar tidak kena CORS).
+ * @access  Public
+ */
+router.get(
+    '/:bookingId/download-single',
+    claimPhotoValidationRules(),
+    PhotoController.downloadSinglePhoto
+);
 
 module.exports = router;

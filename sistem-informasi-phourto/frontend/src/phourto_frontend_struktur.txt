@@ -1,0 +1,122 @@
+Folder PATH listing for volume Data
+Volume serial number is 6CFA-2E17
+D:.
+¦   App.vue
+¦   main.js
+¦   phourto_frontend_struktur.txt
+¦   
++---api
+¦       api.js
+¦       
++---assets
+¦   ¦   basicmarpoyan.jpg
+¦   ¦   basicpanam.jpg
+¦   ¦   basicsail.jpg
+¦   ¦   bebas1.jpg
+¦   ¦   bebas2.jpg
+¦   ¦   bebas3.jpg
+¦   ¦   bebas4.jpg
+¦   ¦   bebas5.jpg
+¦   ¦   bebas6.jpg
+¦   ¦   bgbluenavy.jpg
+¦   ¦   bgcreamm.jpg
+¦   ¦   bglightgrey.jpg
+¦   ¦   bgmaroon.jpg
+¦   ¦   bgmintgreen.jpg
+¦   ¦   bgorange.jpg
+¦   ¦   bgungu.jpg
+¦   ¦   bgwhite.jpg
+¦   ¦   blank.jpg
+¦   ¦   creative.jpg
+¦   ¦   elevatorsail.jpg
+¦   ¦   fisheye-bluepurple1.jpg
+¦   ¦   fisheye-bluepurple2.jpg
+¦   ¦   fisheye-elevator.jpg
+¦   ¦   fisheye-emeraldgreen1.jpg
+¦   ¦   fisheye-emeraldgreen2.jpg
+¦   ¦   fisheye-emeraldgreen3.jpg
+¦   ¦   fisheyesail.jpg
+¦   ¦   pas-photo-biru.jpg
+¦   ¦   pas-photo-merah.jpg
+¦   ¦   pasphotomerah.jpg
+¦   ¦   phourto.jpg
+¦   ¦   recap-pose-flowerstudio1.jpg
+¦   ¦   recap-pose-room1ch1-2.jpg
+¦   ¦   recap-pose-room1ch1.jpg
+¦   ¦   recap-pose-room1ch2-2.jpg
+¦   ¦   recap-pose-room1ch2-3.jpg
+¦   ¦   recap-pose-room1ch2.jpg
+¦   ¦   recap-pose-room1ch3-2.jpg
+¦   ¦   recap-pose-room1ch3-3.jpg
+¦   ¦   recap-pose-room1ch3.jpg
+¦   ¦   spotlight.jpg
+¦   ¦   style.css
+¦   ¦   vue.svg
+¦   ¦   y2kmarpoyan.jpg
+¦   ¦   y2kpanam.jpg
+¦   ¦   y2ksail.jpg
+¦   ¦   
+¦   +---fonts
+¦           KodeMono-VariableFont_wght.ttf
+¦           
++---components
+¦   +---admin
+¦   ¦       Sidebar.vue
+¦   ¦       Topbar.vue
+¦   ¦       
+¦   +---common
+¦   ¦       ActionButton.vue
+¦   ¦       Calendar.vue
+¦   ¦       LocationButton.vue
+¦   ¦       RoomCard.vue
+¦   ¦       TittleBadge.vue
+¦   ¦       
+¦   +---layout
+¦           AdminLayout.vue
+¦           TheFooter.vue
+¦           TheHeader.vue
+¦           
++---composables
+¦       UseClickOutside.js
+¦       
++---router
+¦       index.js
+¦       
++---stores
+¦       auth.stores.js
+¦       booking.stores.js
+¦       
++---test
+¦       aboutus.spec.js
+¦       logintest.spec.js
+¦       
++---views
+    ¦   aboutus.vue
+    ¦   BranchDetail.vue
+    ¦   claimphotos.vue
+    ¦   dashboard.vue
+    ¦   framecatalog.vue
+    ¦   home.vue
+    ¦   location.vue
+    ¦   ServiceDetail.vue
+    ¦   UserManagement.vue
+    ¦   
+    +---admin
+    ¦       BookingList.vue
+    ¦       Dashboard.vue
+    ¦       PackageManagement.vue
+    ¦       UserList.vue
+    ¦       
+    +---auth
+    ¦       AdminLogin.vue
+    ¦       afterforgotpassword.vue
+    ¦       forgotpassword.vue
+    ¦       login.vue
+    ¦       register.vue
+    ¦       
+    +---booking
+            BookingAppointment.vue
+            Confirmation.vue
+            Success.vue
+            summary.vue
+            

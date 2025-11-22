@@ -1,202 +1,250 @@
 const crypto = require('crypto');
 const axios = require('axios');
-const db = require('../../config/database'); // Koneksi V1.6
+const db = require('../../config/database');
 const ApiError = require('../../utils/apiError');
 const { logger } = require('../../utils/logger');
-const BookingService = require('./booking.service'); 
+require('dotenv').config();
 
-// Ambil kredensial DOKU dari environment variables
 const DOKU_CLIENT_ID = process.env.DOKU_CLIENT_ID;
 const DOKU_SECRET_KEY = process.env.DOKU_SECRET_KEY;
-const DOKU_API_URL = process.env.DOKU_API_URL || 'https://api-sandbox.doku.com';
-const DOKU_WEBHOOK_TARGET = process.env.DOKU_WEBHOOK_TARGET || '/api/v1/payments/notifications'; // Sesuaikan dengan target webhook Anda
+const DOKU_API_URL = process.env.DOKU_API_URL;
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+// Instance Axios
+const dokuClient = axios.create();
 
 class PaymentService {
 
-    /**
-     * Membuat signature HMAC_SHA256 sesuai standar DOKU.
-     */
     _createSignature(stringToSign) {
         return crypto.createHmac('sha256', DOKU_SECRET_KEY)
             .update(stringToSign)
             .digest('base64');
     }
 
-    /**
-     * Membuat transaksi QRIS baru di DOKU.
-     * --- REFACTORED (V1.7) ---
-     * Dipanggil SETELAH booking 'PENDING' dibuat.
-     * Meng-UPDATE booking dengan data DOKU.
-     *
-     * @param {object} booking - Objek data booking DARI 'bookings' (termasuk booking_id, total_price)
-     * @param {object} user - Objek data pengguna (dari 'users')
-     * @returns {object} - Informasi pembayaran dari DOKU (qr_code_url, expires_at)
-     */
-    async createQrisCharge(booking, user) {
-        const endpoint = '/qris-mpm-payment/v1/generate-qris';
-        const timestamp = new Date().toISOString();
-        
-        // REFAKTOR: Gunakan 'booking_id' sebagai referensi utama
-        // Ini membuat pemetaan webhook 100% andal.
-        const partnerReferenceNo = booking.booking_id; // WAJIB: Gunakan booking_id
-        const requestId = `REQ-${booking.booking_id}-${Date.now()}`; // ID unik untuk request API DOKU
+    // --- 1. GENERATE QR CODE ---
+    async generateQrCode(bookingId, userId) {
+        console.log("\n============== [PAYMENT SERVICE] ==============");
+        console.log("1. Processing Booking ID:", bookingId);
 
+        const bookingQuery = `SELECT * FROM bookings WHERE booking_id = $1::uuid LIMIT 1`;
+        const userQuery = `SELECT * FROM users WHERE user_id = $1::uuid LIMIT 1`;
+
+        let booking, user;
+        try {
+            const bookingResult = await db.query(bookingQuery, [bookingId]);
+            booking = bookingResult.rows[0];
+
+            const userResult = await db.query(userQuery, [userId]);
+            user = userResult.rows[0];
+        } catch (dbError) {
+            throw new ApiError(500, "Database Error: " + dbError.message);
+        }
+
+        if (!booking) throw new ApiError(404, 'Booking tidak ditemukan di database.');
+        if (!user) throw new ApiError(404, 'User tidak ditemukan.');
+
+        if (booking.user_id.toString() !== userId.toString()) {
+            throw new ApiError(403, 'Akses ditolak: Anda bukan pemilik booking ini.');
+        }
+
+        return this.createCheckoutPayment(booking, user);
+    }
+
+    async createCheckoutPayment(booking, user) {
+        const requestId = `REQ-${booking.booking_id.substring(0, 8)}-${Date.now()}`;
+        const now = new Date();
+        const timestamp = now.toISOString().substring(0, 19) + "Z";
+        const amountValue = Math.round(booking.total_price || booking.amount_due || 0);
+
+        // ✅ PERBAIKAN 1: Hapus Localhost, ganti domain production
         const body = {
-            partnerReferenceNo: partnerReferenceNo, // Ini adalah ID yang dilacak DOKU
-            amount: {
-                // Gunakan total_price (lunas) atau dp_amount tergantung logika bisnis
-                // Untuk saat ini, kita gunakan 'amount_due' (yang di-generate)
-                value: `${booking.amount_due.toFixed(2)}`,
-                currency: 'IDR',
+            order: {
+                amount: amountValue,
+                invoice_number: booking.booking_id,
+                currency: "IDR",
+                callback_url: `${FRONTEND_URL}/booking/success?id=${booking.booking_id}`,
+                auto_redirect: true
             },
-            // (Opsional) Tambahkan info pelanggan
-            // customer: {
-            //     name: user.full_name,
-            //     email: user.email,
-            //     phone: user.phone_number
-            // }
+            payment: {
+                payment_due_date: 60
+            },
+            customer: {
+                name: user.full_name || "Customer Phourto",
+                email: user.email,
+                phone: user.phone_number || "081234567890"
+            }
         };
 
         const bodyString = JSON.stringify(body);
         const digest = crypto.createHash('sha256').update(bodyString).digest('base64');
-        const stringToSign = `Client-Id:${DOKU_CLIENT_ID}\nRequest-Id:${requestId}\nRequest-Timestamp:${timestamp}\nRequest-Target:${endpoint}\nDigest:${digest}`;
-        
+        const requestTarget = "/checkout/v1/payment";
+
+        const stringToSign =
+            `Client-Id:${DOKU_CLIENT_ID}\n` +
+            `Request-Id:${requestId}\n` +
+            `Request-Timestamp:${timestamp}\n` +
+            `Request-Target:${requestTarget}\n` +
+            `Digest:${digest}`;
+
         const signature = this._createSignature(stringToSign);
 
-        const headers = {
-            'Client-Id': DOKU_CLIENT_ID,
-            'Request-Id': requestId,
-            'Request-Timestamp': timestamp,
-            'Signature': `HMACSHA256=${signature}`,
-        };
-
         try {
-            const response = await axios.post(`${DOKU_API_URL}${endpoint}`, body, { headers });
-            
-            const dokuResponse = response.data;
+            const response = await dokuClient.post(DOKU_API_URL + requestTarget, body, {
+                headers: {
+                    'Client-Id': DOKU_CLIENT_ID,
+                    'Request-Id': requestId,
+                    'Request-Timestamp': timestamp,
+                    'Signature': "HMACSHA256=" + signature,
+                    'Content-Type': 'application/json'
+                }
+            });
 
-            // --- REFAKTOR (V1.7) ---
-            // Hapus 'savePaymentDetails()'
-            // Ganti dengan UPDATE ke tabel 'bookings'
-            
+            const paymentId = response.data.response.payment.id;
+            const paymentUrl = response.data.response.payment.url;
+            const invoiceNumber = response.data.response.order.invoice_number;
+
+            // Update DB
             const updateQuery = `
-                UPDATE bookings
-                SET 
-                    payment_gateway_ref = $1, -- Menyimpan 'partnerReferenceNo'
-                    payment_qr_url = $2,      -- Menyimpan 'qrisUrl'
-                    payment_qr_expires_at = $3 -- Menyimpan 'expiresAt'
-                WHERE booking_id = $4;
-            `;
-            
+            UPDATE bookings
+            SET 
+                payment_gateway_ref = $1,
+                payment_qr_url = $2,
+                amount_paid = $3,
+                updated_at = NOW()
+            WHERE booking_id = $4
+            RETURNING *;
+        `;
+
             await db.query(updateQuery, [
-                dokuResponse.partnerReferenceNo, // partnerReferenceNo (harus = booking_id kita)
-                dokuResponse.qrisUrl,
-                dokuResponse.expiresAt,
+                paymentId,
+                paymentUrl,
+                amountValue,
                 booking.booking_id
             ]);
 
-            logger.info(`Data pembayaran DOKU disimpan untuk booking_id: ${booking.booking_id}`);
-
             return {
-                order_id: dokuResponse.partnerReferenceNo, // = booking_id
-                qr_code_url: dokuResponse.qrisUrl,
-                expires_at: dokuResponse.expiresAt,
+                order_id: invoiceNumber,
+                payment_id: paymentId,
+                payment_url: paymentUrl,
+                total_amount: amountValue,
             };
 
         } catch (error) {
-            logger.error('DOKU API Error (createQrisCharge):', error.response?.data || error.message);
-            // Batalkan booking jika gagal membuat pembayaran? (Logika opsional)
-            // await BookingService.updateBookingStatusByAdmin(booking.booking_id, 'FAILED', null);
-            throw new ApiError(502, 'Gagal membuat transaksi pembayaran dengan DOKU.');
+            console.error("❌ DOKU Error:", error.response ? error.response.data : error.message);
+            throw new ApiError(502, "Gagal membuat pembayaran ke DOKU.");
         }
     }
 
-    /**
-     * FUNGSI savePaymentDetails() DIHAPUS
-     * (Logika digabung ke V1.7 'bookings' table)
-     */
+    // --- ✅ PERBAIKAN 2: MENAMBAHKAN FUNGSI CEK STATUS (WAJIB ADA) ---
+    // --- 2. CEK STATUS TRANSAKSI (Jaring Pengaman) ---
+    async checkTransactionStatus(bookingId) {
+        console.log(`[PAYMENT] Checking status for booking: ${bookingId}`);
 
-    /**
-     * Memverifikasi dan menangani notifikasi webhook dari DOKU.
-     * --- REFACTORED (V1.7) ---
-     */
-    async handleDokuNotification(notificationPayload, headers) {
-        const clientId = headers['client-id'];
-        const requestId = headers['request-id'];
-        const timestamp = headers['request-timestamp'];
-        const signatureFromDoku = headers.signature;
+        // Endpoint DOKU untuk Cek Status
+        const requestTarget = `/orders/v1/status/${bookingId}`;
+        const requestId = `CHK-${Date.now()}`;
 
-        if (!clientId || !requestId || !timestamp || !signatureFromDoku) {
-            throw new ApiError(400, 'Header notifikasi dari DOKU tidak lengkap.');
-        }
+        // Timestamp ISO tanpa milidetik (.000Z -> Z)
+        const now = new Date();
+        const timestamp = now.toISOString().substring(0, 19) + "Z";
 
-        const bodyString = JSON.stringify(notificationPayload);
-        const digest = crypto.createHash('sha256').update(bodyString).digest('base64');
-        
-        // PENTING: Pastikan ini adalah target endpoint webhook Anda
-        const requestTarget = DOKU_WEBHOOK_TARGET; 
-        const stringToSign = `Client-Id:${clientId}\nRequest-Id:${requestId}\nRequest-Timestamp:${timestamp}\nRequest-Target:${requestTarget}\nDigest:${digest}`;
-        
-        // 1. Verifikasi Signature
-        const generatedSignature = this._createSignature(stringToSign);
-        if (`HMACSHA256=${generatedSignature}` !== signatureFromDoku) {
-            logger.warn(`Invalid signature for DOKU notification. Request-Id: ${requestId}`);
-            throw new ApiError(403, 'Signature tidak valid. Notifikasi tidak sah.');
-        }
+        // Digest untuk GET request biasanya string kosong
+        const digest = crypto.createHash('sha256').update("").digest('base64');
 
-        // 2. Proses status transaksi
-        // Ambil data penting dari payload
-        const { partnerReferenceNo, transactionStatus } = notificationPayload.transaction;
-        const amount = notificationPayload.transaction.amount.value; // Jumlah yang dibayar
-        
-        // 'partnerReferenceNo' adalah 'booking_id' kita
-        const bookingId = partnerReferenceNo; 
+        const stringToSign =
+            `Client-Id:${DOKU_CLIENT_ID}\n` +
+            `Request-Id:${requestId}\n` +
+            `Request-Timestamp:${timestamp}\n` +
+            `Request-Target:${requestTarget}\n` +
+            `Digest:${digest}`;
 
-        // 3. Update database dalam transaksi
-        const client = await db.getClient(); // Gunakan getClient (V1.6)
+        const signature = this._createSignature(stringToSign);
+        const finalSignatureHeader = "HMACSHA256=" + signature;
+
         try {
-            await client.query('BEGIN');
-            
-            // --- REFAKTOR (V1.7) ---
-            // Hapus logika 'phourto.payments'.
-            // Langsung panggil BookingService.
+            // Gunakan instance dokuClient yang bersih
+            const response = await dokuClient.get(DOKU_API_URL + requestTarget, {
+                headers: {
+                    'Client-Id': DOKU_CLIENT_ID,
+                    'Request-Id': requestId,
+                    'Request-Timestamp': timestamp,
+                    'Signature': finalSignatureHeader,
+                    'Request-Target': requestTarget // Kadang dibutuhkan untuk GET
+                }
+            });
 
+            const transactionStatus = response.data.transaction.status;
+            console.log(`[PAYMENT] Real-time status from DOKU: ${transactionStatus}`);
+
+            // [PERBAIKAN DATABASE]
+            // Gunakan kolom 'payment_status' dan nilai 'PAID-FULL'
             if (transactionStatus === 'SUCCESS') {
-                // Panggil fungsi V1.7 dari BookingService (yang sudah di-refactor)
-                // Kita harus meneruskan 'client' agar berjalan dalam transaksi yang sama
-                await BookingService.handleSuccessfulPayment(
-                    bookingId, 
-                    amount, 
-                    'DOKU_QRIS', 
-                    client // <--- Meneruskan klien transaksi
+                await db.query(
+                    `UPDATE bookings 
+                    SET payment_status = 'PAID-FULL', updated_at = NOW() 
+                    WHERE booking_id = $1 AND payment_status != 'PAID-FULL'`,
+                    [bookingId]
                 );
-
-            } else if (transactionStatus === 'FAILED') {
-                // Panggil fungsi V1.7 dari BookingService (yang sudah di-refactor)
-                // Kita perlu menambahkan 'FAILED' ke ENUM status kita
-                // null untuk adminUserId karena ini adalah aksi sistem
-                await BookingService.updateBookingStatusByAdmin(
-                    bookingId, 
-                    'FAILED', 
-                    null, // adminUserId (null = sistem)
-                    client // <--- Meneruskan klien transaksi
-                );
-            
-            } else {
-                logger.info(`Ignoring DOKU notification with status: ${transactionStatus}`);
-                // Kita tidak COMMIT atau ROLLBACK, biarkan saja
-                await client.query('COMMIT'); // Atau ROLLBACK? Sebaiknya COMMIT agar tidak menggantung.
-                return;
+                return { status: 'PAID-FULL', message: 'Pembayaran Berhasil (Updated)' };
             }
-            
-            await client.query('COMMIT');
-            logger.info(`Webhook DOKU berhasil diproses untuk booking_id: ${bookingId}.`);
+            else if (transactionStatus === 'FAILED' || transactionStatus === 'EXPIRED') {
+                await db.query(
+                    `UPDATE bookings 
+                    SET payment_status = 'FAILED', updated_at = NOW() 
+                    WHERE booking_id = $1`,
+                    [bookingId]
+                );
+                return { status: 'FAILED', message: 'Pembayaran Gagal/Expired' };
+            }
+
+            return { status: 'PENDING', message: 'Menunggu Pembayaran' };
 
         } catch (error) {
+            // Jika error 404 dari DOKU, berarti transaksi belum dibuat/ditemukan
+            if (error.response && error.response.status === 404) {
+                console.warn(`[PAYMENT] Transaksi ${bookingId} belum ada di DOKU.`);
+                return { status: 'NOT_FOUND', message: 'Belum ada transaksi' };
+            }
+
+            console.error("❌ Gagal Cek Status DOKU:", error.message);
+            // Jangan throw error agar frontend tidak crash, cukup return status lama
+            return { status: 'UNKNOWN', message: 'Gagal cek status' };
+        }
+    }
+
+    // --- 3. HANDLE WEBHOOK ---
+    async handleDokuNotification(notificationPayload, headers) {
+        const clientId = headers['client-id'];
+
+        if (clientId !== DOKU_CLIENT_ID) {
+            logger.warn(`Webhook Client ID mismatch: ${clientId}`);
+        }
+
+        const invoiceNumber = notificationPayload.order?.invoice_number || notificationPayload.transaction?.partnerReferenceNo;
+        const status = notificationPayload.transaction?.status;
+
+        if (!invoiceNumber) throw new ApiError(400, "Invoice tidak ditemukan di payload.");
+
+        const client = await db.getClient();
+        try {
+            await client.query('BEGIN');
+
+            if (status === 'SUCCESS') {
+                // [PERBAIKAN STATUS]: Menggunakan 'PAID-FULL' (dengan strip)
+                const updateSuccess = `UPDATE bookings SET payment_status = 'PAID-FULL', updated_at = NOW() WHERE booking_id = $1`;
+                await client.query(updateSuccess, [invoiceNumber]);
+                logger.info(`[WEBHOOK] Booking ${invoiceNumber} updated to PAID-FULL.`);
+            } else if (status === 'FAILED' || status === 'EXPIRED') {
+                const updateFail = `UPDATE bookings SET payment_status = 'FAILED', updated_at = NOW() WHERE booking_id = $1`;
+                await client.query(updateFail, [invoiceNumber]);
+                logger.info(`[WEBHOOK] Booking ${invoiceNumber} updated to FAILED.`);
+            }
+
+            await client.query('COMMIT');
+        } catch (error) {
             await client.query('ROLLBACK');
-            logger.error(`Gagal memproses webhook DOKU untuk booking_id: ${bookingId}`, error);
-            // Kirim 500 ke DOKU agar mereka mencoba lagi
-            throw error; 
+            logger.error(`Webhook Error: ${error.message}`);
+            throw error;
         } finally {
             client.release();
         }

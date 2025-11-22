@@ -11,71 +11,128 @@ class AdminUserService {
      * @param {number} limit Jumlah item per halaman
      * @returns {Promise<object>} Objek berisi data dan metadata paginasi
      */
-    async getAllUsers(page = 1, limit = 10) {
+    async getAllUsers(options = {}) {
+        // 1. Destrukturisasi parameter dengan nilai default
+        const { page = 1, limit = 10, search } = options;
         const offset = (page - 1) * limit;
 
-        // Query untuk data (tanpa password_hash)
-        const dataQuery = `
-            SELECT 
-                user_id, 
-                full_name, 
-                email, 
-                phone_number, 
-                "role", 
-                created_at, 
-                updated_at
-            FROM users
-            ORDER BY created_at DESC
-            LIMIT $1 OFFSET $2
+        // 2. Query dasar untuk data dan hitung total
+        let dataQuery = `
+        SELECT 
+            user_id, 
+            full_name, 
+            email, 
+            phone_number, 
+            "role", 
+            created_at, 
+            updated_at
+        FROM users
         `;
-        
-        // Query untuk total hitungan
-        const countQuery = 'SELECT COUNT(*) FROM users';
+        let countQuery = 'SELECT COUNT(*) FROM users';
 
-        // Menjalankan kedua query secara paralel
+        // 3. Siapkan parameter dan kondisi WHERE
+        const queryParams = [];
+        const countParams = [];
+        const whereClauses = [];
+
+        // 4. Tambahkan filter pencarian (nama atau email)
+        if (search) {
+            queryParams.push(`%${search}%`);
+            countParams.push(`%${search}%`);
+            whereClauses.push(`(full_name ILIKE $1 OR email ILIKE $1)`);
+        }
+
+        // (Opsional) Tambahkan filter tambahan seperti 'role' di masa depan
+        // if (options.role) { ... }
+
+        // 5. Gabungkan WHERE jika ada
+        if (whereClauses.length > 0) {
+            const whereString = ` WHERE ${whereClauses.join(' AND ')}`;
+            dataQuery += whereString;
+            countQuery += whereString;
+        }
+
+        // 6. Tambahkan ORDER, LIMIT, dan OFFSET
+        dataQuery += `
+            ORDER BY created_at DESC 
+            LIMIT $${queryParams.length + 1} 
+            OFFSET $${queryParams.length + 2}
+        `;
+        queryParams.push(limit, offset);
+
+        // 7. Jalankan kedua query secara paralel
         const [dataResult, countResult] = await Promise.all([
-            db.query(dataQuery, [limit, offset]),
-            db.query(countQuery)
+            db.query(dataQuery, queryParams),
+            db.query(countQuery, countParams)
         ]);
 
-        const totalUsers = parseInt(countResult.rows[0].count, 10);
-        const totalPages = Math.ceil(totalUsers / limit);
+        // 8. Hitung total dan pagination
+        const total = parseInt(countResult.rows[0].count, 10);
+        const totalPages = Math.ceil(total / limit);
 
+        // 9. Kembalikan hasil dalam format yang konsisten dengan frontend
         return {
-            users: dataResult.rows,
+            data: dataResult.rows,
             pagination: {
-                totalUsers,
+                total,
                 totalPages,
-                currentPage: page,
+                page,
                 limit
             }
         };
     }
 
     /**
-     * @desc Mengambil detail satu pengguna (tanpa password)
+     * @desc Mengambil detail satu pengguna DAN riwayat booking mereka
      * @param {string} userId UUID pengguna
-     * @returns {Promise<object>} Data pengguna
+     * @returns {Promise<object>} Objek berisi { user, bookings }
      */
     async getUserDetails(userId) {
-        const query = `
+        // --- PERBAIKAN DI SINI: KITA TAMBAHKAN KUERI KEDUA ---
+
+        // Kueri 1: Ambil data pengguna (Seperti sebelumnya)
+        const userQuery = `
             SELECT 
-                user_id, 
-                full_name, 
-                email, 
-                phone_number, 
-                "role", 
-                created_at, 
-                updated_at
+                user_id, full_name, email, phone_number, "role", created_at, updated_at
             FROM users 
             WHERE user_id = $1
-        `;
-        const result = await db.query(query, [userId]);
+            `;
 
-        if (result.rows.length === 0) {
-            throw new ApiError(404, 'Pengguna tidak ditemukan.');
+        // Kueri 2: Ambil riwayat booking untuk pengguna ini
+        const bookingsQuery = `
+            SELECT 
+                b.booking_id, b.start_time, b.payment_status, b.total_price, 
+                p.package_name, br.branch_name
+            FROM bookings b
+            JOIN packages p ON b.package_id = p.package_id
+            JOIN rooms r ON p.room_id = r.room_id
+            JOIN branches br ON r.branch_id = br.branch_id
+            WHERE b.user_id = $1 
+            ORDER BY b.start_time DESC;
+            `;
+
+        try {
+            // Jalankan kedua kueri secara paralel
+            const [userResult, bookingsResult] = await Promise.all([
+                db.query(userQuery, [userId]),
+                db.query(bookingsQuery, [userId])
+            ]);
+
+            if (userResult.rows.length === 0) {
+                throw new ApiError(404, 'Pengguna tidak ditemukan.');
+            }
+
+            // Gabungkan hasilnya
+            const user = userResult.rows[0];
+            const bookings = bookingsResult.rows;
+
+            return { user, bookings };
+
+        } catch (error) {
+            logger.error('Error in getUserDetails (Admin):', error);
+            if (error instanceof ApiError) throw error;
+            throw new ApiError('Gagal mengambil data detail pengguna.', 500);
         }
-        return result.rows[0];
     }
 
     /**
@@ -101,9 +158,56 @@ class AdminUserService {
         if (result.rows.length === 0) {
             throw new ApiError(404, 'Gagal memperbarui. Pengguna tidak ditemukan.');
         }
-        
+
         logger.warn(`Peran untuk pengguna ${userId} telah diubah menjadi ${newRole} oleh Admin.`);
         return result.rows[0];
+    }
+
+    /**
+     * @desc Memperbarui detail profil (nama, email, hp) seorang pengguna
+     * @param {string} userId UUID pengguna yang akan diubah
+     * @param {object} profileData Objek berisi { full_name, email, phone_number }
+     * @returns {Promise<object>} Data pengguna yang telah diperbarui
+     */
+    async updateUserProfile(userId, profileData) {
+        const { full_name, email, phone_number } = profileData;
+
+        // Validasi sederhana (validator di rute seharusnya sudah menangani ini)
+        if (!full_name || !email || !phone_number) {
+            throw new ApiError(400, 'Nama lengkap, email, dan nomor telepon harus diisi.');
+        }
+
+        const query = `
+            UPDATE users
+            SET 
+                full_name = $1, 
+                email = $2, 
+                phone_number = $3, 
+                updated_at = CURRENT_TIMESTAMP
+            WHERE user_id = $4
+            RETURNING user_id, full_name, email, phone_number, "role"; 
+        `;
+
+        try {
+            const result = await db.query(query, [full_name, email, phone_number, userId]);
+
+            if (result.rows.length === 0) {
+                throw new ApiError(404, 'Gagal memperbarui. Pengguna tidak ditemukan.');
+            }
+
+            logger.info(`Profil untuk pengguna ${userId} telah diperbarui oleh Admin.`);
+            return result.rows[0];
+
+        } catch (error) {
+            // Tangkap error duplikat email
+            if (error.code === '23505') { // PostgreSQL unique_violation
+                logger.error(`Gagal update profil ${userId}: Email ${email} sudah terdaftar.`, error);
+                throw new ApiError(409, 'Email ini sudah terdaftar. Silakan gunakan email lain.');
+            }
+            logger.error(`Gagal memperbarui profil ${userId}:`, error);
+            if (error instanceof ApiError) throw error; // Lempar ulang ApiError
+            throw new ApiError('Gagal memperbarui profil pengguna.', 500);
+        }
     }
 
     /**
@@ -113,7 +217,7 @@ class AdminUserService {
     async deleteUser(userId) {
         try {
             const result = await db.query('DELETE FROM users WHERE user_id = $1', [userId]);
-            
+
             if (result.rowCount === 0) {
                 throw new ApiError(404, 'Gagal menghapus. Pengguna tidak ditemukan.');
             }

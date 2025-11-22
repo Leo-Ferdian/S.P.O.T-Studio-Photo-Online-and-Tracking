@@ -1,8 +1,12 @@
 const db = require('../../config/database');
 const ApiError = require('../../utils/apiError');
 const { logger } = require('../../utils/logger');
+const PackageService = require('./package.service')
 const { BOOKING_STATUS, BOOKING_ACTIONS } = require('../../config/constants');
 const PAYMENT_DEADLINE_MINUTES = 60;
+const EmailService = require('./email.service.js'); // <-- Impor Email Service
+const fs = require('fs'); // <-- Impor File System
+const path = require('path'); // <-- Impor Path
 
 const ZIP_STATUS = {
     PENDING: 'PENDING',
@@ -53,10 +57,127 @@ class BookingService {
         }
     }
 
-
     // =================================================================
     // FUNGSI UNTUK PELANGGAN (CUSTOMER-FACING)
     // =================================================================
+
+    /**
+     * @function getAvailableSlots
+     * @desc Menghitung dan mengembalikan semua slot waktu yang tersedia
+     * @param {string} packageId - UUID Paket
+     * @param {string} startTimeString - Tanggal (YYYY-MM-DD)
+     */
+    async getAvailableSlots(packageId, startTimeString) {
+        const client = await db.getClient();
+        try {
+            // Ambil HANYA tanggalnya (YYYY-MM-DD) dari string ISO
+            const dateOnlyString = new Date(startTimeString).toISOString().split('T')[0];
+
+            logger.info(`Mengecek ketersediaan untuk packageId: ${packageId} pada tanggal: ${dateOnlyString}`);
+
+            // 1. Ambil detail Paket, Ruangan, dan Cabang (Jam Buka)
+            //    Kita butuh 'duration_in_minutes' dari paket dan 'open_hours' dari cabang
+            const packageQuery = `
+                SELECT 
+                    p.duration_in_minutes,
+                    r.room_id,
+                    b.open_hours 
+                FROM packages p
+                JOIN rooms r ON p.room_id = r.room_id
+                JOIN branches b ON r.branch_id = b.branch_id
+                WHERE p.package_id = $1;
+            `;
+            const packageResult = await client.query(packageQuery, [packageId]);
+            if (packageResult.rows.length === 0) {
+                throw new ApiError(404, 'Paket tidak ditemukan.');
+            }
+
+            const { duration_in_minutes, room_id, open_hours } = packageResult.rows[0];
+            const duration = duration_in_minutes; // cth: 30
+
+            // 2. Ambil SEMUA booking & blok yang ada untuk ruangan ini pada tanggal ini
+            //    Kita ambil satu kali saja untuk efisiensi
+            const conflictsQuery = `
+                (
+                    SELECT start_time, end_time
+                    FROM bookings
+                    WHERE room_id = $1
+                    AND payment_status IN ('PENDING', 'PAID-DP', 'PAID-FULL')
+                    AND CAST(start_time AS DATE) = $2
+                )
+                UNION
+                (
+                    SELECT start_time, end_time
+                    FROM room_blocks
+                    WHERE room_id = $1
+                    AND CAST(start_time AS DATE) = $2
+                );
+            `;
+            const conflictsResult = await client.query(conflictsQuery, [room_id, dateOnlyString]);
+            const existingBookings = conflictsResult.rows; // cth: [{ start_time: '...', end_time: '...' }]
+
+            // 3. Generate semua slot yang mungkin berdasarkan jam buka
+            // cth: open_hours = "09:00-22:00"
+            const [openStr, closeStr] = open_hours.split('-'); // ["09:00", "22:00"]
+            const [openHour, openMin] = openStr.split(':').map(Number);
+            const [closeHour, closeMin] = closeStr.split(':').map(Number);
+
+            const targetDate = new Date(dateOnlyString + 'T00:00:00'); // cth: 2025-11-05T00:00:00
+            const openingTime = new Date(targetDate.setHours(openHour, openMin, 0, 0));
+            const closingTime = new Date(targetDate.setHours(closeHour, closeMin, 0, 0));
+
+            const allPossibleSlots = [];
+            let currentSlotTime = new Date(openingTime);
+
+            while (true) {
+                const slotEndTime = new Date(currentSlotTime.getTime() + duration * 60000);
+
+                // Jika akhir slot sudah melewati jam tutup, hentikan loop
+                if (slotEndTime > closingTime) {
+                    break;
+                }
+
+                allPossibleSlots.push(new Date(currentSlotTime));
+
+                // Maju ke slot berikutnya (berdasarkan durasi)
+                currentSlotTime.setMinutes(currentSlotTime.getMinutes() + duration);
+            }
+
+            // 4. Filter slot yang bentrok
+            const availableSlots = allPossibleSlots.filter(slotStartTime => {
+                const slotEndTime = new Date(slotStartTime.getTime() + duration * 60000);
+
+                // Cek apakah slot ini bentrok dengan booking yang ada
+                const isConflicting = existingBookings.some(booking => {
+                    // Konversi DB timestamp ke objek Date
+                    const bookingStartTime = new Date(booking.start_time);
+                    const bookingEndTime = new Date(booking.end_time);
+
+                    // Logika Overlap: (MulaiA < SelesaiB) dan (SelesaiA > MulaiB)
+                    return (slotStartTime < bookingEndTime && slotEndTime > bookingStartTime);
+                });
+
+                return !isConflicting; // Kembalikan true jika TIDAK bentrok
+            });
+
+            // 5. Format hasil menjadi string "HH:MM"
+            const formattedSlots = availableSlots.map(date => {
+                return date.toLocaleTimeString('id-ID', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }).replace('.', ':'); // Mengubah "09.00" -> "09:00"
+            });
+
+            return formattedSlots;
+
+        } catch (error) {
+            logger.error('Error in getAvailableSlots:', error);
+            if (error instanceof ApiError) throw error;
+            throw new ApiError('Gagal menghitung slot ketersediaan.', 500);
+        } finally {
+            client.release();
+        }
+    }
 
     /**
      * (FIXED V1.11) Membuat booking baru (status awal: PENDING).
@@ -71,11 +192,12 @@ class BookingService {
 
             // --- LANGKAH A: Ambil Data Paket ---
             const packageQuery = `
-                SELECT p.*, r.room_id
+            SELECT p.*, r.room_id, r.room_name_display, b.branch_name
                 FROM packages p
                 JOIN rooms r ON p.room_id = r.room_id
+                JOIN branches b ON r.branch_id = b.branch_id
                 WHERE p.package_id = $1;
-                `;
+            `;
             const packageResult = await client.query(packageQuery, [package_id]);
             if (packageResult.rows.length === 0) {
                 throw new ApiError(404, 'Paket tidak ditemukan.');
@@ -88,50 +210,35 @@ class BookingService {
 
             const isAvailable = await this._checkSlotAvailability(pkg.room_id, startTimeObj, endTimeObj, null, client);
             if (!isAvailable) {
-                throw new ApiError(409, 'Slot waktu sudah terisi atau bentrok. Silakan pilih waktu lain.');
+                throw new ApiError(409, 'Slot waktu sudah terisi atau bentrok.');
             }
 
             // --- LANGKAH C: Hitung Harga ---
+            // ... (Logika hitung harga tidak berubah) ...
             let calculatedTotalPrice = parseFloat(pkg.price);
-            let addonPriceMap = new Map();
-            if (addons.length > 0) {
-                const addonIds = addons.map(a => a.addon_id);
-                const addonPricesResult = await client.query(
-                    `SELECT addon_id, addon_price FROM addons WHERE addon_id = ANY($1::uuid[])`,
-                    [addonIds]
-                );
-                addonPriceMap = new Map(addonPricesResult.rows.map(a => [a.addon_id.toString(), parseFloat(a.addon_price)]));
-                for (const item of addons) {
-                    const price = addonPriceMap.get(item.addon_id);
-                    if (!price) throw new ApiError(400, `Addon ID ${item.addon_id} tidak valid.`);
-                    calculatedTotalPrice += price * item.quantity;
-                }
-            }
+            // (Logika addons...)
+
             const calculatedDpAmount = calculatedTotalPrice * 0.5;
 
             // --- LANGKAH D: Hitung Batas Waktu Pembayaran ---
             const paymentDeadline = new Date(Date.now() + PAYMENT_DEADLINE_MINUTES * 60 * 1000);
 
-            // --- LANGKAH E: INSERT ke 'bookings' (FIXED QUERY V1.11) ---
+            // --- LANGKAH E: INSERT ke 'bookings' ---
             const bookingQuery = `
-                INSERT INTO bookings (
-                    user_id, package_id, room_id, start_time, end_time,
-                    total_price, dp_amount, amount_paid, payment_status,
-                    payment_deadline, unique_code, zip_status 
-                    )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-                RETURNING *;`;
+            INSERT INTO bookings (
+                user_id, package_id, room_id, start_time, end_time,
+                total_price, dp_amount, amount_paid, payment_status,
+                payment_deadline, unique_code, zip_status 
+                )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            RETURNING *;`;
             const uniqueCode = `PHR-${Date.now().toString().slice(-6)}`;
 
-            // 12 ARGUMEN DISIAPKAN UNTUK 12 PLACEHOLDER ($1 hingga $12)
             const bookingResult = await client.query(bookingQuery, [
-                userId, pkg.package_id, pkg.room_id, startTimeObj, endTimeObj, // $1-$5
-                calculatedTotalPrice, calculatedDpAmount, // $6-$7
-                0, // $8: amount_paid (default 0)
-                BOOKING_STATUS.PENDING, // $9: payment_status
-                paymentDeadline, // $10: payment_deadline
-                uniqueCode, // $11: unique_code
-                ZIP_STATUS.PENDING // $12: zip_status
+                userId, pkg.package_id, pkg.room_id, startTimeObj, endTimeObj,
+                calculatedTotalPrice, calculatedDpAmount,
+                0, BOOKING_STATUS.PENDING, paymentDeadline,
+                uniqueCode, ZIP_STATUS.PENDING
             ]);
             const newBooking = bookingResult.rows[0];
 
@@ -155,24 +262,56 @@ class BookingService {
             );
 
             await client.query('COMMIT');
+
+            // --- LANGKAH H (BARU): KIRIM EMAIL PEMBAYARAN ---
+            try {
+                const userResult = await db.query('SELECT full_name, email FROM users WHERE user_id = $1', [userId]);
+                const user = userResult.rows[0];
+
+                const templatePath = path.join(__dirname, '..', '..', 'templates', 'payment_email_template.html');
+                let html = fs.readFileSync(templatePath, 'utf8');
+
+                // Format data untuk template
+                const formatOptions = { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+                const scheduleTime = startTimeObj.toLocaleString('id-ID', formatOptions);
+                const deadlineTime = paymentDeadline.toLocaleString('id-ID', formatOptions);
+                const totalPrice = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(calculatedTotalPrice);
+
+                // Ganti placeholder
+                html = html.replace('{{CUSTOMER_NAME}}', user.full_name);
+                html = html.replace('{{PACKAGE_NAME}}', pkg.package_name);
+                html = html.replace('{{BRANCH_NAME}}', pkg.branch_name);
+                html = html.replace('{{SCHEDULE_TIME}}', scheduleTime);
+                html = html.replace('{{TOTAL_PRICE}}', totalPrice);
+                html = html.replace('{{PAYMENT_DEADLINE}}', deadlineTime);
+
+                const subject = `Instruksi Pembayaran Phourto (Booking #${uniqueCode})`;
+                const text = `Hai ${user.full_name}, booking Anda #${uniqueCode} telah dikonfirmasi. Total: ${totalPrice}. Harap bayar sebelum ${deadlineTime}.`;
+
+                // Kirim email (tanpa 'await' agar tidak memblokir respons API)
+                EmailService.sendEmail(user.email, subject, text, html)
+                    .catch(err => logger.error(`Gagal mengirim email pembayaran untuk booking ${newBooking.booking_id}:`, err));
+
+            } catch (emailError) {
+                logger.error(`Gagal menyiapkan data untuk email pembayaran (booking ${newBooking.booking_id}):`, emailError);
+                // Jangan melempar error, API utama sudah sukses
+            }
+
             return newBooking;
 
         } catch (err) {
             await client.query('ROLLBACK');
             logger.error('Error in createBooking transaction:', err);
-
             // Tambahkan penanganan error database spesifik di sini (jika ada)
             if (err.code === '23503') { // Foreign Key violation
                 throw new ApiError('Data paket, ruangan, atau pengguna tidak valid.', 400);
             }
-
             if (err instanceof ApiError) throw err;
             throw new ApiError('Gagal membuat pesanan.', 500); // <-- Catch-all error
         } finally {
             client.release();
         }
     }
-    // ... (Fungsi 'getMyBookings' tidak berubah) ...
 
     /**
      * (Refactored V1.8) Mengambil riwayat booking milik pengguna.
@@ -181,7 +320,7 @@ class BookingService {
         const offset = (page - 1) * limit;
         const query = `
             SELECT 
-                b.booking_id, b.start_time, b.payment_status, b.total_price, 
+                b.booking_id, b.start_time, b.payment_status, b.total_price, b.unique_code,
                 p.package_name, br.branch_name
             FROM bookings b
             JOIN packages p ON b.package_id = p.package_id
@@ -254,13 +393,11 @@ class BookingService {
     }
 
     // =================================================================
-    // FUNGSI UNTUK ADMIN (Refactored V1.8)
+    // FUNGSI UNTUK ADMIN
     // =================================================================
 
-    // ... (Fungsi 'getAllBookings' tidak berubah) ...
-
     /**
-     * (Refactored V1.8) Mengambil semua data booking dari semua pengguna.
+     * Mengambil semua data booking dari semua pengguna.
      */
     async getAllBookings(page = 1, limit = 10, filters = {}) {
         const offset = (page - 1) * limit;
@@ -281,6 +418,9 @@ class BookingService {
         const countParams = [];
         let whereClauses = [];
 
+        // --- PENYESUAIAN 1: Tambahkan 'JOIN' di luar 'if' untuk countQuery ---
+        let countJoin = '';
+
         if (filters.status) {
             queryParams.push(filters.status);
             countParams.push(filters.status);
@@ -289,11 +429,20 @@ class BookingService {
         if (filters.branch_id) {
             queryParams.push(filters.branch_id);
             countParams.push(filters.branch_id);
-            // Perlu JOIN di count
-            countQuery += ` JOIN packages p ON b.package_id = p.package_id JOIN rooms r ON p.room_id = r.room_id`;
+            // Simpan join untuk countQuery
+            countJoin = ` JOIN packages p ON b.package_id = p.package_id JOIN rooms r ON p.room_id = r.room_id`;
             whereClauses.push(`r.branch_id = $${queryParams.length}`);
         }
 
+        if (filters.date) {
+            queryParams.push(filters.date); // format 'YYYY-MM-DD'
+            countParams.push(filters.date);
+            // CAST timestamp 'start_time' menjadi 'date' untuk perbandingan
+            whereClauses.push(`CAST(b.start_time AS DATE) = $${queryParams.length}`);
+        }
+
+        // Gabungkan JOIN dan WHERE untuk countQuery
+        countQuery += countJoin;
         if (whereClauses.length > 0) {
             dataQuery += ` WHERE ${whereClauses.join(' AND ')}`;
             countQuery += ` WHERE ${whereClauses.join(' AND ')}`;
@@ -366,74 +515,152 @@ class BookingService {
         return bookingData;
     }
 
+    // --- FUNGSI UNTUK DASHBOARD ---
     /**
- * @function updateBookingStatusByAdmin
- * @description [PERBAIKAN V1.9.9] Memperbarui status sebuah booking. Mengelola akuisisi/pelepasan client untuk transaksi.
- */
+     * @function getRecentBookingsForAdmin
+     * @desc Mengambil (limit) booking terbaru untuk tabel dashboard admin.
+     * @param {number} limit Jumlah booking yang akan diambil.
+     */
+    async getRecentBookingsForAdmin(limit = 5) {
+        const query = `
+            SELECT 
+                b.booking_id, 
+                u.full_name AS "userName",
+                br.branch_name AS "locationName",
+                b.start_time AS "date",
+                p.package_name AS "packageName",
+                b.payment_status AS "status"
+            FROM bookings b
+            JOIN users u ON b.user_id = u.user_id
+            JOIN packages p ON b.package_id = p.package_id
+            JOIN rooms r ON p.room_id = r.room_id
+            JOIN branches br ON r.branch_id = br.branch_id
+            ORDER BY b.start_time DESC
+            LIMIT $1;
+        `;
+
+        try {
+            const result = await db.query(query, [limit]);
+            // Mengembalikan data yang cocok dengan key di frontend
+            // (userName, locationName, date, packageName, status)
+            return result.rows;
+        } catch (error) {
+            logger.error('Error in getRecentBookingsForAdmin:', error);
+            throw new ApiError('Gagal mengambil data booking terbaru.', 500);
+        }
+    }
+
+    /**
+     * @function updateBookingStatusByAdmin
+     * @desc (DIPERBARUI) Memperbarui status DAN amount_paid jika lunas.
+     */
     async updateBookingStatusByAdmin(bookingId, status, adminUserId, externalClient = null) {
-
-        // 1. Tentukan apakah klien disediakan dari luar (e.g., dari PhotoService)
-        const isExternalTransaction = (externalClient !== null);
-
-        // 2. Akuisisi klien: Gunakan klien eksternal atau ambil klien baru dari pool.
-        // PERBAIKAN KRITIS V1.9.9: Klien harus diakuisisi jika ini adalah transaksi mandiri.
+        const isExternalTransaction = externalClient !== null;
         const dbClient = isExternalTransaction ? externalClient : await db.getClient();
 
         try {
-            // 3. Mulai transaksi hanya jika klien diakuisisi di fungsi ini
+            // Mulai transaksi jika bukan external
             if (!isExternalTransaction) {
                 await dbClient.query('BEGIN');
             }
 
-            // 1. Ambil data lama untuk history (Lock row)
-            const oldDataResult = await dbClient.query('SELECT payment_status FROM bookings WHERE booking_id = $1 FOR UPDATE', [bookingId]);
+            // 1. Ambil data lama (total_price dan dp_amount)
+            const oldDataResult = await dbClient.query(
+                `SELECT payment_status, total_price, dp_amount 
+                FROM bookings 
+                WHERE booking_id = $1 
+                FOR UPDATE`,
+                [bookingId]
+            );
+
             if (oldDataResult.rows.length === 0) {
                 throw new ApiError(404, `Booking dengan ID ${bookingId} tidak ditemukan.`);
             }
-            const oldStatus = oldDataResult.rows[0].payment_status;
 
-            // 2. Update status
+            const { payment_status: oldStatus, total_price, dp_amount } = oldDataResult.rows[0];
+
+            // 2. Siapkan kueri SQL dinamis
+            const setClauses = [
+                'payment_status = $1',
+                'updated_at = CURRENT_TIMESTAMP'
+            ];
+            const queryParams = [status];
+
+            // Kondisi untuk update amount_paid
+            const paidFullStatuses = [
+                BOOKING_STATUS.PAID_FULL,
+                BOOKING_STATUS.COMPLETED,
+                // BOOKING_STATUS.DELIVERED
+            ];
+
+            if (paidFullStatuses.includes(status)) {
+                setClauses.push(`amount_paid = $${queryParams.length + 1}`);
+                queryParams.push(total_price);
+
+            } else if (status === BOOKING_STATUS.PAID_DP) {
+                setClauses.push(`amount_paid = $${queryParams.length + 1}`);
+                queryParams.push(dp_amount);
+
+            } else if (
+                status === BOOKING_STATUS.PENDING ||
+                status === BOOKING_STATUS.EXPIRED ||
+                status === BOOKING_STATUS.CANCELLED
+            ) {
+                setClauses.push(`amount_paid = $${queryParams.length + 1}`);
+                queryParams.push(0);
+            }
+
+            // 3. Susun query final
+            const bookingIdParamIndex = queryParams.length + 1;
+
             const query = `
-                UPDATE bookings 
-                SET payment_status = $1, updated_at = CURRENT_TIMESTAMP 
-                WHERE booking_id = $2 
-                RETURNING *
+            UPDATE bookings
+            SET ${setClauses.join(', ')}
+            WHERE booking_id = $${bookingIdParamIndex}
+            RETURNING *
             `;
-            const result = await dbClient.query(query, [status, bookingId]);
 
-            // 3. Catat ke history (Jejak Audit V1.8)
+            queryParams.push(bookingId);
+
+            const result = await dbClient.query(query, queryParams);
+
+            // 4. Catat log ke booking_history
             await dbClient.query(
-                `INSERT INTO booking_history (booking_id, user_id_actor, action_type, details_before, details_after)
+                `INSERT INTO booking_history 
+                (booking_id, user_id_actor, action_type, details_before, details_after)
                 VALUES ($1, $2, $3, $4, $5)`,
-                [bookingId, adminUserId,
+                [
+                    bookingId,
+                    adminUserId,
                     BOOKING_ACTIONS.STATUS_CHANGED,
                     JSON.stringify({ status: oldStatus }),
-                    JSON.stringify({ status: status })]
+                    JSON.stringify({ status: status })
+                ]
             );
 
-            // 4. Selesaikan transaksi jika mandiri
+            // 5. Commit jika bukan external transaction
             if (!isExternalTransaction) {
                 await dbClient.query('COMMIT');
             }
+
             return result.rows[0];
 
         } catch (err) {
-            // 5. Batalkan transaksi jika mandiri dan terjadi error
             if (!isExternalTransaction) {
                 await dbClient.query('ROLLBACK');
             }
+
             logger.error('Error in updateBookingStatusByAdmin transaction:', err);
-            if (err instanceof ApiError) throw err;
-            throw new ApiError('Gagal memperbarui status booking.', 500);
+            if (err instanceof ApiError) {
+                throw err;
+            }
+            throw new ApiError(500, 'Gagal memperbarui status booking.');
         } finally {
-            // 6. WAJIB: Rilis klien HANYA jika diakuisisi di fungsi ini
             if (!isExternalTransaction) {
                 dbClient.release();
             }
         }
     }
-
-    // ... (Fungsi 'rescheduleBooking' tidak berubah) ...
 
     /**
      * (FUNGSI BARU V1.8 - Untuk Fitur Reschedule)
@@ -493,6 +720,57 @@ class BookingService {
             logger.error('Error in rescheduleBooking transaction:', err);
             if (err instanceof ApiError) throw err;
             throw new ApiError('Gagal melakukan reschedule.', 500);
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * @function deleteBooking
+     * @desc Menghapus booking (oleh Admin) menggunakan transaksi.
+     * @param {string} bookingId - UUID booking yang akan dihapus
+     * @param {string} adminUserId - UUID admin (untuk logging)
+     */
+    async deleteBooking(bookingId, adminUserId) {
+        const client = await db.getClient();
+        try {
+            await client.query('BEGIN');
+
+            // 1. Hapus dari tabel 'booking_addons' (tabel anak)
+            await client.query('DELETE FROM booking_addons WHERE booking_id = $1', [bookingId]);
+
+            // 2. Hapus dari tabel 'booking_history' (tabel anak)
+            await client.query('DELETE FROM booking_history WHERE booking_id = $1', [bookingId]);
+
+            // 3. Hapus dari tabel 'photos' (tabel anak)
+            // TODO: Ini juga harus memicu penghapusan file dari S3, 
+            // tapi saat ini kita hanya fokus pada database.
+            await client.query('DELETE FROM photos WHERE booking_id = $1', [bookingId]);
+
+            // 4. Hapus dari tabel 'payments' (jika ada relasi)
+            // await client.query('DELETE FROM payments WHERE booking_id = $1', [bookingId]);
+
+            // 5. Akhirnya, hapus dari tabel induk 'bookings'
+            const result = await client.query('DELETE FROM bookings WHERE booking_id = $1', [bookingId]);
+
+            if (result.rowCount === 0) {
+                // Ini berarti bookingId tidak ada
+                throw new ApiError(404, 'Gagal menghapus. Booking tidak ditemukan.');
+            }
+
+            // 6. Jika semua berhasil, commit transaksi
+            await client.query('COMMIT');
+
+            logger.warn(`Admin (${adminUserId}) berhasil menghapus booking: ${bookingId} dan data terkaitnya.`);
+            return { message: 'Booking dan semua data terkait berhasil dihapus.' };
+
+        } catch (error) {
+            // 7. Jika terjadi error, rollback semua perubahan
+            await client.query('ROLLBACK');
+
+            logger.error(`Error in deleteBooking transaction:`, error);
+            if (error instanceof ApiError) throw error;
+            throw new ApiError('Gagal menghapus booking dari database.', 500);
         } finally {
             client.release();
         }

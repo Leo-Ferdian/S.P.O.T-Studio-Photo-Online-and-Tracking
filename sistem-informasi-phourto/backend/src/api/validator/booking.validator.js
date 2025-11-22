@@ -1,4 +1,4 @@
-const { body, param } = require('express-validator');
+const { body, param, query } = require('express-validator');
 const db = require('../../config/database'); // Koneksi DB V1.9
 const ApiError = require('../../utils/apiError');
 const { BOOKING_STATUS, USER_ROLES } = require('../../config/constants'); // (Kita akan buat file constants ini)
@@ -24,7 +24,7 @@ const createBookingValidationRules = () => {
                     throw new ApiError(404, 'Paket dengan ID ini tidak ditemukan.');
                 }
             }),
-        
+
         body('start_time')
             .trim()
             .notEmpty().withMessage('Waktu mulai (start_time) tidak boleh kosong.')
@@ -34,18 +34,45 @@ const createBookingValidationRules = () => {
         body('addons')
             .optional()
             .isArray().withMessage('Addons harus berupa array.'),
-        
+
         // Validasi setiap objek di dalam array addons
         body('addons.*.addon_id')
             .if(body('addons').exists()) // Hanya validasi jika array 'addons' ada
             .trim()
             .notEmpty().withMessage('addon_id di dalam array addons tidak boleh kosong.')
             .isUUID().withMessage('addon_id harus berupa UUID.'),
-        
+
         body('addons.*.quantity')
             .if(body('addons').exists())
             .notEmpty().withMessage('quantity di dalam array addons tidak boleh kosong.')
             .isInt({ min: 1 }).withMessage('quantity addon minimal 1.'),
+    ];
+};
+
+/**
+ * Aturan validasi untuk [R]ead Availability
+ * (Dipanggil oleh GET /api/bookings/availability)
+ */
+const availabilityValidationRules = () => {
+    return [
+        // Validasi query parameter 'packageId'
+        query('packageId')
+            .trim()
+            .notEmpty().withMessage('packageId (query param) tidak boleh kosong.')
+            .isUUID().withMessage('packageId (query param) harus berupa UUID.')
+            .custom(async (value) => {
+                // Cek apakah paket ada
+                const { rows } = await db.query('SELECT 1 FROM packages WHERE package_id = $1', [value]);
+                if (rows.length === 0) {
+                    throw new ApiError(404, 'Paket dengan ID ini tidak ditemukan.');
+                }
+            }),
+
+        // Validasi query parameter 'date'
+        query('startTime')
+            .trim()
+            .notEmpty().withMessage('startTime (query param) tidak boleh kosong.')
+            .isISO8601().withMessage('Format startTime tidak valid. Harus format ISO8601.')
     ];
 };
 
@@ -97,7 +124,7 @@ const rescheduleValidationRules = () => {
             .trim()
             .notEmpty().withMessage('Waktu mulai baru (new_start_time) tidak boleh kosong.')
             .isISO8601().withMessage('Format new_start_time harus ISO8601 (cth: 2025-10-28T10:00:00Z).'),
-        
+
         body('newRoomId')
             .trim()
             .notEmpty().withMessage('ID Ruangan baru (new_room_id) tidak boleh kosong.')
@@ -108,7 +135,7 @@ const rescheduleValidationRules = () => {
                     throw new ApiError(404, 'Ruangan (Room) dengan new_room_id ini tidak ditemukan.');
                 }
             }),
-        
+
         body('reason')
             .trim()
             .notEmpty().withMessage('Alasan (reason) penjadwalan ulang tidak boleh kosong.')
@@ -120,5 +147,6 @@ module.exports = {
     createBookingValidationRules,
     bookingIdValidationRules,
     updateStatusValidationRules,
-    rescheduleValidationRules
+    rescheduleValidationRules,
+    availabilityValidationRules
 };

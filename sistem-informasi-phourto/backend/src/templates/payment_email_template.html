@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instruksi Pembayaran</title>
+    <style>
+        /* (Style Y2K/Monospace yang sama dengan email reset) */
+        body, h1, p, a, div, span, td {
+            font-family: 'Courier New', Courier, monospace;
+            color: #000000;
+        }
+        .container {
+            background-color: #f7f500; border: 4px solid #000000;
+            box-shadow: 6px 6px 0 #000000; margin: 20px auto;
+            padding: 30px; max-width: 500px;
+        }
+        .header {
+            font-size: 28px; font-weight: bold; text-align: center; margin-bottom: 20px;
+        }
+        .header .to { color: #ff1b1b; font-size: 34px; }
+        .content {
+            background-color: #ffffff; border: 3px solid #000000; padding: 25px;
+        }
+        .content p { font-size: 16px; line-height: 1.6; margin-bottom: 20px; }
+        .invoice-box {
+            background-color: #f0f0f0; border: 3px dashed #000000;
+            padding: 15px; margin-top: 20px;
+        }
+        .invoice-box p { margin: 5px 0; }
+        .button {
+            background-color: #ff1b1b; color: #ffffff;
+            font-family: 'Arial Black', Gadget, sans-serif; font-size: 18px;
+            font-weight: bold; text-decoration: none; padding: 14px 25px;
+            border: 3px solid #000000; box-shadow: 4px 4px 0 #000000;
+            display: inline-block;
+        }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #555; }
+    </style>
+</head>
+<body style="background-color: #f0f0f0; padding: 20px; margin: 0">
+    <div class="container">
+        <div class="header">Phour<span class="to">.to</span></div>
+        <div class="content">
+            <h1 style="font-size: 22px; font-weight: bold; margin-bottom: 15px">
+                Booking Anda Terkonfirmasi!
+            </h1>
+            <p>
+                Hai {{CUSTOMER_NAME}},<br>
+                Pesanan Anda telah berhasil dibuat dengan status PENDING. 
+                Silakan selesaikan pembayaran untuk mengamankan slot Anda.
+            </p>
+            
+            <!-- Detail Pesanan -->
+            <div class="invoice-box">
+                <h3 style="font-weight: bold; margin-top: 0;">Detail Pesanan</h3>
+                <p><strong>Paket:</strong> {{PACKAGE_NAME}}</p>
+                <p><strong>Cabang:</strong> {{BRANCH_NAME}}</p>
+                <p><strong>Jadwal:</strong> {{SCHEDULE_TIME}}</p>
+                <p style="font-size: 18px; font-weight: bold; margin-top: 15px;">
+                    <strong>Total Tagihan:</strong> {{TOTAL_PRICE}}
+                </p>
+            </div>
+
+            <!-- Instruksi Pembayaran (Hardcoded) -->
+            <div class="invoice-box" style="margin-top: 15px; border-color: #FF1B1B;">
+                <h3 style="font-weight: bold; margin-top: 0; color: #FF1B1B;">Instruksi Pembayaran:</h3>
+                <p style="margin-top: 15px;">
+                    <strong>PENTING:</strong> Pembayaran harus dilakukan sebelum 
+                    <strong style="color: #FF1B1B;">{{PAYMENT_DEADLINE}}</strong> 
+                    atau pesanan Anda akan otomatis dibatalkan.
+                </p>
+            </div>
+            
+            <p style="margin-top: 25px; font-size: 14px; color: #333">
+                Setelah membayar, silakan konfirmasi melalui WhatsApp Admin.
+            </p>
+        </div>
+        <div class="footer">
+            &copy; 2025 Phourto. All rights reserved.
+        </div>
+    </div>
+</body>
+</html>

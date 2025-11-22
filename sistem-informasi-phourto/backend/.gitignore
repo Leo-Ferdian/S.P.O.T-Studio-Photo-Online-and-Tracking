@@ -80,3 +80,5 @@ Thumbs.db
 coverage/
 .nyc_output/
 jest-html-reporters-*.html
+
+docs/KunciPhourto/
