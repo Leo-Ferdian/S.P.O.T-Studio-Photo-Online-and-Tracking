@@ -19,6 +19,7 @@ const registerValidationRules = () => {
             .trim()
             .notEmpty().withMessage('Email tidak boleh kosong.')
             .isEmail().withMessage('Format email tidak valid.')
+            .normalizeEmail({ gmail_remove_dots: false })
             .custom(async (value) => {
                 // Hanya blokir jika email sudah ada DAN terverifikasi
                 const { rows } = await db.query(
@@ -74,7 +75,7 @@ const loginValidationRules = () => {
             .trim()
             .notEmpty().withMessage('Email tidak boleh kosong.')
             .isEmail().withMessage('Format email tidak valid.')
-            .normalizeEmail(),
+            .normalizeEmail({ gmail_remove_dots: false }),
 
         body('password')
             .notEmpty().withMessage('Password tidak boleh kosong.')
