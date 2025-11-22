@@ -3,7 +3,7 @@ require('dotenv').config();
 const db = require('./src/config/database'); // SESUAIKAN PATH KE CONFIG DATABASE KAMU
 
 async function testUpdate() {
-    const bookingId = 'e51724ec-a18d-43eb-810b-fd60d2107f53'; // ID Booking Kamu
+    const bookingId = '1cc6a631-3faa-4fe9-a195-6fb4c6400cea'; // ID Booking Kamu
     console.log("🔥 MEMULAI TEST UPDATE MANUAL...");
 
     try {
