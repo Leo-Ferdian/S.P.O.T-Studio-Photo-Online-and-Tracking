@@ -163,7 +163,7 @@ class PaymentService {
 
         try {
             // Gunakan instance dokuClient yang bersih
-            const response = await dokuClient.get(DOKU_API_BASE_URL + requestTarget, {
+            const response = await dokuClient.get(DOKU_API_URL + requestTarget, {
                 headers: {
                     'Client-Id': DOKU_CLIENT_ID,
                     'Request-Id': requestId,
