@@ -131,18 +131,26 @@ onMounted(() => {
 
             <div class="absolute top-4 right-4">
               <span v-if="item.payment_status === 'PENDING'"
-                class="bg-yellow-300 text-[10px] font-bold px-2 py-1 border-2 border-outline transform rotate-3 shadow-sm block text-black">
-                BELUM BAYAR
+                  class="bg-yellow-300 text-[10px] font-bold px-2 py-1 border-2 border-outline transform rotate-3 shadow-sm block text-black">
+                  BELUM BAYAR
               </span>
-              <span v-else-if="['PAID_FULL', 'PAID_DP', 'COMPLETED'].includes(item.payment_status)"
-                class="bg-[#4ADE80] text-[10px] font-bold px-2 py-1 border-2 border-outline transform -rotate-2 shadow-sm block text-black">
-                SUDAH BAYAR
+
+              <span v-else-if="['PAID-FULL', 'COMPLETED'].includes(item.payment_status)"
+                  class="bg-[#4ADE80] text-[10px] font-bold px-2 py-1 border-2 border-outline transform -rotate-2 shadow-sm block text-black">
+                  SUDAH BAYAR
               </span>
+
+              <span v-else-if="['CANCELLED', 'EXPIRED', 'FAILED'].includes(item.payment_status)"
+                  class="bg-red-500 text-[10px] font-bold px-2 py-1 border-2 border-outline transform rotate-1 shadow-sm block text-white">
+                  {{ item.payment_status === 'EXPIRED' ? 'KADALUARSA' : 'DIBATALKAN' }}
+              </span>
+
               <span v-else
-                class="bg-gray-300 text-[10px] font-bold px-2 py-1 border-2 border-outline block text-gray-600">
-                {{ item.payment_status }}
+                  class="bg-gray-300 text-[10px] font-bold px-2 py-1 border-2 border-outline block text-gray-600">
+                  {{ item.payment_status }}
               </span>
-            </div>
+          </div>
+            
           </div>
 
           <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-left flex-grow">
@@ -182,23 +190,26 @@ onMounted(() => {
 
           <div class="px-6 py-4 bg-primary text-white flex justify-between items-center border-t-4 border-outline">
             <div>
-              <p class="text-xs text-white/80 font-medium">Total Tagihan</p>
-              <p class="text-xl font-bold">{{ formatRupiah(item.total_price) }}</p>
+                <p class="text-xs text-white/80 font-medium">Total Tagihan</p>
+                <p class="text-xl font-bold">{{ formatRupiah(item.total_price) }}</p>
             </div>
 
-            <button v-if="['PAID_FULL', 'PAID_DP', 'COMPLETED'].includes(item.payment_status)" @click="goToClaim(item)"
-              class="flex items-center gap-2 bg-white text-primary px-4 py-2 rounded font-bold text-sm border-2 border-transparent hover:border-white hover:bg-primary hover:text-white transition-all shadow-md">
-              <i data-feather="download-cloud" class="w-4 h-4"></i>
-              <span>Ambil Foto</span>
+            <button v-if="['PAID-FULL', 'COMPLETED'].includes(item.payment_status)" @click="goToClaim(item)"
+                class="flex items-center gap-2 bg-white text-primary px-4 py-2 rounded font-bold text-sm border-2 border-transparent hover:border-white hover:bg-primary hover:text-white transition-all shadow-md">
+                <i data-feather="download-cloud" class="w-4 h-4"></i>
+                <span>Ambil Foto</span>
             </button>
 
-            <!-- TOMBOL BAYAR DIPERBAIKI -->
             <button v-else-if="item.payment_status === 'PENDING'" @click="handlePayNow(item)"
-              class="flex items-center gap-2 bg-yellow-400 text-black px-4 py-2 rounded font-bold text-sm border-2 border-black hover:bg-yellow-500 transition-all shadow-md">
-              <i data-feather="credit-card" class="w-4 h-4"></i>
-              <span>Bayar Sekarang</span>
+                class="flex items-center gap-2 bg-yellow-400 text-black px-4 py-2 rounded font-bold text-sm border-2 border-black hover:bg-yellow-500 transition-all shadow-md">
+                <i data-feather="credit-card" class="w-4 h-4"></i>
+                <span>Bayar Sekarang</span>
             </button>
-          </div>
+
+            <span v-else-if="['CANCELLED', 'EXPIRED', 'FAILED'].includes(item.payment_status)" class="text-xs font-bold text-red-200 italic">
+                Transaksi Dibatalkan
+            </span>
+        </div>
 
         </div>
       </div>
