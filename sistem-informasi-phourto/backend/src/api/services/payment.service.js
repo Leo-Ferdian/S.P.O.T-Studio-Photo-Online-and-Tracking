@@ -7,7 +7,8 @@ require('dotenv').config();
 
 const DOKU_CLIENT_ID = process.env.DOKU_CLIENT_ID;
 const DOKU_SECRET_KEY = process.env.DOKU_SECRET_KEY;
-const DOKU_API_URL = process.env.DOKU_API_URL; // Pastikan ini ada di .env
+const DOKU_API_URL = process.env.DOKU_API_URL; 
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
 // Instance Axios
 const dokuClient = axios.create();
@@ -61,7 +62,7 @@ class PaymentService {
                 amount: amountValue,
                 invoice_number: booking.booking_id,
                 currency: "IDR",
-                callback_url: "https://phourto.my.id/booking/success",
+                callback_url: `${FRONTEND_URL}/booking/success?id=${booking.booking_id}`,
                 auto_redirect: true
             },
             payment: {
