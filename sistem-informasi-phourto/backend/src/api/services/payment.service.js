@@ -5,6 +5,9 @@ const ApiError = require('../../utils/apiError');
 const { logger } = require('../../utils/logger');
 require('dotenv').config();
 
+// 👇 IMPOR BOOKING SERVICE (INI KUNCINYA)
+const BookingService = require('./booking.service');
+
 const DOKU_CLIENT_ID = process.env.DOKU_CLIENT_ID;
 const DOKU_SECRET_KEY = process.env.DOKU_SECRET_KEY;
 const DOKU_API_URL = process.env.DOKU_API_URL;
@@ -22,24 +25,15 @@ class PaymentService {
 
     // --- 1. GENERATE QR CODE ---
     async generateQrCode(bookingId, userId) {
-        console.log("1. Processing Booking ID:", bookingId);
+        // Kita gunakan BookingService untuk ambil data (lebih aman)
+        const booking = await BookingService.getBookingById(bookingId, userId);
 
-        // ✅ FIXED: Pakai 'phourto.bookings' & 'phourto.users'
-        const bookingQuery = `SELECT * FROM phourto.bookings WHERE booking_id = $1::uuid LIMIT 1`;
-        const userQuery = `SELECT * FROM phourto.users WHERE user_id = $1::uuid LIMIT 1`;
-
-        let booking, user;
-        try {
-            const bookingResult = await db.query(bookingQuery, [bookingId]);
-            booking = bookingResult.rows[0];
-            const userResult = await db.query(userQuery, [userId]);
-            user = userResult.rows[0];
-        } catch (dbError) {
-            throw new ApiError(500, "Database Error: " + dbError.message);
-        }
+        // Ambil data user manual (karena getBookingById mungkin struktur usernya beda)
+        const userQuery = `SELECT * FROM users WHERE user_id = $1::uuid LIMIT 1`;
+        const userResult = await db.query(userQuery, [userId]);
+        const user = userResult.rows[0];
 
         if (!booking) throw new ApiError(404, 'Booking tidak ditemukan.');
-        if (booking.user_id.toString() !== userId.toString()) throw new ApiError(403, 'Akses ditolak.');
 
         return this.createCheckoutPayment(booking, user);
     }
@@ -86,9 +80,10 @@ class PaymentService {
             const { id: paymentId, url: paymentUrl } = response.data.response.payment;
             const invoiceNumber = response.data.response.order.invoice_number;
 
-            // ✅ FIXED: Pakai 'phourto.bookings'
+            // Update data payment gateway reference
+            // Kita pakai raw query simple ini gpp, atau buat method di BookingService
             await db.query(`
-                UPDATE phourto.bookings 
+                UPDATE bookings 
                 SET payment_gateway_ref = $1, payment_qr_url = $2, amount_paid = $3, updated_at = NOW()
                 WHERE booking_id = $4
             `, [paymentId, paymentUrl, amountValue, booking.booking_id]);
@@ -100,9 +95,9 @@ class PaymentService {
         }
     }
 
-    // --- 2. CEK STATUS (Manual/Frontend) ---
+    // --- 2. CEK STATUS (INTEGRASI BOOKING SERVICE) ---
     async checkTransactionStatus(bookingId) {
-        console.log(`[PAYMENT] Cek Status ID: ${bookingId}`);
+        console.log(`[PAYMENT] Cek Status via DOKU: ${bookingId}`);
 
         const requestTarget = `/orders/v1/status/${bookingId}`;
         const requestId = `CHK-${Date.now()}`;
@@ -123,47 +118,64 @@ class PaymentService {
             });
 
             const transactionStatus = response.data.transaction.status;
+            const amountPaid = response.data.order.amount; // Ambil nominal dari DOKU
             console.log(`📡 DOKU Respon: ${transactionStatus}`);
 
-            // ✅ FIXED: Hapus kolom 'status', Pakai 'phourto.bookings'
-            if (transactionStatus === 'SUCCESS') {
-                await db.query(
-                    `UPDATE phourto.bookings SET payment_status = 'PAID-FULL', updated_at = NOW() WHERE booking_id = $1`,
-                    [bookingId]
-                );
-                return { status: 'PAID-FULL', message: 'Pembayaran Berhasil' };
-            }
-            else if (transactionStatus === 'FAILED') {
-                await db.query(
-                    `UPDATE phourto.bookings SET payment_status = 'FAILED', updated_at = NOW() WHERE booking_id = $1`,
-                    [bookingId]
-                );
-                return { status: 'FAILED', message: 'Pembayaran Gagal' };
-            }
-            else if (transactionStatus === 'EXPIRED') {
-                await db.query(
-                    `UPDATE phourto.bookings SET payment_status = 'EXPIRED', updated_at = NOW() WHERE booking_id = $1`,
-                    [bookingId]
-                );
-                return { status: 'EXPIRED', message: 'Pembayaran Kadaluarsa' };
-            }
+            const client = await db.getClient();
+            try {
+                await client.query('BEGIN');
 
-            return { status: 'PENDING', message: 'Menunggu Pembayaran' };
+                if (transactionStatus === 'SUCCESS') {
+                    // 🔥 INI SOLUSINYA: PANGGIL BOOKING SERVICE
+                    // Biarkan BookingService yang menghitung logika pelunasan, DP, dan update DB
+                    console.log("✅ Payment Sukses, memanggil BookingService...");
+
+                    await BookingService.handleSuccessfulPayment(
+                        bookingId,
+                        amountPaid,
+                        'DOKU_GATEWAY',
+                        client // Oper client transaksi agar atomik
+                    );
+
+                    await client.query('COMMIT');
+                    return { status: 'PAID-FULL', message: 'Pembayaran Berhasil' };
+                }
+                else if (transactionStatus === 'FAILED') {
+                    // Update manual untuk failed
+                    await client.query(
+                        `UPDATE bookings SET payment_status = 'FAILED', status = 'CANCELLED', updated_at = NOW() WHERE booking_id = $1`,
+                        [bookingId]
+                    );
+                    await client.query('COMMIT');
+                    return { status: 'FAILED', message: 'Pembayaran Gagal' };
+                }
+
+                await client.query('COMMIT');
+                return { status: 'PENDING', message: 'Menunggu Pembayaran' };
+
+            } catch (dbError) {
+                await client.query('ROLLBACK');
+                console.error("🔥 DB Error saat update status:", dbError.message);
+                throw dbError;
+            } finally {
+                client.release();
+            }
 
         } catch (error) {
-            console.error("🔥 Error:", error.message);
+            console.error("🔥 API Error:", error.message);
             return { status: 'PENDING', message: 'Belum terupdate' };
         }
     }
 
-    // --- 3. WEBHOOK (Otomatis DOKU) ---
+    // --- 3. WEBHOOK (INTEGRASI BOOKING SERVICE) ---
     async handleDokuNotification(notificationPayload, headers) {
         const clientId = headers['client-id'] || headers['Client-Id'];
         if (clientId !== DOKU_CLIENT_ID) logger.warn(`Webhook Client ID mismatch`);
 
         const invoiceNumber = notificationPayload.order?.invoice_number;
         const status = notificationPayload.transaction?.status;
-        const paymentChannel = notificationPayload.channel?.id;
+        const amount = notificationPayload.order?.amount || 0;
+        const channel = notificationPayload.channel?.id || 'DOKU_UNKNOWN';
 
         if (!invoiceNumber) throw new ApiError(400, "Invoice missing.");
 
@@ -171,31 +183,30 @@ class PaymentService {
         try {
             await client.query('BEGIN');
 
-            // ✅ FIXED: Hapus kolom 'status', Pakai 'phourto.bookings'
             if (status === 'SUCCESS') {
-                await client.query(`
-                    UPDATE phourto.bookings 
-                    SET payment_status = 'PAID-FULL', payment_method = $1, updated_at = NOW() 
-                    WHERE booking_id = $2
-                `, [paymentChannel, invoiceNumber]);
-                logger.info(`✅ Webhook: ${invoiceNumber} -> PAID-FULL`);
+                // 🔥 PANGGIL BOOKING SERVICE JUGA DI SINI
+                logger.info(`✅ Webhook Sukses: ${invoiceNumber}. Memanggil BookingService...`);
+
+                await BookingService.handleSuccessfulPayment(
+                    invoiceNumber,
+                    amount,
+                    channel,
+                    client
+                );
+
+                logger.info(`✅ Booking ${invoiceNumber} sukses diupdate via BookingService.`);
 
             } else if (status === 'FAILED') {
                 await client.query(`
-                    UPDATE phourto.bookings SET payment_status = 'FAILED', updated_at = NOW() WHERE booking_id = $1
+                    UPDATE bookings SET payment_status = 'FAILED', status = 'CANCELLED', updated_at = NOW() WHERE booking_id = $1
                 `, [invoiceNumber]);
                 logger.info(`❌ Webhook: ${invoiceNumber} -> FAILED`);
-
-            } else if (status === 'EXPIRED') {
-                await client.query(`
-                    UPDATE phourto.bookings SET payment_status = 'EXPIRED', updated_at = NOW() WHERE booking_id = $1
-                `, [invoiceNumber]);
-                logger.info(`❌ Webhook: ${invoiceNumber} -> EXPIRED`);
             }
 
             await client.query('COMMIT');
         } catch (error) {
             await client.query('ROLLBACK');
+            logger.error(`Webhook Error: ${error.message}`);
             throw error;
         } finally {
             client.release();
