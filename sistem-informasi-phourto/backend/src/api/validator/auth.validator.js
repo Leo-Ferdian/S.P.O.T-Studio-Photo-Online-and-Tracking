@@ -19,7 +19,6 @@ const registerValidationRules = () => {
             .trim()
             .notEmpty().withMessage('Email tidak boleh kosong.')
             .isEmail().withMessage('Format email tidak valid.')
-            .normalizeEmail()
             .custom(async (value) => {
                 // Hanya blokir jika email sudah ada DAN terverifikasi
                 const { rows } = await db.query(
