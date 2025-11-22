@@ -5,7 +5,6 @@ const ApiError = require('../../utils/apiError');
 const { logger } = require('../../utils/logger');
 require('dotenv').config();
 
-// Pastikan .env memiliki DOKU_API_URL (Sandbox: https://api-sandbox.doku.com, Prod: https://api.doku.com)
 const DOKU_CLIENT_ID = process.env.DOKU_CLIENT_ID;
 const DOKU_SECRET_KEY = process.env.DOKU_SECRET_KEY;
 const DOKU_API_URL = process.env.DOKU_API_URL;
@@ -23,9 +22,11 @@ class PaymentService {
 
     // --- 1. GENERATE QR CODE ---
     async generateQrCode(bookingId, userId) {
-        // ... Logika generate tidak berubah, sudah aman ...
-        const bookingQuery = `SELECT * FROM bookings WHERE booking_id = $1::uuid LIMIT 1`;
-        const userQuery = `SELECT * FROM users WHERE user_id = $1::uuid LIMIT 1`;
+        console.log("1. Processing Booking ID:", bookingId);
+
+        // ✅ FIXED: Pakai 'phourto.bookings' & 'phourto.users'
+        const bookingQuery = `SELECT * FROM phourto.bookings WHERE booking_id = $1::uuid LIMIT 1`;
+        const userQuery = `SELECT * FROM phourto.users WHERE user_id = $1::uuid LIMIT 1`;
 
         let booking, user;
         try {
@@ -68,7 +69,6 @@ class PaymentService {
         const bodyString = JSON.stringify(body);
         const digest = crypto.createHash('sha256').update(bodyString).digest('base64');
         const requestTarget = "/checkout/v1/payment";
-
         const stringToSign = `Client-Id:${DOKU_CLIENT_ID}\nRequest-Id:${requestId}\nRequest-Timestamp:${timestamp}\nRequest-Target:${requestTarget}\nDigest:${digest}`;
         const signature = this._createSignature(stringToSign);
 
@@ -86,8 +86,9 @@ class PaymentService {
             const { id: paymentId, url: paymentUrl } = response.data.response.payment;
             const invoiceNumber = response.data.response.order.invoice_number;
 
+            // ✅ FIXED: Pakai 'phourto.bookings'
             await db.query(`
-                UPDATE bookings 
+                UPDATE phourto.bookings 
                 SET payment_gateway_ref = $1, payment_qr_url = $2, amount_paid = $3, updated_at = NOW()
                 WHERE booking_id = $4
             `, [paymentId, paymentUrl, amountValue, booking.booking_id]);
@@ -99,20 +100,18 @@ class PaymentService {
         }
     }
 
-    // --- 2. CEK STATUS (PERBAIKAN UTAMA DI SINI) ---
+    // --- 2. CEK STATUS (Manual/Frontend) ---
     async checkTransactionStatus(bookingId) {
-        console.log(`[PAYMENT] Checking status for booking: ${bookingId}`);
+        console.log(`[PAYMENT] Cek Status ID: ${bookingId}`);
 
         const requestTarget = `/orders/v1/status/${bookingId}`;
         const requestId = `CHK-${Date.now()}`;
         const timestamp = new Date().toISOString().substring(0, 19) + "Z";
         const digest = crypto.createHash('sha256').update("").digest('base64');
-
         const stringToSign = `Client-Id:${DOKU_CLIENT_ID}\nRequest-Id:${requestId}\nRequest-Timestamp:${timestamp}\nRequest-Target:${requestTarget}\nDigest:${digest}`;
         const signature = this._createSignature(stringToSign);
 
         try {
-            // ✅ FIXED: Menggunakan DOKU_API_URL (bukan DOKU_API_BASE_URL yang undefined)
             const response = await dokuClient.get(DOKU_API_URL + requestTarget, {
                 headers: {
                     'Client-Id': DOKU_CLIENT_ID,
@@ -124,35 +123,40 @@ class PaymentService {
             });
 
             const transactionStatus = response.data.transaction.status;
-            console.log(`[PAYMENT] Status DOKU Realtime: ${transactionStatus}`);
+            console.log(`📡 DOKU Respon: ${transactionStatus}`);
 
+            // ✅ FIXED: Hapus kolom 'status', Pakai 'phourto.bookings'
             if (transactionStatus === 'SUCCESS') {
-                // ✅ UPDATE DATABASE: PAID-FULL
                 await db.query(
-                    `UPDATE bookings SET payment_status = 'PAID-FULL', updated_at = NOW() WHERE booking_id = $1 AND payment_status != 'PAID-FULL'`,
+                    `UPDATE phourto.bookings SET payment_status = 'PAID-FULL', updated_at = NOW() WHERE booking_id = $1`,
                     [bookingId]
                 );
                 return { status: 'PAID-FULL', message: 'Pembayaran Berhasil' };
             }
             else if (transactionStatus === 'FAILED') {
-                // ✅ UPDATE DATABASE: FAILED
                 await db.query(
-                    `UPDATE bookings SET payment_status = 'FAILED', status = 'CANCELLED', updated_at = NOW() WHERE booking_id = $1`,
+                    `UPDATE phourto.bookings SET payment_status = 'FAILED', updated_at = NOW() WHERE booking_id = $1`,
                     [bookingId]
                 );
                 return { status: 'FAILED', message: 'Pembayaran Gagal' };
+            }
+            else if (transactionStatus === 'EXPIRED') {
+                await db.query(
+                    `UPDATE phourto.bookings SET payment_status = 'EXPIRED', updated_at = NOW() WHERE booking_id = $1`,
+                    [bookingId]
+                );
+                return { status: 'EXPIRED', message: 'Pembayaran Kadaluarsa' };
             }
 
             return { status: 'PENDING', message: 'Menunggu Pembayaran' };
 
         } catch (error) {
-            console.error("❌ Gagal Cek Status:", error.message);
-            // Jangan throw error agar frontend tidak crash
-            return { status: 'PENDING', message: 'Belum terupdate (Error Check)' };
+            console.error("🔥 Error:", error.message);
+            return { status: 'PENDING', message: 'Belum terupdate' };
         }
     }
 
-    // --- 3. WEBHOOK ---
+    // --- 3. WEBHOOK (Otomatis DOKU) ---
     async handleDokuNotification(notificationPayload, headers) {
         const clientId = headers['client-id'] || headers['Client-Id'];
         if (clientId !== DOKU_CLIENT_ID) logger.warn(`Webhook Client ID mismatch`);
@@ -167,22 +171,28 @@ class PaymentService {
         try {
             await client.query('BEGIN');
 
+            // ✅ FIXED: Hapus kolom 'status', Pakai 'phourto.bookings'
             if (status === 'SUCCESS') {
-                // ✅ UPDATE: PAID-FULL
                 await client.query(`
-                    UPDATE bookings 
+                    UPDATE phourto.bookings 
                     SET payment_status = 'PAID-FULL', payment_method = $1, updated_at = NOW() 
                     WHERE booking_id = $2
                 `, [paymentChannel, invoiceNumber]);
                 logger.info(`✅ Webhook: ${invoiceNumber} -> PAID-FULL`);
 
             } else if (status === 'FAILED') {
-                // ✅ UPDATE: FAILED
                 await client.query(`
-                    UPDATE bookings SET payment_status = 'FAILED', status = 'CANCELLED', updated_at = NOW() WHERE booking_id = $1
+                    UPDATE phourto.bookings SET payment_status = 'FAILED', updated_at = NOW() WHERE booking_id = $1
                 `, [invoiceNumber]);
                 logger.info(`❌ Webhook: ${invoiceNumber} -> FAILED`);
+
+            } else if (status === 'EXPIRED') {
+                await client.query(`
+                    UPDATE phourto.bookings SET payment_status = 'EXPIRED', updated_at = NOW() WHERE booking_id = $1
+                `, [invoiceNumber]);
+                logger.info(`❌ Webhook: ${invoiceNumber} -> EXPIRED`);
             }
+
             await client.query('COMMIT');
         } catch (error) {
             await client.query('ROLLBACK');
