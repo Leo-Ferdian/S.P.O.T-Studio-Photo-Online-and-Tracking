@@ -123,10 +123,10 @@ onMounted(() => {
                                 <!-- Tombol Ikon Mata -->
                                 <button type="button" @click="togglePasswordVisibility"
                                     class="absolute inset-y-0 right-0 pr-3 flex items-center text-text-inverse hover:text-gray-200 transition-colors">
-                                    <span v-show="isPasswordVisible">
+                                    <span v-show="!isPasswordVisible">
                                         <i data-feather="eye-off" class="w-5 h-5"></i>
                                     </span>
-                                    <span v-show="!isPasswordVisible">
+                                    <span v-show="isPasswordVisible">
                                         <i data-feather="eye" class="w-5 h-5"></i>
                                     </span>
                                 </button>
@@ -150,10 +150,10 @@ onMounted(() => {
                                 <!-- Tombol Ikon Mata -->
                                 <button type="button" @click="toggleConfirmPasswordVisibility"
                                     class="absolute inset-y-0 right-0 pr-3 flex items-center text-text-inverse hover:text-gray-200 transition-colors">
-                                    <span v-show="isConfirmPasswordVisible">
+                                    <span v-show="!isConfirmPasswordVisible">
                                         <i data-feather="eye-off" class="w-5 h-5"></i>
                                     </span>
-                                    <span v-show="!isConfirmPasswordVisible">
+                                    <span v-show="isConfirmPasswordVisible">
                                         <i data-feather="eye" class="w-5 h-5"></i>
                                     </span>
                                 </button>
