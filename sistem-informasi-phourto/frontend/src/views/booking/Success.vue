@@ -16,11 +16,13 @@
     <div class="bg-background min-h-screen flex items-center justify-center font-display text-text-default">
         <div class="max-w-xl w-full p-8 space-y-8 text-center">
             <!-- Logo -->
-            <router-link to="/" class="font-display text-5xl font-bold relative inline-block mx-auto mb-12">
-                Phour<span class="text-primary text-6xl absolute -bottom-2 -right-8 transform -rotate-12">to</span>
-                <span class="absolute top-0 right-0 text-[10px] leading-none font-sans font-bold w-20 text-right">we'll
-                    partner<br>with our<br>best</span>
-            </router-link>
+            <div class="text-center">
+                    <router-link to="/" class="inline-block">
+                        <!-- Responsive: h-[100px] di mobile, h-[150px] di desktop -->
+                        <img src="@/assets/logo-phourto.png" alt="Phourto Logo"
+                            class="h-[100px] md:h-[150px] w-auto object-contain transition-all duration-300" />
+                    </router-link>
+                </div>
 
             <!-- Pesan Verifikasi -->
             <div class="bg-primary text-white p-10 border-4 border-outline shadow-solid max-w-md mx-auto">
@@ -41,7 +43,7 @@
             <!-- Tombol Kembali ke Home (Opsional) -->
             <div class="pt-6">
                 <router-link to="/"
-                    class="inline-block bg-primary text-text-default font-bold py-3 px-8 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-1 active:translate-y-1 transition-all">
+                    class="inline-block bg-primary text-text-default font-bold py-3 px-8 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-1 active:translate-y-1 hover:translate-y-1 hover:shadow-none transition-all">
                     Kembali ke Beranda
                 </router-link>
             </div>

@@ -79,20 +79,23 @@ onMounted(() => {
   <div class="bg-background min-h-screen font-display text-text-default pt-24 pb-12">
     <main class="container mx-auto px-4 max-w-5xl">
 
-      <div class="flex items-center justify-between mb-10">
-        <button @click="$router.back()"
-          class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
-          <i data-feather="arrow-left" class="w-6 h-6"></i>
-        </button>
-        <button @click="$router.push('/Home')"
-          class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
-          <i data-feather="home" class="w-6 h-6"></i>
-        </button>
+      <div class="flex-1">
+          <div class="flex items-center space-x-2">
+            <button @click="$router.back()"
+              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
+              <i data-feather="arrow-left" class="w-6 h-6"></i>
+            </button>
+            <button @click="$router.push('/Home')"
+              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
+              <i data-feather="home" class="w-6 h-6"></i>
+            </button>
+          </div>
+        </div>
         <h1 class="text-3xl md:text-4xl font-bold text-center flex-1 uppercase tracking-wider">
           Riwayat Sesi
         </h1>
         <div class="w-12"></div>
-      </div>
+      
 
       <div v-if="loading" class="flex flex-col items-center justify-center py-20">
         <i data-feather="loader" class="w-12 h-12 animate-spin text-primary mb-4"></i>
@@ -106,7 +109,7 @@ onMounted(() => {
         </div>
         <h2 class="text-2xl font-bold mb-2">Belum Ada Sesi</h2>
         <p class="text-gray-500 mb-6">Ayo buat kenangan baru bersama kami!</p>
-        <router-link to="/home"
+        <router-link to="/location"
           class="bg-primary text-white px-6 py-3 font-bold border-3 border-outline shadow-solid hover:translate-y-1 hover:shadow-none transition-all inline-block">
           Booking Sekarang
         </router-link>

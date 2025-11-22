@@ -88,7 +88,7 @@ onMounted(() => {
           <!-- Tombol Submit -->
           <div class="text-center pt-6">
             <button type="submit" :disabled="isLoading"
-              class="bg-white text-text-default font-bold text-lg py-3 px-8 border-3 border-outline shadow-solid hover:bg-yellow-300 active:shadow-none active:translate-x-1 active:translate-y-1 transition-all disabled:opacity-50">
+              class="bg-white text-text-default font-bold text-lg py-3 px-8 border-3 border-outline shadow-solid hover:bg-red-300 active:shadow-none active:translate-x-1 active:translate-y-1 disabled:opacity-50 hover:translate-y-1 hover:shadow-none transition-all">
               <span v-if="isLoading">Processing...</span>
               <span v-else>DONE</span>
             </button>
