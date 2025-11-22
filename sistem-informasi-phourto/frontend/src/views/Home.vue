@@ -71,87 +71,96 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="bg-background text-text-default pt-10">
+  <!-- Tambahkan overflow-x-hidden agar halaman tidak goyang ke samping -->
+  <div class="bg-background text-text-default pt-6 md:pt-10 overflow-x-hidden">
     <main class="container mx-auto px-4">
 
       <!-- HERO -->
-      <section class="text-center">
-        <h2 class="font-display text-2xl md:text-3xl font-bold">
+      <section class="text-center mb-6 md:mb-10">
+        <h2 class="font-display text-xl md:text-3xl font-bold leading-relaxed px-2">
           SELF PORTRAIT STUDIO AND SPACE PEKANBARU
         </h2>
       </section>
 
       <!-- OUR ROOMS -->
-      <section class="py-5 relative overflow-hidden">
-        <div class="relative">
+      <section class="py-5 relative">
+        <div class="relative -mx-4 md:mx-0">
+          <!-- Gradient Overlay -->
           <div
-            class="absolute left-0 top-0 w-24 h-full bg-gradient-to-r from-white/80 via-white/40 to-transparent z-10 pointer-events-none">
+            class="absolute left-0 top-0 w-8 md:w-24 h-full bg-gradient-to-r from-white/80 via-white/40 to-transparent z-10 pointer-events-none">
           </div>
           <div
-            class="absolute right-0 top-0 w-24 h-full bg-gradient-to-l from-white/80 via-white/40 to-transparent z-10 pointer-events-none">
+            class="absolute right-0 top-0 w-8 md:w-24 h-full bg-gradient-to-l from-white/80 via-white/40 to-transparent z-10 pointer-events-none">
           </div>
 
-          <div ref="scrollContainer" class="flex gap-6 overflow-x-auto scrollbar-hide scroll-smooth px-10 relative"
-            @mouseenter="stopAutoScroll" @mouseleave="startAutoScroll">
+          <!-- Scroll Container -->
+          <!-- Update: w-[75vw] untuk mobile agar card terlihat besar -->
+          <div ref="scrollContainer"
+            class="flex gap-4 md:gap-6 overflow-x-auto scrollbar-hide scroll-smooth px-4 md:px-10 relative snap-x snap-mandatory"
+            @mouseenter="stopAutoScroll" @mouseleave="startAutoScroll" @touchstart="stopAutoScroll">
             <div v-for="(room, index) in [...rooms, ...rooms]" :key="index"
-              class="flex-none w-1/2 md:w-1/4 transition-all duration-300 hover:-translate-y-2">
+              class="flex-none w-[75vw] sm:w-1/2 md:w-1/4 snap-center transition-all duration-300 hover:-translate-y-2">
               <RoomCard :room="room" />
             </div>
           </div>
 
+          <!-- Navigation Buttons: Hidden di Mobile (Swipe Only), Block di Desktop -->
           <button @click="scrollLeft"
-            class="absolute left-3 top-1/2 -translate-y-1/2 text-6xl font-bold text-gray-500 hover:text-black transition z-20">&lt;</button>
+            class="hidden md:block absolute left-3 top-1/2 -translate-y-1/2 text-6xl font-bold text-gray-500 hover:text-black transition z-20">&lt;</button>
           <button @click="scrollRight"
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-6xl font-bold text-gray-500 hover:text-black transition z-20">&gt;</button>
+            class="hidden md:block absolute right-3 top-1/2 -translate-y-1/2 text-6xl font-bold text-gray-500 hover:text-black transition z-20">&gt;</button>
         </div>
 
-        <div class="text-center mt-8">
-          <ActionButton to="/location" size="large">
+        <div class="text-center mt-6 md:mt-8 px-2">
+          <!-- Tombol Full Width di Mobile -->
+          <ActionButton to="/location" size="large" class="w-full md:w-auto block md:inline-block">
             ⭐ BOOK YOUR PHOTO SESSION NOW! ⭐
           </ActionButton>
         </div>
       </section>
 
       <!--OUR SERVICE-->
-      <section class="py-10">
-        <div class="text-center mb-8">
-          <TittleBadge text="OUR SERVICE" class="bg-white text-black px-6 py-3 rounded-lg" />
+      <section class="py-8 md:py-10">
+        <div class="text-center mb-6 md:mb-8">
+          <TittleBadge text="OUR SERVICE" class="bg-white text-black px-6 py-3 rounded-lg inline-block shadow-sm" />
         </div>
 
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
+        <!-- Grid gap diperkecil di mobile -->
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
 
-          <!-- 1 -->
-          <div class="border-3 border-accent-green block rounded-lg overflow-hidden 
+          <!-- Service Items -->
+          <div
+            class="border-3 border-accent-green block rounded-lg overflow-hidden 
                 transition-transform duration-300 hover:scale-105 cursor-pointer active:translate-y-1 active:translate-x-1">
             <img :src="serviceImages.basic1" class="w-full aspect-[2/3] object-cover hover:opacity-80" />
           </div>
 
-          <!-- 2 -->
-          <div class="border-3 border-outline block rounded-lg overflow-hidden 
+          <div
+            class="border-3 border-outline block rounded-lg overflow-hidden 
                 transition-transform duration-300 hover:scale-105 cursor-pointer active:translate-y-1 active:translate-x-1">
             <img :src="serviceImages.basic" class="w-full aspect-[2/3] object-cover hover:opacity-80" />
           </div>
 
-          <!-- 3 -->
-          <div class="border-3 border-accent-blue block rounded-lg overflow-hidden 
+          <div
+            class="border-3 border-accent-blue block rounded-lg overflow-hidden 
                 transition-transform duration-300 hover:scale-105 cursor-pointer active:translate-y-1 active:translate-x-1">
             <img :src="serviceImages.pasFotom" class="w-full aspect-[2/3] object-cover hover:opacity-80" />
           </div>
 
-          <!-- 4 -->
-          <div class="border-3 border-accent-blue block rounded-lg overflow-hidden 
+          <div
+            class="border-3 border-accent-blue block rounded-lg overflow-hidden 
                 transition-transform duration-300 hover:scale-105 cursor-pointer active:translate-y-1 active:translate-x-1">
             <img :src="serviceImages.basic2" class="w-full aspect-[2/3] object-cover hover:opacity-80" />
           </div>
 
-          <!-- 5 -->
-          <div class="border-3 border-accent-green block rounded-lg overflow-hidden 
+          <div
+            class="border-3 border-accent-green block rounded-lg overflow-hidden 
                 transition-transform duration-300 hover:scale-105 cursor-pointer active:translate-y-1 active:translate-x-1">
             <img :src="serviceImages.emerald" class="w-full aspect-[2/3] object-cover hover:opacity-80" />
           </div>
 
-          <!-- 6 -->
-          <div class="border-3 border-outline block rounded-lg overflow-hidden 
+          <div
+            class="border-3 border-outline block rounded-lg overflow-hidden 
                 transition-transform duration-300 hover:scale-105 cursor-pointer active:translate-y-1 active:translate-x-1">
             <img :src="serviceImages.pasFotob" class="w-full aspect-[2/3] object-cover hover:opacity-80" />
           </div>
@@ -160,41 +169,54 @@ onMounted(() => {
 
 
       <!-- INSPIRATION -->
-      <section class="py-10 grid md:grid-cols-2 gap-8 items-center">
-        <div>
-          <h3 class="font-display text-3xl leading-tight">EXPRESS YOUR STYLE WITH US AT PHOUR.TO</h3>
-          <p class="font-sans mt-4 mb-6">
+      <section class="py-8 md:py-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+        <!-- Text Section -->
+        <div class="text-center md:text-left">
+          <h3 class="font-display text-2xl md:text-3xl leading-tight">EXPRESS YOUR STYLE WITH US AT PHOUR.TO</h3>
+          <p class="font-sans mt-4 mb-6 text-sm md:text-base px-2 md:px-0">
             Available premium room for your best pose with friends, family,
             loved-one or even pet.
           </p>
 
           <a href="#"
-            class="inline-block bg-white text-text-default font-bold py-3 px-6 border-3 border-outline shadow-solid hover:bg-gray-200 active:shadow-none active:translate-x-1 active:translate-y-1 duration-100 hover:translate-y-1 hover:shadow-none transition-all">
+            class="w-full md:w-auto inline-block bg-white text-text-default font-bold py-3 px-6 border-3 border-outline shadow-solid hover:bg-gray-200 active:shadow-none active:translate-x-1 active:translate-y-1 duration-100 hover:translate-y-1 hover:shadow-none transition-all">
             Find Your Inspiration Here 👉
           </a>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <!-- Image Grid -->
+        <div class="grid grid-cols-2 gap-3 md:gap-4">
+          <!-- 
+             UPDATE PENTING:
+             Mengganti fixed width w-[300px] dengan w-full aspect-[3/4].
+             Ini membuat gambar responsif mengikuti lebar kolom grid.
+          -->
           <img src="@/assets/recap-pose-room1ch3-3.jpg"
-            class="border-3 border-outline w-[300px] h-[400px] object-cover mx-auto" />
+            class="border-3 border-outline w-full aspect-[3/4] object-cover rounded-md mx-auto" />
+
+          <!-- mt-4 di mobile untuk efek staggered yang lebih kecil -->
           <img src="@/assets/recap-pose-room1ch3.jpg"
-            class="border-3 border-outline w-[300px] h-[400px] object-cover mx-auto" />
+            class="border-3 border-outline w-full aspect-[3/4] object-cover rounded-md mx-auto" />
+
           <img src="@/assets/recap-pose-room1ch2.jpg"
-            class="border-3 border-outline w-[300px] h-[400px] object-cover mx-auto" />
+            class="border-3 border-outline w-full aspect-[3/4] object-cover rounded-md mx-auto" />
+
           <img src="@/assets/recap-pose-room1ch2-3.jpg"
-            class="border-3 border-outline w-[300px] h-[400px] object-cover mx-auto" />
+            class="border-3 border-outline w-full aspect-[3/4] object-cover rounded-md mx-auto" />
         </div>
       </section>
 
       <!-- OUR LOCATION -->
-      <section class="py-10">
-        <div class="text-center mb-8">
-          <TittleBadge class="bg-white rounded-lg" text="OUR LOCATION" />
+      <section class="py-8 md:py-10 mb-8">
+        <div class="text-center mb-6 md:mb-8">
+          <TittleBadge class="bg-white rounded-lg px-6 py-2" text="OUR LOCATION" />
         </div>
 
-        <div class="space-y-4 max-w-2xl mx-auto">
-          <router-link v-for="loc in locations" :key="loc.slug" :to="`/location/${loc.slug}`" class="block">
-            <LocationButton :location="`${loc.name}, ${loc.address}`" />
+        <div class="space-y-4 max-w-2xl mx-auto px-1">
+          <router-link v-for="loc in locations" :key="loc.slug" :to="`/location/${loc.slug}`"
+            class="block transform transition active:scale-95">
+            <!-- Lokasi Full Width di Mobile -->
+            <LocationButton :location="`${loc.name}, ${loc.address}`" class="w-full" />
           </router-link>
         </div>
       </section>

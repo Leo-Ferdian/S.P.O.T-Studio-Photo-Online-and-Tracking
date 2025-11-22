@@ -65,56 +65,64 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="bg-background min-h-screen flex flex-col text-text-default">
+    <!-- Menggunakan Flex Column agar footer responsive -->
+    <div class="bg-background min-h-screen flex flex-col text-text-default font-sans">
+
         <!-- Main Content -->
-        <main class="flex-grow flex items-center justify-center p-4">
-            <div class="max-w-lg w-full space-y-6">
+        <!-- flex-grow akan mengisi ruang kosong, memastikan footer terdorong ke bawah -->
+        <main class="flex-grow flex items-center justify-center p-4 md:p-8">
+            <div class="max-w-lg w-full space-y-6 my-6 md:my-0">
+
                 <!-- Logo -->
-                <router-link to="/" class="inline-block">
-            <img 
-            src="@/assets/logo-phourto.png" 
-            alt="Phourto Logo" 
-            class="h-[150px] w-auto"
-            />
-            </router-link>
+                <div class="text-center">
+                    <router-link to="/" class="inline-block">
+                        <!-- Responsive Logo: h-[100px] di mobile, h-[150px] di desktop -->
+                        <img src="@/assets/logo-phourto.png" alt="Phourto Logo"
+                            class="h-[100px] md:h-[150px] w-auto object-contain transition-all duration-300" />
+                    </router-link>
+                </div>
 
                 <!-- Register Form -->
                 <form @submit.prevent="handleRegister" class="space-y-4">
-                    <div v-if="errorMessage" class="bg-primary/20 text-primary text-sm p-3 border-2 border-primary">
+                    <div v-if="errorMessage"
+                        class="bg-primary/20 text-primary text-sm p-3 border-2 border-primary rounded-sm font-bold">
                         {{ errorMessage }}
                     </div>
 
                     <!-- Name -->
                     <div>
-                        <label for="name" class="text-sm font-bold">Name</label>
-                        <input v-model="name" type="text" id="name" required class="form-input" />
+                        <label for="name" class="text-sm font-bold block mb-1">Name</label>
+                        <input v-model="name" type="text" id="name" required class="form-input"
+                            placeholder="Nama Lengkap" />
                     </div>
 
                     <!-- Email -->
                     <div>
-                        <label for="email" class="text-sm font-bold">Email</label>
-                        <input v-model="email" type="email" id="email" required class="form-input" />
+                        <label for="email" class="text-sm font-bold block mb-1">Email</label>
+                        <input v-model="email" type="email" id="email" required class="form-input"
+                            placeholder="alamat@email.com" />
                     </div>
 
                     <!-- Phone -->
                     <div>
-                        <label for="phone" class="text-sm font-bold">Phone Number</label>
-                        <input v-model="phoneNumber" type="tel" id="phone" required class="form-input" />
+                        <label for="phone" class="text-sm font-bold block mb-1">Phone Number</label>
+                        <input v-model="phoneNumber" type="tel" id="phone" required class="form-input"
+                            placeholder="Contoh: 0812..." />
                     </div>
 
                     <!-- Password & Confirm Password -->
                     <div class="space-y-4">
                         <!-- Password -->
                         <div>
-                            <label for="password" class="text-sm font-bold">Password</label>
+                            <label for="password" class="text-sm font-bold block mb-1">Password</label>
 
-                            <div class="relative mt-1">
+                            <div class="relative">
                                 <input v-model="password" :type="isPasswordVisible ? 'text' : 'password'" id="password"
-                                    required class="form-input" />
+                                    required class="form-input pr-10" placeholder="Password" />
 
                                 <!-- Tombol Ikon Mata -->
                                 <button type="button" @click="togglePasswordVisibility"
-                                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-text-inverse">
+                                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-text-inverse hover:text-gray-200 transition-colors">
                                     <span v-show="isPasswordVisible">
                                         <i data-feather="eye-off" class="w-5 h-5"></i>
                                     </span>
@@ -125,22 +133,23 @@ onMounted(() => {
                             </div>
 
                             <!-- Pesan Bantuan (Hint) -->
-                            <p class="text-xs text-gray-500 mt-1">
+                            <p class="text-xs text-gray-500 mt-1 leading-tight">
                                 Min. 8 karakter, 1 huruf besar, 1 angka, 1 simbol.
                             </p>
                         </div>
 
                         <!-- Confirm Password -->
                         <div>
-                            <label for="confirm-password" class="text-sm font-bold">Confirm Password</label>
+                            <label for="confirm-password" class="text-sm font-bold block mb-1">Confirm Password</label>
 
-                            <div class="relative mt-1">
+                            <div class="relative">
                                 <input v-model="confirmPassword" :type="isConfirmPasswordVisible ? 'text' : 'password'"
-                                    id="confirm-password" required class="form-input" />
+                                    id="confirm-password" required class="form-input pr-10"
+                                    placeholder="Ulangi Password" />
 
                                 <!-- Tombol Ikon Mata -->
                                 <button type="button" @click="toggleConfirmPasswordVisibility"
-                                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-text-inverse">
+                                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-text-inverse hover:text-gray-200 transition-colors">
                                     <span v-show="isConfirmPasswordVisible">
                                         <i data-feather="eye-off" class="w-5 h-5"></i>
                                     </span>
@@ -153,11 +162,11 @@ onMounted(() => {
                     </div>
 
                     <!-- Agreement -->
-                    <p class="text-xs text-center leading-relaxed">
+                    <p class="text-xs text-center leading-relaxed text-gray-600 pt-2">
                         Dengan melakukan pendaftaran, kamu telah menyetujui
-                        <a href="#" class="text-primary hover:underline font-semibold">Kebijakan Privasi</a>
+                        <a href="#" class="text-primary hover:underline font-bold">Kebijakan Privasi</a>
                         dan
-                        <a href="#" class="text-primary hover:underline font-semibold">Ketentuan Lainnya</a>.
+                        <a href="#" class="text-primary hover:underline font-bold">Ketentuan Lainnya</a>.
                     </p>
 
                     <!-- Submit -->
@@ -172,15 +181,17 @@ onMounted(() => {
         </main>
 
         <!-- Footer -->
-        <footer class="bg-primary text-text-default font-bold p-4 border-t-3 border-outline text-center">
+        <footer class="bg-primary text-text-default font-bold p-4 border-t-3 border-outline text-center w-full mt-auto">
             Already have an account?
-            <router-link to="/login" class="hover:underline text-background">Login</router-link>
+            <router-link to="/login"
+                class="hover:underline text-yellow-300 underline decoration-2 underline-offset-2 ml-1">Login</router-link>
         </footer>
     </div>
 </template>
 
 <style lang="postcss" scoped>
 .form-input {
-    @apply mt-1 w-full p-3 bg-primary text-text-inverse border-3 border-outline shadow-solid placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background focus:ring-primary transition-all;
+    /* Menambahkan placeholder-white/70 agar terlihat jelas di background merah */
+    @apply w-full p-3 bg-primary text-text-inverse border-3 border-outline shadow-solid placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background focus:ring-primary transition-all;
 }
 </style>

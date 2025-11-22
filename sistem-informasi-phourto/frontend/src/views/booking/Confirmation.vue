@@ -72,7 +72,7 @@ const confirmBooking = async () => {
 }
 
 // === OPSI BACKGROUND ===
-const backgroundOptions = ['Putih', 'Abu-abu', 'Hitam', 'Merah Maroon','Biru', 'Merah']
+const backgroundOptions = ['Putih', 'Abu-abu', 'Hitam', 'Merah Maroon', 'Biru', 'Merah']
 
 // === FORMAT TANGGAL ===
 const formattedDateTime = computed(() => {
@@ -127,26 +127,29 @@ onMounted(() => {
 <template>
   <div class="bg-background min-h-screen text-text-default pt-24 pb-12">
     <main class="container mx-auto px-4">
-      <!-- HEADER -->
-      <div class="flex items-center justify-between mb-12">
-        <div class="flex-1">
-          <div class="flex items-center space-x-2">
-            <button @click="$router.back()"
-              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
-              <i data-feather="arrow-left" class="w-6 h-6"></i>
-            </button>
-            <button @click="$router.push('/Home')"
-              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
-              <i data-feather="home" class="w-6 h-6"></i>
-            </button>
-          </div>
+
+      <!-- HEADER (Updated Style: Right Aligned Title) -->
+      <div class="flex flex-row items-center justify-between mb-8 md:mb-12">
+
+        <!-- Tombol Navigasi (Kiri) -->
+        <div class="flex-shrink-0 flex items-center space-x-2 mr-4">
+          <button @click="$router.back()"
+            class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
+            <i data-feather="arrow-left" class="w-5 h-5 md:w-6 md:h-6"></i>
+          </button>
+          <button @click="$router.push('/Home')"
+            class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
+            <i data-feather="home" class="w-5 h-5 md:w-6 md:h-6"></i>
+          </button>
         </div>
 
-        <div class="flex-1 text-center">
-          <h1 class="text-3xl font-bold">Konfirmasi Pemesanan</h1>
+        <!-- Judul (Kanan) -->
+        <div class="flex-grow text-right">
+          <h1 class="text-lg md:text-3xl font-bold uppercase tracking-wide leading-tight">
+            KONFIRMASI <br class="block md:hidden" /> PEMESANAN
+          </h1>
         </div>
 
-        <div class="flex-1"></div>
       </div>
 
       <!-- KONTEN UTAMA -->
@@ -159,32 +162,25 @@ onMounted(() => {
           </h2>
 
           <!-- Jadwal -->
-          <div
-            class="bg-white border-3 border-outline p-4 flex justify-between items-start"
-          >
+          <div class="bg-white border-3 border-outline p-4 flex justify-between items-start">
             <div>
               <p class="font-bold text-lg">{{ formattedDateTime }}</p>
               <p class="text-sm text-gray-600">Asia/Jakarta</p>
             </div>
 
-            <router-link
-            :to="{
+            <router-link :to="{
               name: 'BookingAppointment',
-               params: {
+              params: {
                 branchId: summary.branch.id,
                 packageId: summary.package.package_id,
               }
-               }"
-              class="text-gray-500 hover:text-primary"
-              >
+            }" class="text-gray-500 hover:text-primary">
               <i data-feather="edit-2" class="w-5 h-5"></i>
             </router-link>
           </div>
 
           <!-- Paket -->
-          <div
-            class="bg-white border-3 border-outline p-4 flex justify-between items-start"
-          >
+          <div class="bg-white border-3 border-outline p-4 flex justify-between items-start">
             <div>
               <p class="font-bold text-lg">{{ summary.package.duration }} Menit</p>
               <p class="text-sm text-gray-600">
@@ -195,10 +191,7 @@ onMounted(() => {
               </p>
             </div>
 
-            <router-link
-              :to="`/location/${summary.branch.slug}`"
-              class="text-gray-500 hover:text-primary"
-            >
+            <router-link :to="`/location/${summary.branch.slug}`" class="text-gray-500 hover:text-primary">
               <i data-feather="edit-2" class="w-5 h-5"></i>
             </router-link>
           </div>
@@ -211,13 +204,7 @@ onMounted(() => {
             <label for="name" class="font-bold text-sm block mb-1">
               Nama <span class="text-gray-500">(Diperlukan)</span>
             </label>
-            <input
-              v-model="customerName"
-              type="text"
-              id="name"
-              required
-              class="form-input-setting"
-            />
+            <input v-model="customerName" type="text" id="name" required class="form-input-setting" />
           </div>
 
           <!-- Email -->
@@ -225,13 +212,7 @@ onMounted(() => {
             <label for="email" class="font-bold text-sm block mb-1">
               Email <span class="text-gray-500">(Diperlukan)</span>
             </label>
-            <input
-              v-model="customerEmail"
-              type="email"
-              id="email"
-              required
-              class="form-input-setting"
-            />
+            <input v-model="customerEmail" type="email" id="email" required class="form-input-setting" />
           </div>
 
           <!-- Whatsapp -->
@@ -239,39 +220,21 @@ onMounted(() => {
             <label for="whatsapp" class="font-bold text-sm block mb-1">
               Whatsapp <span class="text-gray-500">(Diperlukan)</span>
             </label>
-            <input
-              v-model="customerWhatsapp"
-              type="tel"
-              id="whatsapp"
-              required
-              class="form-input-setting"
-            />
+            <input v-model="customerWhatsapp" type="tel" id="whatsapp" required class="form-input-setting" />
           </div>
 
           <!-- Instagram -->
           <div>
             <label for="instagram" class="font-bold text-sm block mb-1">
-              Instagram <span class="text-gray-500">(Diperlukan)</span>
+              Instagram
             </label>
-            <input
-              v-model="customerInstagram"
-              type="text"
-              id="instagram"
-              required
-              class="form-input-setting"
-            />
+            <input v-model="customerInstagram" type="text" id="instagram" class="form-input-setting" />
           </div>
 
           <!-- Background -->
           <div>
-            <label for="background" class="font-bold text-sm block mb-1"
-              >Pilihan Background</label
-            >
-            <select
-              v-model="selectedBackground"
-              id="background"
-              class="form-input-setting appearance-none"
-            >
+            <label for="background" class="font-bold text-sm block mb-1">Pilihan Background</label>
+            <select v-model="selectedBackground" id="background" class="form-input-setting appearance-none">
               <option disabled value="">Silahkan pilih</option>
               <option v-for="bg in backgroundOptions" :key="bg" :value="bg">
                 {{ bg }}
@@ -287,8 +250,7 @@ onMounted(() => {
             </p>
 
             <div
-              class="bg-primary text-white p-3 border-3 border-outline shadow-solid flex justify-between items-center"
-            >
+              class="bg-primary text-white p-3 border-3 border-outline shadow-solid flex justify-between items-center">
               <div>
                 <p class="font-bold">Tambahan Orang</p>
                 <p class="text-xs">
@@ -297,21 +259,15 @@ onMounted(() => {
               </div>
 
               <div class="flex items-center space-x-3 bg-black p-1">
-                <button
-                  type="button"
-                  @click="decrementPerson"
-                  class="w-6 h-6 flex items-center justify-center bg-white text-black font-bold text-xl"
-                >
+                <button type="button" @click="decrementPerson"
+                  class="w-6 h-6 flex items-center justify-center bg-white text-black font-bold text-xl">
                   -
                 </button>
 
                 <span class="w-6 text-center">{{ additionalPeople }}</span>
 
-                <button
-                  type="button"
-                  @click="incrementPerson"
-                  class="w-6 h-6 flex items-center justify-center bg-white text-black font-bold text-xl"
-                >
+                <button type="button" @click="incrementPerson"
+                  class="w-6 h-6 flex items-center justify-center bg-white text-black font-bold text-xl">
                   +
                 </button>
               </div>
@@ -320,18 +276,12 @@ onMounted(() => {
 
           <!-- Tombol -->
           <div class="pt-6">
-            <div
-              v-if="errorMessage"
-              class="bg-red-800/50 text-white text-sm p-3 border-2 border-primary mb-4"
-            >
+            <div v-if="errorMessage" class="bg-red-800/50 text-white text-sm p-3 border-2 border-primary mb-4">
               {{ errorMessage }}
             </div>
 
-            <button
-              type="submit"
-              :disabled="isLoading"
-              class="w-full bg-primary text-text-default font-bold text-lg py-3 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-1 active:translate-y-1 disabled:opacity-50 hover:translate-y-1 hover:shadow-none transition-all"
-            >
+            <button type="submit" :disabled="isLoading"
+              class="w-full bg-primary text-text-default font-bold text-lg py-3 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-1 active:translate-y-1 disabled:opacity-50 hover:translate-y-1 hover:shadow-none transition-all">
               <span v-if="isLoading">MEMPROSES...</span>
               <span v-else>Lanjut ke Pembayaran</span>
             </button>
@@ -349,7 +299,6 @@ onMounted(() => {
 
 <style lang="postcss" scoped>
 .form-input-setting {
-  @apply w-full p-3 bg-white text-text-default border-3 border-outline shadow-solid
-    focus:outline-none focus:ring-2 focus:ring-yellow-400;
+  @apply w-full p-3 bg-white text-text-default border-3 border-outline shadow-solid focus:outline-none focus:ring-2 focus:ring-yellow-400;
 }
 </style>

@@ -175,8 +175,10 @@ const toggleConfirmPasswordVisibility = () => {
         <!-- Footer -->
         <div
             class="absolute bottom-0 left-0 right-0 bg-primary text-text-default font-bold p-4 border-t-3 border-outline text-center">
-            <router-link to="/login" class="hover:underline">
-                Kembali ke Login
+            Back To
+            <router-link to="/login"
+                class="hover:underline text-yellow-300 underline decoration-2 underline-offset-2 ml-1">
+                Login
             </router-link>
         </div>
     </div>

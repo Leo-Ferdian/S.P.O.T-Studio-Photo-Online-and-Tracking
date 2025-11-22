@@ -7,7 +7,7 @@ require('dotenv').config();
 
 const DOKU_CLIENT_ID = process.env.DOKU_CLIENT_ID;
 const DOKU_SECRET_KEY = process.env.DOKU_SECRET_KEY;
-const DOKU_API_URL = process.env.DOKU_API_URL; 
+const DOKU_API_URL = process.env.DOKU_API_URL;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
 // Instance Axios
@@ -203,24 +203,39 @@ class PaymentService {
         }
 
         const invoiceNumber = notificationPayload.order?.invoice_number || notificationPayload.transaction?.partnerReferenceNo;
-        const status = notificationPayload.transaction?.status;
+        const transactionStatus = notificationPayload.transaction?.status;
 
         if (!invoiceNumber) throw new ApiError(400, "Invoice tidak ditemukan di payload.");
+        console.log(`🔔 Webhook Diterima: Invoice ${invoiceNumber}, Status ${transactionStatus}`);
 
         const client = await db.getClient();
         try {
             await client.query('BEGIN');
 
-            if (status === 'SUCCESS') {
-                // ✅ PERBAIKAN 3: Gunakan 'PAID-FULL' agar sesuai database
-                const updateSuccess = `UPDATE bookings SET status = 'PAID-FULL', updated_at = NOW() WHERE booking_id = $1`;
+            if (transactionStatus === 'SUCCESS') {
+                // [PERBAIKAN] 
+                // 1. Menggunakan kolom 'payment_status' (bukan 'status')
+                // 2. Menggunakan nilai 'PAID_FULL' (sesuai logika frontend Anda)
+                const updateSuccess = `
+                    UPDATE bookings 
+                    SET 
+                        payment_status = 'PAID_FULL', 
+                        updated_at = NOW() 
+                    WHERE booking_id = $1
+                `;
                 await client.query(updateSuccess, [invoiceNumber]);
-                logger.info(`[WEBHOOK] Booking ${invoiceNumber} updated to PAID-FULL.`);
-            } else if (status === 'FAILED' || status === 'EXPIRED') {
-                // ✅ PERBAIKAN 3: Gunakan 'CANCELLED'
-                const updateFail = `UPDATE bookings SET status = 'CANCELLED', updated_at = NOW() WHERE booking_id = $1`;
+                logger.info(`✅ [WEBHOOK] Booking ${invoiceNumber} berhasil diupdate ke PAID_FULL.`);
+
+            } else if (transactionStatus === 'FAILED' || transactionStatus === 'EXPIRED') {
+                const updateFail = `
+                    UPDATE bookings 
+                    SET 
+                        payment_status = 'FAILED', 
+                        updated_at = NOW() 
+                    WHERE booking_id = $1
+                `;
                 await client.query(updateFail, [invoiceNumber]);
-                logger.info(`[WEBHOOK] Booking ${invoiceNumber} updated to CANCELLED.`);
+                logger.info(`❌ [WEBHOOK] Booking ${invoiceNumber} diupdate ke FAILED.`);
             }
 
             await client.query('COMMIT');

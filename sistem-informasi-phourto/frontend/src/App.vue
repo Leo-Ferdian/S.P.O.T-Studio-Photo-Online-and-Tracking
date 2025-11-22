@@ -79,7 +79,7 @@ const isAuthRoute = computed(() => {
     <AppHeader v-if="showMainHeader" />
 
     <!-- Padding atas pada main hanya ditambahkan jika header utama tampil -->
-    <main :class="{ 'pt-20': showMainHeader }">
+    <main :class="{ showMainHeader }">
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
           <component :is="Component" />

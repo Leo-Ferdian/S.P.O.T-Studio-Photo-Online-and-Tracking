@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import feather from 'feather-icons'
 import { useRouter } from 'vue-router'
-import { useBookingStore } from '../../stores/booking.stores.js'
+import { useBookingStore } from '@/stores/booking.stores.js'
 import { storeToRefs } from 'pinia'
 
 const router = useRouter()
@@ -87,18 +87,12 @@ const handleDateSelect = async (day) => {
   }
 
   // --- PERBAIKAN TIMEZONE ---
-  // 'day' adalah tanggal lokal (misal: 4 Nov, 00:00 WIB)
-  // Kita harus membuat objek Date baru menggunakan nilai UTC
-  // agar .toISOString() tidak menggesernya ke hari sebelumnya.
   const startOfDayUTC = new Date(Date.UTC(
     day.getFullYear(),
     day.getMonth(),
     day.getDate(),
     0, 0, 0
   ));
-  // 'startOfDayUTC.toISOString()' sekarang akan menjadi: "2025-11-04T00:00:00.000Z"
-  // (Bukan "2025-11-03T17:00:00.000Z" lagi)
-  // -------------------------
 
   // Panggil action dari store dengan tanggal UTC yang sudah benar
   await bookingStore.checkAvailability(packageId, startOfDayUTC);
@@ -137,24 +131,30 @@ onMounted(() => {
 <template>
   <div class="bg-background min-h-screen font-display text-text-default pt-24 pb-12">
     <main class="container mx-auto px-4">
-      <!-- Header Halaman -->
-      <div class="flex items-center justify-between mb-12">
-        <div class="flex-1">
-          <div class="flex items-center space-x-2">
-            <button @click="$router.back()"
-              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
-              <i data-feather="arrow-left" class="w-6 h-6"></i>
-            </button>
-            <button @click="$router.push('/')"
-              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
-              <i data-feather="home" class="w-6 h-6"></i>
-            </button>
-          </div>
+
+      <!-- Header Halaman (Updated Layout) -->
+      <!-- Flex Row: Kiri Tombol, Kanan Judul -->
+      <div class="flex flex-row items-center justify-between mb-8 md:mb-12">
+
+        <!-- Tombol Navigasi (Kiri) -->
+        <div class="flex-shrink-0 flex items-center space-x-2 mr-4">
+          <button @click="$router.back()"
+            class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
+            <i data-feather="arrow-left" class="w-5 h-5 md:w-6 md:h-6"></i>
+          </button>
+          <button @click="$router.push('/')"
+            class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
+            <i data-feather="home" class="w-5 h-5 md:w-6 md:h-6"></i>
+          </button>
         </div>
-        <div class="flex-1 text-center">
-          <h1 class="text-3xl font-bold">BOOKING APPOINTMENT</h1>
+
+        <!-- Judul (Kanan) -->
+        <div class="flex-grow text-right">
+          <h1 class="text-lg md:text-3xl font-bold uppercase tracking-wide leading-tight">
+            BOOKING <br class="block md:hidden" /> APPOINTMENT
+          </h1>
         </div>
-        <div class="flex-1"></div>
+
       </div>
 
       <!-- Konten Booking -->
@@ -168,9 +168,9 @@ onMounted(() => {
                 Hari ini
               </button>
               <div class="flex items-center space-x-4">
-                <button @click="prevMonth" class="hover:text-primary">&lt;</button>
+                <button @click="prevMonth" class="hover:text-primary font-bold text-xl">&lt;</button>
                 <span class="font-bold text-lg font-display">{{ currentMonthName }} {{ currentYear }}</span>
-                <button @click="nextMonth" class="hover:text-primary">&gt;</button>
+                <button @click="nextMonth" class="hover:text-primary font-bold text-xl">&gt;</button>
               </div>
             </div>
 
@@ -183,7 +183,7 @@ onMounted(() => {
               <div v-for="day in calendarDays.filter(d => d !== null)" :key="day.getDate()"
                 class="h-12 flex items-center justify-center">
                 <button @click="handleDateSelect(day)" :disabled="isPast(day)" :class="[
-                  'w-10 h-10 flex items-center justify-center rounded-full border-2 border-transparent transition-colors font-sans',
+                  'w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full border-2 border-transparent transition-colors font-sans text-sm md:text-base',
                   isPast(day) ? 'text-gray-400 cursor-not-allowed' : 'hover:border-primary',
                   isToday(day) && !isSelected(day) ? 'bg-primary text-white' : '',
                   isSelected(day) ? 'bg-black text-white border-black ring-2 ring-offset-2 ring-primary' : ''
@@ -239,7 +239,7 @@ onMounted(() => {
               </div>
               <div v-else-if="selectedDate && availability.slots.length > 0" class="grid grid-cols-4 gap-2">
                 <button v-for="time in availability.slots" :key="time" @click="handleTimeSelect(time)" :class="[
-                  'p-2 border-3 border-outline shadow-solid font-bold transition-all duration-100 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 font-display',
+                  'p-2 border-3 border-outline shadow-solid font-bold transition-all duration-100 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 font-display text-sm',
                   selectedTime === time ? 'bg-black text-white' : 'bg-primary text-white hover:bg-red-600 hover:translate-y-1 hover:shadow-none transition-all'
                 ]">
                   {{ time }}
@@ -253,9 +253,9 @@ onMounted(() => {
         </div>
 
         <!-- Tombol Next -->
-        <div class="text-center mt-12">
+        <div class="text-center mt-8 md:mt-12">
           <button @click="goToNextStep" :disabled="!selectedTime"
-            class="bg-primary text-text-default font-bold text-lg py-3 px-12 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-1 active:translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed font-display hover:translate-y-1 hover:shadow-none transition-all">
+            class="w-full md:w-auto bg-primary text-text-default font-bold text-lg py-3 px-12 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-1 active:translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed font-display hover:translate-y-1 hover:shadow-none transition-all">
             Next
           </button>
         </div>
