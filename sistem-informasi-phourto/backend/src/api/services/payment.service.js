@@ -136,15 +136,19 @@ class PaymentService {
     }
 
     // --- ✅ PERBAIKAN 2: MENAMBAHKAN FUNGSI CEK STATUS (WAJIB ADA) ---
+    // --- 2. CEK STATUS TRANSAKSI (Jaring Pengaman) ---
     async checkTransactionStatus(bookingId) {
         console.log(`[PAYMENT] Checking status for booking: ${bookingId}`);
 
+        // Endpoint DOKU untuk Cek Status
         const requestTarget = `/orders/v1/status/${bookingId}`;
         const requestId = `CHK-${Date.now()}`;
+
+        // Timestamp ISO tanpa milidetik (.000Z -> Z)
         const now = new Date();
         const timestamp = now.toISOString().substring(0, 19) + "Z";
 
-        // Digest untuk GET request biasanya string kosong hash
+        // Digest untuk GET request biasanya string kosong
         const digest = crypto.createHash('sha256').update("").digest('base64');
 
         const stringToSign =
@@ -155,42 +159,56 @@ class PaymentService {
             `Digest:${digest}`;
 
         const signature = this._createSignature(stringToSign);
+        const finalSignatureHeader = "HMACSHA256=" + signature;
 
         try {
-            const response = await dokuClient.get(DOKU_API_URL + requestTarget, {
+            // Gunakan instance dokuClient yang bersih
+            const response = await dokuClient.get(DOKU_API_BASE_URL + requestTarget, {
                 headers: {
                     'Client-Id': DOKU_CLIENT_ID,
                     'Request-Id': requestId,
                     'Request-Timestamp': timestamp,
-                    'Signature': "HMACSHA256=" + signature,
-                    'Request-Target': requestTarget
+                    'Signature': finalSignatureHeader,
+                    'Request-Target': requestTarget // Kadang dibutuhkan untuk GET
                 }
             });
 
             const transactionStatus = response.data.transaction.status;
             console.log(`[PAYMENT] Real-time status from DOKU: ${transactionStatus}`);
 
+            // [PERBAIKAN DATABASE]
+            // Gunakan kolom 'payment_status' dan nilai 'PAID-FULL'
             if (transactionStatus === 'SUCCESS') {
-                // Gunakan PAID-FULL agar aman sesuai ENUM
                 await db.query(
-                    `UPDATE bookings SET status = 'PAID-FULL', updated_at = NOW() WHERE booking_id = $1 AND status != 'PAID-FULL'`,
+                    `UPDATE bookings 
+                    SET payment_status = 'PAID-FULL', updated_at = NOW() 
+                    WHERE booking_id = $1 AND payment_status != 'PAID-FULL'`,
                     [bookingId]
                 );
-                return { status: 'PAID-FULL', message: 'Pembayaran Berhasil' };
+                return { status: 'PAID-FULL', message: 'Pembayaran Berhasil (Updated)' };
             }
             else if (transactionStatus === 'FAILED' || transactionStatus === 'EXPIRED') {
                 await db.query(
-                    `UPDATE bookings SET status = 'CANCELLED', updated_at = NOW() WHERE booking_id = $1`,
+                    `UPDATE bookings 
+                    SET payment_status = 'FAILED', updated_at = NOW() 
+                    WHERE booking_id = $1`,
                     [bookingId]
                 );
-                return { status: 'CANCELLED', message: 'Pembayaran Gagal/Expired' };
+                return { status: 'FAILED', message: 'Pembayaran Gagal/Expired' };
             }
 
             return { status: 'PENDING', message: 'Menunggu Pembayaran' };
 
         } catch (error) {
+            // Jika error 404 dari DOKU, berarti transaksi belum dibuat/ditemukan
+            if (error.response && error.response.status === 404) {
+                console.warn(`[PAYMENT] Transaksi ${bookingId} belum ada di DOKU.`);
+                return { status: 'NOT_FOUND', message: 'Belum ada transaksi' };
+            }
+
             console.error("❌ Gagal Cek Status DOKU:", error.message);
-            return { status: 'PENDING', message: 'Belum terupdate' };
+            // Jangan throw error agar frontend tidak crash, cukup return status lama
+            return { status: 'UNKNOWN', message: 'Gagal cek status' };
         }
     }
 
@@ -203,39 +221,23 @@ class PaymentService {
         }
 
         const invoiceNumber = notificationPayload.order?.invoice_number || notificationPayload.transaction?.partnerReferenceNo;
-        const transactionStatus = notificationPayload.transaction?.status;
+        const status = notificationPayload.transaction?.status;
 
         if (!invoiceNumber) throw new ApiError(400, "Invoice tidak ditemukan di payload.");
-        console.log(`🔔 Webhook Diterima: Invoice ${invoiceNumber}, Status ${transactionStatus}`);
 
         const client = await db.getClient();
         try {
             await client.query('BEGIN');
 
-            if (transactionStatus === 'SUCCESS') {
-                // [PERBAIKAN] 
-                // 1. Menggunakan kolom 'payment_status' (bukan 'status')
-                // 2. Menggunakan nilai 'PAID_FULL' (sesuai logika frontend Anda)
-                const updateSuccess = `
-                    UPDATE bookings 
-                    SET 
-                        payment_status = 'PAID_FULL', 
-                        updated_at = NOW() 
-                    WHERE booking_id = $1
-                `;
+            if (status === 'SUCCESS') {
+                // [PERBAIKAN STATUS]: Menggunakan 'PAID-FULL' (dengan strip)
+                const updateSuccess = `UPDATE bookings SET payment_status = 'PAID-FULL', updated_at = NOW() WHERE booking_id = $1`;
                 await client.query(updateSuccess, [invoiceNumber]);
-                logger.info(`✅ [WEBHOOK] Booking ${invoiceNumber} berhasil diupdate ke PAID_FULL.`);
-
-            } else if (transactionStatus === 'FAILED' || transactionStatus === 'EXPIRED') {
-                const updateFail = `
-                    UPDATE bookings 
-                    SET 
-                        payment_status = 'FAILED', 
-                        updated_at = NOW() 
-                    WHERE booking_id = $1
-                `;
+                logger.info(`[WEBHOOK] Booking ${invoiceNumber} updated to PAID-FULL.`);
+            } else if (status === 'FAILED' || status === 'EXPIRED') {
+                const updateFail = `UPDATE bookings SET payment_status = 'FAILED', updated_at = NOW() WHERE booking_id = $1`;
                 await client.query(updateFail, [invoiceNumber]);
-                logger.info(`❌ [WEBHOOK] Booking ${invoiceNumber} diupdate ke FAILED.`);
+                logger.info(`[WEBHOOK] Booking ${invoiceNumber} updated to FAILED.`);
             }
 
             await client.query('COMMIT');
