@@ -11,27 +11,33 @@ onMounted(() => {
   <div class="bg-background min-h-screen font-display text-text-default pt-12 pb-12">
     <main class="container mx-auto px-4">
       <!-- Header Halaman -->
-      <div class="flex items-center justify-between mb-12">
-        <!-- Kolom Kiri: Tombol Navigasi -->
-        <div class="flex-1">
-          <div class="flex items-center space-x-2">
-            <button @click="$router.back()"
-              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
-              <i data-feather="arrow-left" class="w-6 h-6"></i>
-            </button>
-            <button @click="$router.push('/Home')"
-              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
-              <i data-feather="home" class="w-6 h-6"></i>
-            </button>
-          </div>
-        </div>
-        <!-- Kolom Tengah (kosong) -->
-        <div class="flex-1 text-center hidden md:block"></div>
+<div class="flex items-center justify-between mb-12">
 
-      </div>
+  <!-- Tombol Back di kiri -->
+  <div class="flex-1">
+    <button @click="$router.back()"
+      class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
+      <i data-feather="arrow-left" class="w-6 h-6"></i>
+    </button>
+  </div>
+
+  <!-- Kolom Tengah (Kosong, supaya posisi tetap seimbang) -->
+  <div class="flex-1"></div>
+
+  <!-- Tombol Home di kanan -->
+  <div class="flex-1 flex justify-end">
+    <button @click="$router.push('/Home')"
+      class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
+      <i data-feather="home" class="w-6 h-6"></i>
+    </button>
+  </div>
+
+</div>
+
 
       <!-- Konten Utama -->
-      <div class="grid md:grid-cols-2 gap-12 justify-items-start px-40 items-center">
+      <div class="grid md:grid-cols-2 gap-8 md:gap-12 justify-items-start px-4 md:px-40 items-center">
+
 
         <div class="space-y-6 md:justify-self-start w-full max-w-md">
           <div class="border-4 border-outline">
