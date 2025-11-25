@@ -328,10 +328,28 @@ export const useBookingStore = defineStore('booking', {
         CREATE BOOKING
         ------------------------------------------- */
         async createBooking() {
+            const addonsPayload = [];
+
+            if (this.additionalPeople > 0 && this.selectedPackage && this.selectedPackage.addons) {
+                const extraPersonAddon = this.selectedPackage.addons.find(a => a.addon_name.toLowerCase().includes('orang'));
+
+                if (extraPersonAddon) {
+                    addonsPayload.push({
+                        addon_id: extraPersonAddon.addon_id,
+                        quantity: this.additionalPeople
+                    });
+                    console.log("Addon Found:", personAddon.addon_name, "Qty:", this.additionalPeople);
+                } else {
+                    console.warn("Warning: User memilih tambahan orang, tapi tidak ditemukan addon yang cocok di paket ini.");
+                    // Fallback: Jika tidak ketemu di paket, Backend mungkin gagal validasi jika kita kirim ID sembarang.
+                    // Sebaiknya kita biarkan kosong dan log warning, atau user akan error.
+                }
+            }
+
             const bookingData = {
                 package_id: this.selectedPackage?.package_id,
                 start_time: this.selectedDateTime?.toISOString(),
-                addons: [],
+                addons: addonsPayload,
             };
 
             if (!bookingData.package_id || !bookingData.start_time) {
@@ -353,9 +371,48 @@ export const useBookingStore = defineStore('booking', {
             }
 
             try {
+                const pkgId = this.selectedPackage?.planId || this.selectedPackage?.package_id;
+                let availableAddons = [];
+                try {
+                    const pkgRes = await apiClient.get(`/packages/${pkgId}`);
+                    availableAddons = pkgRes.data.data.addons || [];
+                } catch (e) {
+                    console.warn("Gagal mengambil detail paket untuk addons:", e);
+                    // Jika gagal, kita tidak bisa memproses addons dengan benar
+                }
+                const addonsPayload = [];
+
+                if (this.additionalPeople > 0) {
+                    // Cari addon "Tambahan Orang" dari daftar yang kita fetch
+                    const personAddon = availableAddons.find(a =>
+                        a.addon_name.toLowerCase().includes('orang') ||
+                        a.addon_name.toLowerCase().includes('person')
+                    );
+
+                    if (personAddon) {
+                        addonsPayload.push({
+                            addon_id: personAddon.addon_id,
+                            quantity: this.additionalPeople
+                        });
+                        console.log("Addon ditambahkan:", personAddon.addon_name, "Qty:", this.additionalPeople);
+                    } else {
+                        console.warn("Addon 'Tambahan Orang' tidak ditemukan di paket ini (Database).");
+                    }
+                }
+
+                // 3. KIRIM DATA BOOKING
+                const bookingData = {
+                    package_id: pkgId,
+                    start_time: this.selectedDateTime?.toISOString(),
+                    addons: addonsPayload // Array ini sekarang terisi jika addon ditemukan
+                };
+
+                console.log("Sending Booking Payload:", bookingData);
+
                 const response = await apiClient.post('/bookings', bookingData);
                 this.currentBooking = response.data.data;
                 this.availability = { isAvailable: null, message: '', slots: [] };
+
                 return response.data.data;
 
             } catch (error) {
@@ -377,7 +434,7 @@ export const useBookingStore = defineStore('booking', {
             this.error = null;
 
             try {
-                const response = await apiClient.get('/bookings/my-bookings');
+                const response = await apiClient.get('/bookings/RiwayatBooking');
                 this.myBookings = response.data.data.data;
 
             } catch (error) {

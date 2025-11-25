@@ -131,30 +131,30 @@ onMounted(() => {
       <!-- HEADER (Updated Style: Right Aligned Title) -->
       <div class="flex items-center justify-between mb-8 md:mb-12">
 
-  <!-- Back (Kiri) -->
-  <div class="flex-shrink-0">
-    <button @click="$router.back()"
-      class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 transition-all">
-      <i data-feather="arrow-left" class="w-5 h-5 md:w-6 md:h-6"></i>
-    </button>
-  </div>
+        <!-- Back (Kiri) -->
+        <div class="flex-shrink-0">
+          <button @click="$router.back()"
+            class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 transition-all">
+            <i data-feather="arrow-left" class="w-5 h-5 md:w-6 md:h-6"></i>
+          </button>
+        </div>
 
-  <!-- Judul (Tengah) -->
-  <div class="flex-1 text-center">
-    <h1 class="text-lg md:text-3xl font-bold uppercase tracking-wide leading-tight whitespace-nowrap">
-      KONFIRMASI PEMESANAN
-    </h1>
-  </div>
+        <!-- Judul (Tengah) -->
+        <div class="flex-1 text-center">
+          <h1 class="text-lg md:text-3xl font-bold uppercase tracking-wide leading-tight whitespace-nowrap">
+            KONFIRMASI PEMESANAN
+          </h1>
+        </div>
 
-  <!-- Home (Kanan) -->
-  <div class="flex-shrink-0 flex justify-end">
-    <button @click="$router.push('/Home')"
-      class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 transition-all">
-      <i data-feather="home" class="w-5 h-5 md:w-6 md:h-6"></i>
-    </button>
-  </div>
+        <!-- Home (Kanan) -->
+        <div class="flex-shrink-0 flex justify-end">
+          <button @click="$router.push('/Home')"
+            class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 transition-all">
+            <i data-feather="home" class="w-5 h-5 md:w-6 md:h-6"></i>
+          </button>
+        </div>
 
-</div>
+      </div>
 
 
       <!-- KONTEN UTAMA -->
