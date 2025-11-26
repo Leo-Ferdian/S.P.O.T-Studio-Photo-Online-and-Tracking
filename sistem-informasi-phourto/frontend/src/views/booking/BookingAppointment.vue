@@ -212,7 +212,7 @@ onMounted(() => {
                 <i data-feather="info" class="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5"></i>
                 <p>
                   <span class="font-bold text-gray-800">Info Pemesanan:</span>
-                  Booking slot hanya tersedia mulai besok (H-1). Slot hari ini tidak dapat dipesan.
+                  Sistem hanya menerima booking minimal H-1 sebelum jam cut-off.
                 </p>
               </div>
             </div>
