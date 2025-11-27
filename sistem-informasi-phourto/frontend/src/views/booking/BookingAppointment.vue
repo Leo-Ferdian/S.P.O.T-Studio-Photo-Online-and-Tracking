@@ -177,10 +177,10 @@ onMounted(() => {
           <!-- Kalender -->
           <div class="md:col-span-2 bg-white text-black p-6 border-4 border-outline">
             <div class="flex justify-between items-center mb-6">
-              <button @click="goToToday"
+              <!-- <button @click="goToToday"
                 class="bg-primary text-white px-3 py-1 border-2 border-black shadow-solid text-sm font-display hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
                 Hari ini
-              </button>
+              </button> -->
               <div class="flex items-center space-x-4">
                 <button @click="prevMonth" class="hover:text-primary font-bold text-xl">&lt;</button>
                 <span class="font-bold text-lg font-display">{{ currentMonthName }} {{ currentYear }}</span>
