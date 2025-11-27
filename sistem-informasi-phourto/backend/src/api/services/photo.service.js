@@ -174,34 +174,29 @@ class PhotoService {
      */
     async sendClaimEmail(info) {
         try {
-            // 1. Tentukan Path Template HTML
             const templatePath = path.join(__dirname, '../../templates', 'claim_photo_template.html');
 
-            // 2. Baca File Template
             let htmlContent = fs.readFileSync(templatePath, 'utf8');
 
-            // 3. Siapkan URL Magic Link
-            // Ambil URL Frontend dari .env atau default ke localhost
-            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+            let frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
-            // Link langsung ke halaman ClaimResult
+            if (frontendUrl.endsWith('/')) {
+                frontendUrl = frontendUrl.slice(0, -1);
+            }
+            if (!frontendUrl.startsWith('http')) {
+                frontendUrl = 'http://' + frontendUrl;
+            }
+
             const magicLink = `${frontendUrl}/booking/ClaimResult?code=${encodeURIComponent(info.unique_code)}&email=${encodeURIComponent(info.email)}`;
 
-            // 4. Ganti Placeholder di HTML (MENGGUNAKAN REGEX AGAR LEBIH AMAN)
-            // Regex /\{\{\s*KEY\s*\}\}/g artinya:
-            // - Cari kurung kurawal ganda {{ ... }}
-            // - \s* toleransi spasi (misal {{CUSTOMER_NAME}} atau {{ CUSTOMER_NAME }})
-            // - g (global) ganti semua kemunculan jika ada lebih dari satu
+            console.log("GENERATED CLAIM URL:", magicLink);
 
-            htmlContent = htmlContent.replace(/\{\{\s*CUSTOMER_NAME\s*\}\}/g, info.full_name);
-            htmlContent = htmlContent.replace(/\{\{\s*PACKAGE_NAME\s*\}\}/g, info.package_name);
-            htmlContent = htmlContent.replace(/\{\{\s*CLAIM_CODE\s*\}\}/g, info.unique_code);
-
-            // INI BAGIAN PENTING YANG TADI ERROR:
+            htmlContent = htmlContent.replace(/\{\{\s*CUSTOMER_NAME\s*\}\}/g, info.full_name || 'Pelanggan');
+            htmlContent = htmlContent.replace(/\{\{\s*PACKAGE_NAME\s*\}\}/g, info.package_name || 'Sesi Pemotretan Anda');
+            htmlContent = htmlContent.replace(/\{\{\s*CLAIM_CODE\s*\}\}/g, info.unique_code || 'N/A');
             htmlContent = htmlContent.replace(/\{\{\s*CLAIM_URL\s*\}\}/g, magicLink);
 
-            // 5. Kirim Email
-            const EmailService = require('./email.service'); // Pastikan path ini benar
+            const EmailService = require('./email.service');
 
             await EmailService.sendEmail({
                 to: info.email,
@@ -209,10 +204,16 @@ class PhotoService {
                 html: htmlContent
             });
 
-            logger.info(`Email klaim foto terkirim ke ${info.email}`);
+            if (typeof logger !== 'undefined') {
+                logger.info(`Email klaim foto terkirim ke ${info.email}`);
+            }
 
         } catch (error) {
-            logger.error("Error sending email helper:", error);
+            if (typeof logger !== 'undefined') {
+                logger.error("Error sending claim email:", error);
+            } else {
+                console.error("Error sending claim email:", error);
+            }
         }
     }
 

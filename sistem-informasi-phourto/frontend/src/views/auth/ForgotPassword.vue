@@ -34,15 +34,17 @@ onMounted(() => {
   <div class="bg-background min-h-screen flex items-center justify-center font-display text-text-default">
     <div class="max-w-lg w-full p-8 space-y-6">
       <!-- Logo -->
-      <router-link to="/Home" class="font-display text-5xl font-bold relative inline-block mx-auto mb-8">
-        Phour<span class="text-primary text-6xl absolute -bottom-2 -right-8 transform -rotate-12">to</span>
-        <span class="absolute top-0 right-0 text-[10px] leading-none font-sans font-bold w-20 text-right">we'll
-          partner<br>with our<br>best</span>
-      </router-link>
+      <div class="text-center">
+                    <router-link to="/" class="inline-block">
+                        <!-- Responsive: h-[100px] di mobile, h-[150px] di desktop -->
+                        <img src="@/assets/logo-phourto.png" alt="Phourto Logo"
+                            class="h-[100px] md:h-[150px] w-auto object-contain transition-all duration-300" />
+                    </router-link>
+                </div>
 
       <!-- Tahap 1: Input Email -->
       <div v-if="currentStep === 'input'">
-        <h2 class="text-2xl font-bold text-center">FORGOT PASSWORD</h2>
+        <h2 class="text-4xl font-bold text-center">FORGOT PASSWORD</h2>
         <p class="text-center text-sm font-sans mt-2 mb-6">Masukkan alamat email Anda dan kami akan mengirimkan tautan
           untuk mereset kata sandi Anda.</p>
         <form @submit.prevent="handleRequestReset" class="space-y-4">

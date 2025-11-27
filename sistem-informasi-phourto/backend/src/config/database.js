@@ -14,7 +14,7 @@ const pool = new Pool({
     database: process.env.DB_NAME,
     password: process.env.DB_PASSWORD,
     port: process.env.DB_PORT,
-    
+
     // --- PERBAIKAN 1 (KRITIS) ---
     // Mengatur search_path. 
     // Ini memberi tahu PostgreSQL untuk "melihat" ke dalam skema 'phourto' 
@@ -44,7 +44,7 @@ module.exports = {
      * @returns {Promise<PoolClient>} Klien koneksi.
      */
     getClient: () => pool.connect(),
-    
+
     /**
      * Fungsi untuk menguji koneksi saat aplikasi dimulai.
      * (Panggil ini di file index.js/app.js utama Anda)

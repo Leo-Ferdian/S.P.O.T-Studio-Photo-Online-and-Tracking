@@ -100,10 +100,10 @@ onMounted(() => {
                                 required class="form-input-setting pr-10" placeholder="Masukkan password Anda" />
                             <button type="button" @click="togglePasswordVisibility"
                                 class="absolute inset-y-0 right-0 pr-3 flex items-center text-text-inverse hover:text-gray-200 transition-colors">
-                                <span v-show="isPasswordVisible">
+                                <span v-show="!isPasswordVisible">
                                     <i data-feather="eye-off" class="w-5 h-5"></i>
                                 </span>
-                                <span v-show="!isPasswordVisible">
+                                <span v-show="isPasswordVisible">
                                     <i data-feather="eye" class="w-5 h-5"></i>
                                 </span>
                             </button>
@@ -127,16 +127,10 @@ onMounted(() => {
                     <div class="absolute inset-0 flex items-center">
                         <div class="w-full border-t-3 border-outline"></div>
                     </div>
-                    <div class="relative inline-block px-4 bg-background font-bold text-gray-500">OR</div>
+                    <div class="relative inline-block px-4 bg-background font-bold text-gray-500">Phour.to</div>
                 </div>
 
-                <!-- Tombol Google -->
-                <button :disabled="isLoading"
-                    class="w-full bg-white text-text-default font-bold py-3 border-3 border-outline shadow-solid hover:bg-gray-100 active:shadow-none active:translate-x-1 active:translate-y-1 transition-all duration-100 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed">
-                    <img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png"
-                        alt="Google logo" class="h-6 mr-2" />
-                    Sign in with Google
-                </button>
+        
 
                 <!-- Catatan Privasi -->
                 <p class="text-xs text-center pt-2 leading-relaxed text-gray-600">

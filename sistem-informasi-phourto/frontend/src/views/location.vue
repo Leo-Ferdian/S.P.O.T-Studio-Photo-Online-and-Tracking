@@ -138,24 +138,29 @@ onMounted(async () => {
 
       <!-- Header -->
       <div class="flex items-center justify-between mb-12">
-        <div class="flex-1">
-          <div class="flex items-center space-x-2">
-            <button @click="$router.back()"
-              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
-              <i data-feather="arrow-left" class="w-6 h-6"></i>
-            </button>
-            <button @click="$router.push('/Home')"
-              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
-              <i data-feather="home" class="w-6 h-6"></i>
-            </button>
-          </div>
-        </div>
+  
+  <!-- Tombol Back di kiri -->
+  <div class="flex-1">
+    <button @click="$router.back()"
+      class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
+      <i data-feather="arrow-left" class="w-6 h-6"></i>
+    </button>
+  </div>
 
-        <div class="flex-1 text-center">
-          <h1 class="text-3xl font-bold">LOCATION</h1>
-        </div>
+  <!-- Judul di tengah -->
+  <div class="flex-1 text-center">
+    <h1 class="text-3xl font-bold">LOCATION</h1>
+  </div>
 
-        <div class="flex-1"></div>
+  <!-- Tombol Home di kanan -->
+  <div class="flex-1 flex justify-end">
+    <button @click="$router.push('/Home')"
+      class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
+      <i data-feather="home" class="w-6 h-6"></i>
+    </button>
+  </div>
+
+
       </div>
 
       <!-- Loading & Error -->

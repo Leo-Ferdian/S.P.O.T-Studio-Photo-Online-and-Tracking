@@ -129,28 +129,33 @@ onMounted(() => {
     <main class="container mx-auto px-4">
 
       <!-- HEADER (Updated Style: Right Aligned Title) -->
-      <div class="flex flex-row items-center justify-between mb-8 md:mb-12">
+      <div class="flex items-center justify-between mb-8 md:mb-12">
 
-        <!-- Tombol Navigasi (Kiri) -->
-        <div class="flex-shrink-0 flex items-center space-x-2 mr-4">
+        <!-- Back (Kiri) -->
+        <div class="flex-shrink-0">
           <button @click="$router.back()"
-            class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
+            class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 transition-all">
             <i data-feather="arrow-left" class="w-5 h-5 md:w-6 md:h-6"></i>
           </button>
+        </div>
+
+        <!-- Judul (Tengah) -->
+        <div class="flex-1 text-center">
+          <h1 class="text-lg md:text-3xl font-bold uppercase tracking-wide leading-tight whitespace-nowrap">
+            KONFIRMASI PEMESANAN
+          </h1>
+        </div>
+
+        <!-- Home (Kanan) -->
+        <div class="flex-shrink-0 flex justify-end">
           <button @click="$router.push('/Home')"
-            class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
+            class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 transition-all">
             <i data-feather="home" class="w-5 h-5 md:w-6 md:h-6"></i>
           </button>
         </div>
 
-        <!-- Judul (Kanan) -->
-        <div class="flex-grow text-right">
-          <h1 class="text-lg md:text-3xl font-bold uppercase tracking-wide leading-tight">
-            KONFIRMASI <br class="block md:hidden" /> PEMESANAN
-          </h1>
-        </div>
-
       </div>
+
 
       <!-- KONTEN UTAMA -->
       <div v-if="summary" class="grid md:grid-cols-2 gap-12 items-start">

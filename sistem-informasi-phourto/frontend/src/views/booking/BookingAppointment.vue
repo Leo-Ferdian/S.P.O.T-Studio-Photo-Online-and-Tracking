@@ -22,6 +22,9 @@ const selectedDate = ref(null)
 const today = new Date()
 today.setHours(0, 0, 0, 0)
 
+const minBookingDate = new Date(today)
+minBookingDate.setDate(minBookingDate.getDate() + 1) // Tambah 1 hari
+
 const currentMonthName = computed(() =>
   currentDate.value.toLocaleString('id-ID', { month: 'long' })
 )
@@ -62,20 +65,26 @@ const nextMonth = () => {
 
 const goToToday = () => {
   currentDate.value = new Date()
-  handleDateSelect(today)
+  selectedDate.value = null
 }
-
 const isToday = (day) => day && day.toDateString() === today.toDateString()
 const isSelected = (day) =>
   day && selectedDate.value && day.toDateString() === selectedDate.value.toDateString()
 const isPast = (day) => day && day < today
+
+const isDisableDate = (day) => {
+  if (!day) return true;
+  // Bandingkan dengan minBookingDate (H+1)
+  // Jika hari < H+1, maka disable
+  return day < minBookingDate;
+}
 
 // --- State Slot Waktu ---
 const selectedTime = ref(null)
 
 // --- Pilih Tanggal ---
 const handleDateSelect = async (day) => {
-  if (!day || isPast(day)) return;
+  if (!day || isDisableDate(day)) return;
   selectedDate.value = day;
   selectedTime.value = null;
 
@@ -86,7 +95,7 @@ const handleDateSelect = async (day) => {
     return;
   }
 
-  // --- PERBAIKAN TIMEZONE ---
+  // --- TIMEZONE ---
   const startOfDayUTC = new Date(Date.UTC(
     day.getFullYear(),
     day.getMonth(),
@@ -134,39 +143,44 @@ onMounted(() => {
 
       <!-- Header Halaman (Updated Layout) -->
       <!-- Flex Row: Kiri Tombol, Kanan Judul -->
-      <div class="flex flex-row items-center justify-between mb-8 md:mb-12">
+      <div class="flex items-center justify-between mb-8 md:mb-12">
 
-        <!-- Tombol Navigasi (Kiri) -->
-        <div class="flex-shrink-0 flex items-center space-x-2 mr-4">
+        <!-- Back (Kiri) -->
+        <div class="flex-shrink-0">
           <button @click="$router.back()"
-            class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
+            class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 transition-all">
             <i data-feather="arrow-left" class="w-5 h-5 md:w-6 md:h-6"></i>
           </button>
+        </div>
+
+        <!-- Judul (Tengah) -->
+        <div class="flex-1 text-center">
+          <h1 class="text-lg md:text-3xl font-bold uppercase tracking-wide leading-tight whitespace-nowrap">
+            BOOKING APPOINTMENT
+          </h1>
+        </div>
+
+        <!-- Home (Kanan) -->
+        <div class="flex-shrink-0 flex justify-end">
           <button @click="$router.push('/')"
-            class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
+            class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 transition-all">
             <i data-feather="home" class="w-5 h-5 md:w-6 md:h-6"></i>
           </button>
         </div>
 
-        <!-- Judul (Kanan) -->
-        <div class="flex-grow text-right">
-          <h1 class="text-lg md:text-3xl font-bold uppercase tracking-wide leading-tight">
-            BOOKING <br class="block md:hidden" /> APPOINTMENT
-          </h1>
-        </div>
-
       </div>
+
 
       <!-- Konten Booking -->
       <div v-if="selectedBranch && selectedPackage">
-        <div class="grid md:grid-cols-3 gap-8">
+        <div class="grid md:grid-cols-3 gap-8 items-start">
           <!-- Kalender -->
           <div class="md:col-span-2 bg-white text-black p-6 border-4 border-outline">
             <div class="flex justify-between items-center mb-6">
-              <button @click="goToToday"
+              <!-- <button @click="goToToday"
                 class="bg-primary text-white px-3 py-1 border-2 border-black shadow-solid text-sm font-display hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
                 Hari ini
-              </button>
+              </button> -->
               <div class="flex items-center space-x-4">
                 <button @click="prevMonth" class="hover:text-primary font-bold text-xl">&lt;</button>
                 <span class="font-bold text-lg font-display">{{ currentMonthName }} {{ currentYear }}</span>
@@ -182,14 +196,24 @@ onMounted(() => {
               <div v-for="i in (firstDayIndex === 0 ? 6 : firstDayIndex - 1)" :key="'empty-' + i" class="h-12"></div>
               <div v-for="day in calendarDays.filter(d => d !== null)" :key="day.getDate()"
                 class="h-12 flex items-center justify-center">
-                <button @click="handleDateSelect(day)" :disabled="isPast(day)" :class="[
+                <button @click="handleDateSelect(day)" :disabled="isDisableDate(day)" :class="[
                   'w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full border-2 border-transparent transition-colors font-sans text-sm md:text-base',
-                  isPast(day) ? 'text-gray-400 cursor-not-allowed' : 'hover:border-primary',
-                  isToday(day) && !isSelected(day) ? 'bg-primary text-white' : '',
+                  isDisableDate(day) ? 'text-gray-300 cursor-not-allowed' : 'hover:border-primary',
+                  isToday(day) && !isSelected(day) && !isDisableDate(day) ? 'bg-yellow-100 text-black font-bold border-yellow-400' : '',
                   isSelected(day) ? 'bg-black text-white border-black ring-2 ring-offset-2 ring-primary' : ''
                 ]">
                   {{ day.getDate() }}
                 </button>
+              </div>
+            </div>
+            <div class="mt-4 pt-4 border-t-2 border-gray-200">
+              <div
+                class="flex items-start gap-2 text-sm text-gray-600 bg-yellow-50 p-3 border border-yellow-200 rounded">
+                <i data-feather="info" class="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5"></i>
+                <p>
+                  <span class="font-bold text-gray-800">Info Pemesanan:</span>
+                  Sistem hanya menerima booking minimal H-1 sebelum jam cut-off.
+                </p>
               </div>
             </div>
           </div>

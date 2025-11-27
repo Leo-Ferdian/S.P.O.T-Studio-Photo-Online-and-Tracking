@@ -85,26 +85,33 @@ onMounted(() => {
     <div class="bg-background min-h-screen font-display text-text-default pt-24 pb-12">
         <main class="container mx-auto px-4">
             <div class="flex items-center justify-between mb-12">
-                <div class="flex-1">
-                    <div class="flex items-center space-x-2">
-                        <button @click="$router.back()"
-                            class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5">
-                            <i data-feather="arrow-left" class="w-6 h-6"></i>
-                        </button>
-                        <button @click="$router.push('/Home')"
-                            class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5">
-                            <i data-feather="home" class="w-6 h-6"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="flex-1 text-center">
-                    <span v-if="currentGallery"
-                        class="inline-block bg-primary text-text-default px-6 py-2 border-3 border-outline shadow-solid">
-                        {{ currentGallery.title }}
-                    </span>
-                </div>
-                <div class="flex-1"></div>
-            </div>
+
+    <!-- Back kiri -->
+    <div class="flex-1">
+        <button @click="$router.back()"
+            class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
+            <i data-feather="arrow-left" class="w-6 h-6"></i>
+        </button>
+    </div>
+
+    <!-- Judul tengah -->
+    <div class="flex-1 text-center">
+        <span v-if="currentGallery"
+            class="inline-block bg-primary text-text-default px-6 py-2 border-3 border-outline shadow-solid">
+            {{ currentGallery.title }}
+        </span>
+    </div>
+
+    <!-- Home kanan -->
+    <div class="flex-1 flex justify-end">
+        <button @click="$router.push('/Home')"
+            class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
+            <i data-feather="home" class="w-6 h-6"></i>
+        </button>
+    </div>
+
+</div>
+
 
             <div v-if="isLoading" class="text-center py-16">
                 <p>Loading gallery...</p>
@@ -187,7 +194,7 @@ onMounted(() => {
                 <h2 class="text-2xl font-bold">Galeri Tidak Ditemukan</h2>
                 <p class="font-sans mt-2">Maaf, kami tidak dapat menemukan detail untuk layanan ini.</p>
                 <router-link to="/"
-                    class="inline-block bg-primary text-text-default font-bold mt-6 py-3 px-6 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-1 active:translate-y-1">
+                    class="inline-block bg-primary text-text-default font-bold mt-6 py-3 px-6 border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-1 active:translate-y-1 hover:translate-y-1 hover:shadow-none transition-all">
                     Kembali ke Beranda
                 </router-link>
             </div>

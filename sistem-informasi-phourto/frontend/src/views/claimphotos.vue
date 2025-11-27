@@ -40,20 +40,26 @@ onMounted(() => {
   <div class="bg-background min-h-screen text-text-default pt-12 pb-12">
     <main class="container mx-auto px-4">
       <!-- Header Halaman -->
-      <div class="flex items-center justify-between mb-12">
-        <div class="flex-1">
-          <div class="flex items-center space-x-2">
-            <button @click="$router.back()"
-              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
-              <i data-feather="arrow-left" class="w-6 h-6"></i>
-            </button>
-            <button @click="$router.push('/Home')"
-              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
-              <i data-feather="home" class="w-6 h-6"></i>
-            </button>
-          </div>
-        </div>
-      </div>
+     <div class="flex items-center justify-between mb-12">
+
+  <!-- Back di kiri -->
+  <div class="flex-1">
+    <button @click="$router.back()"
+      class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
+      <i data-feather="arrow-left" class="w-6 h-6"></i>
+    </button>
+  </div>
+
+  <!-- Home di kanan -->
+  <div class="flex-1 flex justify-end">
+    <button @click="$router.push('/Home')"
+      class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
+      <i data-feather="home" class="w-6 h-6"></i>
+    </button>
+  </div>
+
+</div>
+
 
       <!-- Konten Utama -->
       <div class="bg-primary text-text-default border-4 border-outline shadow-strong max-w-3xl mx-auto p-10">
@@ -88,7 +94,7 @@ onMounted(() => {
           <!-- Tombol Submit -->
           <div class="text-center pt-6">
             <button type="submit" :disabled="isLoading"
-              class="bg-white text-text-default font-bold text-lg py-3 px-8 border-3 border-outline shadow-solid hover:bg-yellow-300 active:shadow-none active:translate-x-1 active:translate-y-1 transition-all disabled:opacity-50">
+              class="bg-white text-text-default font-bold text-lg py-3 px-8 border-3 border-outline shadow-solid hover:bg-red-300 active:shadow-none active:translate-x-1 active:translate-y-1 disabled:opacity-50 hover:translate-y-1 hover:shadow-none transition-all">
               <span v-if="isLoading">Processing...</span>
               <span v-else>DONE</span>
             </button>

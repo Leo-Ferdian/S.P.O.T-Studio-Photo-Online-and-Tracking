@@ -58,33 +58,42 @@ onMounted(async () => {
 </script>
 
 <template>
-    <div class="bg-background min-h-screen font-display text-text-default pt-24 pb-12">
-        <main class="container mx-auto px-4">
+   <div class="bg-background min-h-screen font-display text-text-default pt-24 pb-12">
+    <main class="container mx-auto px-4">
 
-            <!-- Header -->
-            <div class="flex items-center justify-between mb-12">
-                <div class="flex-1">
-                    <div class="flex items-center space-x-2">
-                        <button @click="$router.back()"
-                            class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:translate-y-1 hover:shadow-none transition-all">
-                            <i data-feather="arrow-left" class="w-6 h-6"></i>
-                        </button>
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-12">
 
+            <!-- BAGIAN KIRI (SAMA) -->
+            <div class="w-full">
+                <div class="flex items-center space-x-2">
+                    <button @click="$router.back()"
+                        class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:translate-y-1 hover:shadow-none transition-all">
+                        <i data-feather="arrow-left" class="w-6 h-6"></i>
+                    </button>
+
+                    <div class="flex-1 flex justify-end">
                         <button @click="$router.push('/Home')"
                             class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:translate-y-1 hover:shadow-none transition-all">
                             <i data-feather="home" class="w-6 h-6"></i>
                         </button>
                     </div>
                 </div>
-
-                <div class="flex-1 text-center">
-                    <h1 class="text-3xl font-bold">
-                        {{ branchDisplayData?.name }}
-                    </h1>
-                </div>
-
-                <div class="flex-1"></div>
             </div>
+
+            <!-- TAMBAHAN BARU (Super Minimal): Judul di tengah -->
+            <div class="absolute left-1/2 transform -translate-x-1/2">
+                <h1 class="text-2xl md:text-3xl font-bold whitespace-nowrap overflow-hidden text-ellipsis">
+                    {{ branchDisplayData?.name }}
+                </h1>
+            </div>
+
+            <div class="flex-1"></div>
+        </div>
+
+    
+
+
 
             <!-- Loading -->
             <div v-if="isLoading" class="text-center py-16">

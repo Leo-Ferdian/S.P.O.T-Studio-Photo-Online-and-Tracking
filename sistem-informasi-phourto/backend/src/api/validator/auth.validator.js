@@ -19,7 +19,7 @@ const registerValidationRules = () => {
             .trim()
             .notEmpty().withMessage('Email tidak boleh kosong.')
             .isEmail().withMessage('Format email tidak valid.')
-            .normalizeEmail()
+            .normalizeEmail({ gmail_remove_dots: false })
             .custom(async (value) => {
                 // Hanya blokir jika email sudah ada DAN terverifikasi
                 const { rows } = await db.query(
@@ -75,7 +75,7 @@ const loginValidationRules = () => {
             .trim()
             .notEmpty().withMessage('Email tidak boleh kosong.')
             .isEmail().withMessage('Format email tidak valid.')
-            .normalizeEmail(),
+            .normalizeEmail({ gmail_remove_dots: false }),
 
         body('password')
             .notEmpty().withMessage('Password tidak boleh kosong.')
@@ -93,7 +93,7 @@ const forgotPasswordValidationRules = () => {
             .trim()
             .notEmpty().withMessage('Email tidak boleh kosong.')
             .isEmail().withMessage('Format email tidak valid.')
-            .normalizeEmail()
+            .normalizeEmail({ gmail_remove_dots: false })
             .custom(async (value, { req }) => {
                 // --- PERBAIKAN LOGIKA DI SINI ---
                 // Cek kustom: Pastikan email INI ADA
@@ -153,7 +153,7 @@ const verifyOtpValidationRules = () => {
             .trim()
             .notEmpty().withMessage('Email tidak boleh kosong.')
             .isEmail().withMessage('Format email tidak valid.')
-            .normalizeEmail(),
+            .normalizeEmail({ gmail_remove_dots: false }),
 
         // 2. Validasi OTP
         body('otp')

@@ -49,7 +49,7 @@ const goToClaim = (item) => {
   router.push(`/claimphotos`);
 }
 
-// [FITUR BARU] Handle Bayar Sekarang
+// Handle Bayar Sekarang
 const handlePayNow = (item) => {
   // 1. Set 'currentBooking' di store dengan data dari item ini
   //    Kita perlu memastikan struktur datanya cocok dengan yang diharapkan Payment.vue
@@ -70,6 +70,33 @@ const handlePayNow = (item) => {
   router.push('/booking/payment');
 }
 
+// --- Logika WhatsApp Link ---
+const getWhatsappRescheduleLink = (booking) => {
+  try {
+    // Nomor Admin (Ganti dengan nomor asli studio Anda, format internasional tanpa '+')
+    const adminPhone = '6282283238664';
+
+    // Ambil data dengan fallback string kosong agar tidak error
+    const id = booking.booking_id || 'Unknown ID';
+    const pkg = booking.package_name || 'Paket';
+    const date = formatDate(booking.start_time);
+
+    const message = `Halo Admin S.P.O.T, saya ingin mengajukan reschedule untuk pesanan saya:
+        
+- ID Booking: ${id}
+- Paket: ${pkg}
+- Jadwal Awal: ${date}
+
+Mohon informasinya untuk ketersediaan jadwal baru. Terima kasih.`;
+
+    const url = `https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`;
+    return url;
+  } catch (error) {
+    console.error("Gagal membuat link WA:", error);
+    return '#';
+  }
+};
+
 onMounted(() => {
   fetchHistory();
 })
@@ -79,20 +106,34 @@ onMounted(() => {
   <div class="bg-background min-h-screen font-display text-text-default pt-24 pb-12">
     <main class="container mx-auto px-4 max-w-5xl">
 
-      <div class="flex items-center justify-between mb-10">
-        <button @click="$router.back()"
-          class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
-          <i data-feather="arrow-left" class="w-6 h-6"></i>
-        </button>
-        <button @click="$router.push('/Home')"
-          class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
-          <i data-feather="home" class="w-6 h-6"></i>
-        </button>
-        <h1 class="text-3xl md:text-4xl font-bold text-center flex-1 uppercase tracking-wider">
-          Riwayat Sesi
-        </h1>
-        <div class="w-12"></div>
+      <div class="flex-1">
+        <div class="flex items-center justify-between mb-6">
+
+          <!-- Back kiri -->
+          <div class="flex-1">
+            <button @click="$router.back()"
+              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
+              <i data-feather="arrow-left" class="w-6 h-6"></i>
+            </button>
+          </div>
+
+          <!-- Judul tengah -->
+          <h1 class="text-3xl md:text-4xl font-bold text-center flex-1 uppercase tracking-wider">
+            Riwayat Sesi
+          </h1>
+
+          <!-- Home kanan -->
+          <div class="flex-1 flex justify-end">
+            <button @click="$router.push('/Home')"
+              class="p-2 bg-primary text-text-default border-3 border-outline shadow-solid hover:bg-red-600 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 hover:translate-y-1 hover:shadow-none transition-all">
+              <i data-feather="home" class="w-6 h-6"></i>
+            </button>
+          </div>
+
+        </div>
       </div>
+
+
 
       <div v-if="loading" class="flex flex-col items-center justify-center py-20">
         <i data-feather="loader" class="w-12 h-12 animate-spin text-primary mb-4"></i>
@@ -106,7 +147,7 @@ onMounted(() => {
         </div>
         <h2 class="text-2xl font-bold mb-2">Belum Ada Sesi</h2>
         <p class="text-gray-500 mb-6">Ayo buat kenangan baru bersama kami!</p>
-        <router-link to="/home"
+        <router-link to="/location"
           class="bg-primary text-white px-6 py-3 font-bold border-3 border-outline shadow-solid hover:translate-y-1 hover:shadow-none transition-all inline-block">
           Booking Sekarang
         </router-link>
@@ -131,26 +172,26 @@ onMounted(() => {
 
             <div class="absolute top-4 right-4">
               <span v-if="item.payment_status === 'PENDING'"
-                  class="bg-yellow-300 text-[10px] font-bold px-2 py-1 border-2 border-outline transform rotate-3 shadow-sm block text-black">
-                  BELUM BAYAR
+                class="bg-yellow-300 text-[10px] font-bold px-2 py-1 border-2 border-outline transform rotate-3 shadow-sm block text-black">
+                BELUM BAYAR
               </span>
 
               <span v-else-if="['PAID-FULL', 'COMPLETED'].includes(item.payment_status)"
-                  class="bg-[#4ADE80] text-[10px] font-bold px-2 py-1 border-2 border-outline transform -rotate-2 shadow-sm block text-black">
-                  SUDAH BAYAR
+                class="bg-[#4ADE80] text-[10px] font-bold px-2 py-1 border-2 border-outline transform -rotate-2 shadow-sm block text-black">
+                SUDAH BAYAR
               </span>
 
               <span v-else-if="['CANCELLED', 'EXPIRED', 'FAILED'].includes(item.payment_status)"
-                  class="bg-red-500 text-[10px] font-bold px-2 py-1 border-2 border-outline transform rotate-1 shadow-sm block text-white">
-                  {{ item.payment_status === 'EXPIRED' ? 'KADALUARSA' : 'DIBATALKAN' }}
+                class="bg-red-500 text-[10px] font-bold px-2 py-1 border-2 border-outline transform rotate-1 shadow-sm block text-white">
+                {{ item.payment_status === 'EXPIRED' ? 'KADALUARSA' : 'DIBATALKAN' }}
               </span>
 
               <span v-else
-                  class="bg-gray-300 text-[10px] font-bold px-2 py-1 border-2 border-outline block text-gray-600">
-                  {{ item.payment_status }}
+                class="bg-gray-300 text-[10px] font-bold px-2 py-1 border-2 border-outline block text-gray-600">
+                {{ item.payment_status }}
               </span>
-          </div>
-            
+            </div>
+
           </div>
 
           <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-left flex-grow">
@@ -187,29 +228,42 @@ onMounted(() => {
               </div>
             </div>
           </div>
+          <div v-if="['PENDING', 'PAID-DP', 'PAID-FULL'].includes(item.payment_status)"
+            class="text-center pt-2 border-t border-gray-100 mt-2">
+            <p class="text-[10px] text-gray-400 mb-1">Ingin ubah jadwal?</p>
+            <a :href="getWhatsappRescheduleLink(item)" target="_blank" rel="noopener noreferrer"
+              class="inline-flex items-center justify-center w-full px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded border border-green-200 transition">
+              <svg class="w-3 h-3 mr-1.5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+              </svg>
+              Hubungi Admin
+            </a>
+          </div>
 
           <div class="px-6 py-4 bg-primary text-white flex justify-between items-center border-t-4 border-outline">
             <div>
-                <p class="text-xs text-white/80 font-medium">Total Tagihan</p>
-                <p class="text-xl font-bold">{{ formatRupiah(item.total_price) }}</p>
+              <p class="text-xs text-white/80 font-medium">Total Tagihan</p>
+              <p class="text-xl font-bold">{{ formatRupiah(item.total_price) }}</p>
             </div>
 
             <button v-if="['PAID-FULL', 'COMPLETED'].includes(item.payment_status)" @click="goToClaim(item)"
-                class="flex items-center gap-2 bg-white text-primary px-4 py-2 rounded font-bold text-sm border-2 border-transparent hover:border-white hover:bg-primary hover:text-white transition-all shadow-md">
-                <i data-feather="download-cloud" class="w-4 h-4"></i>
-                <span>Ambil Foto</span>
+              class="flex items-center gap-2 bg-white text-primary px-4 py-2 rounded font-bold text-sm border-2 border-transparent hover:border-white hover:bg-primary hover:text-white transition-all shadow-md">
+              <i data-feather="download-cloud" class="w-4 h-4"></i>
+              <span>Ambil Foto</span>
             </button>
 
             <button v-else-if="item.payment_status === 'PENDING'" @click="handlePayNow(item)"
-                class="flex items-center gap-2 bg-yellow-400 text-black px-4 py-2 rounded font-bold text-sm border-2 border-black hover:bg-yellow-500 transition-all shadow-md">
-                <i data-feather="credit-card" class="w-4 h-4"></i>
-                <span>Bayar Sekarang</span>
+              class="flex items-center gap-2 bg-yellow-400 text-black px-4 py-2 rounded font-bold text-sm border-2 border-black hover:bg-yellow-500 transition-all shadow-md">
+              <i data-feather="credit-card" class="w-4 h-4"></i>
+              <span>Bayar Sekarang</span>
             </button>
 
-            <span v-else-if="['CANCELLED', 'EXPIRED', 'FAILED'].includes(item.payment_status)" class="text-xs font-bold text-red-200 italic">
-                Transaksi Dibatalkan
+            <span v-else-if="['CANCELLED', 'EXPIRED', 'FAILED'].includes(item.payment_status)"
+              class="text-xs font-bold text-red-200 italic">
+              Transaksi Dibatalkan
             </span>
-        </div>
+          </div>
 
         </div>
       </div>

@@ -25,7 +25,7 @@ const handleLogout = () => {
             <!-- === LOGO === -->
             <router-link to="/" class="inline-block z-50 relative">
                 <img src="@/assets/logo-phourto.png" alt="Phourto Logo"
-                    class="h-[60px] md:h-[100px] w-auto object-contain" />
+                    class="h-[60px] md:h-[90px] w-auto object-contain" />
             </router-link>
 
             <!-- === DESKTOP MENU (Hidden di Mobile) === -->

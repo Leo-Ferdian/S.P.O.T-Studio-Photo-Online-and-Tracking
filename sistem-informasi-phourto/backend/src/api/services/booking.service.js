@@ -184,15 +184,14 @@ class BookingService {
      */
     async createBooking(userId, bookingData) {
         const { package_id, start_time, addons = [] } = bookingData;
-        // Menggunakan db.connect() lebih aman untuk transaksi dibandingkan db.getClient()
         const client = await db.getClient();
 
         try {
             await client.query('BEGIN');
 
-            // --- LANGKAH A: Ambil Data Paket ---
+            // 1. Ambil Data Paket
             const packageQuery = `
-            SELECT p.*, r.room_id, r.room_name_display, b.branch_name
+                SELECT p.*, r.room_id, r.room_name_display, b.branch_name
                 FROM packages p
                 JOIN rooms r ON p.room_id = r.room_id
                 JOIN branches b ON r.branch_id = b.branch_id
@@ -204,57 +203,80 @@ class BookingService {
             }
             const pkg = packageResult.rows[0];
 
-            // --- LANGKAH B: Hitung Waktu & Cek Ketersediaan ---
+            // 2. Hitung Waktu
             const startTimeObj = new Date(start_time);
             const endTimeObj = new Date(startTimeObj.getTime() + pkg.duration_in_minutes * 60000);
 
+            // 3. Cek Ketersediaan
             const isAvailable = await this._checkSlotAvailability(pkg.room_id, startTimeObj, endTimeObj, null, client);
             if (!isAvailable) {
-                throw new ApiError(409, 'Slot waktu sudah terisi atau bentrok.');
+                throw new ApiError(409, 'Slot waktu sudah terisi atau bentrok. Silakan pilih waktu lain.');
             }
 
-            // --- LANGKAH C: Hitung Harga ---
-            // ... (Logika hitung harga tidak berubah) ...
+            // 4. Hitung Harga Total (Termasuk Addons)
             let calculatedTotalPrice = parseFloat(pkg.price);
-            // (Logika addons...)
+
+            // PERBAIKAN PENTING: Definisi variabel di sini agar bisa diakses di blok insert nanti
+            let addonPriceMap = new Map();
+
+            if (addons && addons.length > 0) {
+                const addonIds = addons.map(a => a.addon_id);
+
+                const addonPricesResult = await client.query(
+                    `SELECT addon_id, addon_price FROM addons WHERE addon_id = ANY($1::uuid[])`,
+                    [addonIds]
+                );
+
+                addonPriceMap = new Map(addonPricesResult.rows.map(a => [a.addon_id.toString(), parseFloat(a.addon_price)]));
+
+                for (const item of addons) {
+                    const price = addonPriceMap.get(item.addon_id);
+                    // Validasi harga (pastikan tidak undefined)
+                    if (price === undefined) {
+                        throw new ApiError(400, `Addon ID ${item.addon_id} tidak valid atau tidak ditemukan.`);
+                    }
+
+                    calculatedTotalPrice += price * item.quantity;
+                }
+            }
 
             const calculatedDpAmount = calculatedTotalPrice * 0.5;
-
-            // --- LANGKAH D: Hitung Batas Waktu Pembayaran ---
             const paymentDeadline = new Date(Date.now() + PAYMENT_DEADLINE_MINUTES * 60 * 1000);
-
-            // --- LANGKAH E: INSERT ke 'bookings' ---
-            const bookingQuery = `
-            INSERT INTO bookings (
-                user_id, package_id, room_id, start_time, end_time,
-                total_price, dp_amount, amount_paid, payment_status,
-                payment_deadline, unique_code, zip_status 
-                )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-            RETURNING *;`;
             const uniqueCode = `PHR-${Date.now().toString().slice(-6)}`;
+
+            // 5. Insert Booking
+            const bookingQuery = `
+                INSERT INTO bookings (
+                    user_id, package_id, room_id, start_time, end_time,
+                    total_price, dp_amount, amount_paid, payment_status,
+                    payment_deadline, unique_code, zip_status 
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                RETURNING *;`;
 
             const bookingResult = await client.query(bookingQuery, [
                 userId, pkg.package_id, pkg.room_id, startTimeObj, endTimeObj,
-                calculatedTotalPrice, calculatedDpAmount,
+                calculatedTotalPrice,
+                calculatedDpAmount,
                 0, BOOKING_STATUS.PENDING, paymentDeadline,
                 uniqueCode, ZIP_STATUS.PENDING
             ]);
             const newBooking = bookingResult.rows[0];
 
-            // --- LANGKAH F: INSERT ke 'booking_addons' --- (No change)
-            if (addons.length > 0) {
+            // 6. Insert Booking Addons
+            if (addons && addons.length > 0) {
                 const addonInsertQuery = `
                     INSERT INTO booking_addons (booking_id, addon_id, quantity, price_at_booking)
                     VALUES ($1, $2, $3, $4);
-                    `;
+                `;
                 for (const item of addons) {
+                    // PERBAIKAN: Sekarang addonPriceMap sudah didefinisikan di scope yang benar
                     const price = addonPriceMap.get(item.addon_id);
                     await client.query(addonInsertQuery, [newBooking.booking_id, item.addon_id, item.quantity, price]);
                 }
             }
 
-            // --- LANGKAH G: INSERT ke 'booking_history' --- (No change)
+            // 7. Insert History
             await client.query(
                 `INSERT INTO booking_history (booking_id, user_id_actor, action_type, details_after)
                 VALUES ($1, $2, $3, $4)`,
